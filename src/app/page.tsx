@@ -234,15 +234,31 @@ export default function HomePage() {
     }
 
     try {
-      // Placeholder for minting logic
-      // In a real application, you would interact with your ARC token contract here
-      // For example: const tx = await arcContract.mint(account, parseEther("1"));
-      // await tx.wait();
-
-      toast({
-        title: "Minting Successful",
-        description: "You have successfully minted 1 ARC token! (Placeholder)",
+      const response = await fetch('/api/mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerAddress: account,
+          amount: 1, // Minting 1 ARC
+        }),
       });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Minting Successful",
+          description: `You have successfully minted 1 ARC token! Transaction: ${data.transactionHash}`,
+        });
+      } else {
+        toast({
+          title: "Minting Failed",
+          description: `Error: ${data.error || 'Unknown error'}. Details: ${data.details || 'No details provided.'}`,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Minting failed:", error);
       toast({

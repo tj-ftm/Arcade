@@ -33,9 +33,10 @@ export async function POST(req: NextRequest) {
     // 3. Checking if the 'gameId' has already been processed to prevent double-minting.
     // 4. Rate limiting requests from a single playerAddress.
     // For now, we'll just add a basic check.
-    if (!gameId || !score || !signature) {
-      return NextResponse.json({ error: 'Missing validation parameters' }, { status: 400 });
-    }
+    // These parameters are optional for the simple "Mint 1 ARC" button.
+    // if (!gameId || !score || !signature) {
+    //   return NextResponse.json({ error: 'Missing validation parameters' }, { status: 400 });
+    // }
 
     if (!playerAddress || typeof amount !== 'number' || amount <= 0) {
       return NextResponse.json({ error: 'Invalid request parameters' }, { status: 400 });
