@@ -1,14 +1,9 @@
 
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ethers, formatEther, parseEther } from "ethers";
-import Web3 from "web3";
-import { useToast } from "@/hooks/use-toast";
-import { ARC_TOKEN_ABI, ARC_TOKEN_CONTRACT_ADDRESS, SONIC_CHAIN_ID, SONIC_RPC_URL } from "@/lib/constants";
-import Web3Modal from "web3modal";
-import WalletConnectProvider from "@walletconnect/web3-provider";
-import { GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI } from "@/types";
+import { GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI, ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI } from "@/types";
 
 interface Web3ContextType {
   account: string | null;
@@ -24,14 +19,14 @@ interface Web3ContextType {
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 const SONIC_NETWORK = {
-    chainId: `0x${SONIC_CHAIN_ID.toString(16)}`, // 146
+    chainId: '0x92', // 146
     chainName: 'Sonic',
     nativeCurrency: {
       name: 'Sonic',
       symbol: 'S',
       decimals: 18,
     },
-    rpcUrls: [SONIC_RPC_URL],
+    rpcUrls: ['https://rpc.soniclabs.com'],
     blockExplorerUrls: ['https://sonicscan.org'],
 };
 
@@ -41,8 +36,6 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   const [username, setUsernameState] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [arcBalance, setArcBalance] = useState<string | null>(null);
-
-  const { toast } = useToast();
 
   const setUsername = (name: string) => {
     if(account) {
@@ -62,7 +55,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     const balance = await provider.getBalance(userAccount);
     const formattedBalance = parseFloat(formatEther(balance)).toFixed(4);
     setBalance(formattedBalance);
-    const arcContract = new ethers.Contract(ARC_TOKEN_CONTRACT_ADDRESS, ARC_TOKEN_ABI, provider);
+    const arcContract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, provider);
     const arcBalanceRaw = await arcContract.balanceOf(userAccount);
     console.log("ARC Balance Raw:", arcBalanceRaw.toString(), "for account:", userAccount);
     const formattedArcBalance = parseFloat(formatEther(arcBalanceRaw)).toFixed(4);
@@ -90,16 +83,6 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     setAccount(null);
     setUsernameState(null);
     setBalance(null);
-    if (window.ethereum && window.ethereum.isMetaMask) {
-      // For MetaMask, clearing the cache might involve more direct interaction
-      // or relying on the wallet's own disconnect mechanism.
-      // As a fallback, we can try to clear relevant local storage items.
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('walletconnect') || key.startsWith('WEB3_CONNECT_CACHED_PROVIDER')) {
-          localStorage.removeItem(key);
-        }
-      });
-    }
   };
   
   const switchToSonicNetwork = async () => {
@@ -126,42 +109,33 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   };
 
 
-  const connect = useCallback(async () => {
-    const providerOptions = {
-      injected: {
-        display: {
-          name: "Injected",
-          description: "Connect with the browser extension (MetaMask, Rabby, etc.)",
-        },
-        package: null,
-      },
-    };
-
-    const web3Modal = new Web3Modal({
-      cacheProvider: true,
-      network: "mainnet", // or "sonic" or other network
-      providerOptions,
-    });
-
-    try {
-      const instance = await web3Modal.connect();
-      const provider = new ethers.BrowserProvider(instance);
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
-      setAccount(address);
-      // setProvider(provider); // Removed as setProvider is not defined
-      // checkNetwork(provider); // Removed as checkNetwork is not defined
-      await getBalance(provider, address); // Call getBalance after successful connection
-      await switchToSonicNetwork(); // Ensure correct network is selected
-    } catch (error) {
-      console.error("Error connecting to wallet:", error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to connect wallet. Please try again.",
-        variant: "destructive",
-      });
+  const connect = async () => {
+    const provider = getProvider();
+    if (!provider) {
+      alert("Please install Rabby Wallet or another Ethereum-compatible wallet.");
+      return;
     }
-  }, [toast, getBalance]);
+    
+    try {
+      await switchToSonicNetwork();
+      const accounts = await provider.send("eth_requestAccounts", []);
+      
+      if (accounts.length > 0) {
+        const userAccount = accounts[0];
+        setAccount(userAccount);
+        const storedUsername = localStorage.getItem(`username_${userAccount}`);
+        setUsernameState(storedUsername || userAccount);
+        await getBalance(provider, userAccount);
+      }
+    } catch (error: any) {
+       if (error.code === 4001 || error.code === -32001) { 
+        // 4001 is user rejected request
+        // -32001 is "Already processing unlock"
+        return; 
+      }
+      console.error("Failed to connect wallet", error);
+    }
+  };
   
   const payForGame = async (): Promise<boolean> => {
     const provider = getProvider();
