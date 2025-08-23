@@ -224,13 +224,18 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
 
   // Calculate tokens to mint based on game type and score
   let tokensToMint = 0;
+  console.log(`Game Type: ${storedLog.gameType}, Score: ${storedLog.score}, Won: ${storedLog.won}`);
   if (storedLog.gameType === 'snake') {
     // For Snake: 1 ARC per 10 points
     tokensToMint = Math.floor(storedLog.score / 10);
+    console.log(`Snake game - Calculated tokensToMint: ${tokensToMint}`);
   } else {
     // For other games: 1 ARC if won
     if (storedLog.won) {
       tokensToMint = 1;
+      console.log(`Other game (won) - Calculated tokensToMint: ${tokensToMint}`);
+    } else {
+      console.log(`Other game (lost) - Calculated tokensToMint: ${tokensToMint}`);
     }
   }
 
