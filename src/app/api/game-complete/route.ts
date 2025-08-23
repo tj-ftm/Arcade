@@ -125,7 +125,9 @@ export async function POST(req: NextRequest) {
  */
 async function handleGameStorage(gameData: GameCompleteRequest) {
   // Validate required fields
+  console.log('handleGameStorage: Received gameData:', gameData);
   if (!gameData.playerAddress || !gameData.gameType || typeof gameData.score !== 'number' || typeof gameData.won !== 'boolean') {
+    console.error('handleGameStorage: Missing required game data fields.');
     return NextResponse.json({ error: 'Missing required game data: playerAddress, gameType, score, won' }, { status: 400 });
   }
 
@@ -142,16 +144,23 @@ async function handleGameStorage(gameData: GameCompleteRequest) {
   }
 
   // Store game log in database
-  const storedLog = storeGameLog({
-    timestamp: gameData.timestamp || new Date().toISOString(),
-    gameId,
-    player: gameData.playerAddress,
-    gameType: gameData.gameType,
-    score: gameData.score,
-    duration: gameData.duration || 0,
-    won: gameData.won,
-    result: gameData.won ? 'VICTORY' : 'DEFEAT'
-  });
+  let storedLog;
+  try {
+    storedLog = storeGameLog({
+      timestamp: gameData.timestamp || new Date().toISOString(),
+      gameId,
+      player: gameData.playerAddress,
+      gameType: gameData.gameType,
+      score: gameData.score,
+      duration: gameData.duration || 0,
+      won: gameData.won,
+      result: gameData.won ? 'VICTORY' : 'DEFEAT'
+    });
+    console.log('handleGameStorage: Game log stored successfully:', storedLog);
+  } catch (storageError: any) {
+    console.error('handleGameStorage: Error storing game log:', storageError);
+    return NextResponse.json({ error: 'Failed to store game log', details: storageError.message }, { status: 500 });
+  }
 
   return NextResponse.json({
     success: true,
