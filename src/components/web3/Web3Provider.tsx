@@ -18,15 +18,15 @@ interface Web3ContextType {
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 const SONIC_NETWORK = {
-    chainId: '0x6102', // 24834
-    chainName: 'Sonic Testnet',
+    chainId: '0x92', // 146
+    chainName: 'Sonic',
     nativeCurrency: {
       name: 'Sonic',
       symbol: 'S',
       decimals: 18,
     },
-    rpcUrls: ['https://rpc.sonic.fantom.network/'],
-    blockExplorerUrls: ['https://testnet.sonicscan.io/'],
+    rpcUrls: ['https://rpc.soniclabs.com'],
+    blockExplorerUrls: ['https://sonicscan.org'],
 };
 
 
