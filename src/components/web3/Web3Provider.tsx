@@ -3,13 +3,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ethers, formatEther, parseEther } from "ethers";
-import { GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI } from "@/types";
+import { GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI, ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI } from "@/types";
 
 interface Web3ContextType {
   account: string | null;
   username: string | null;
   setUsername: (name: string) => void;
   balance: string | null;
+  arcBalance: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   payForGame: () => Promise<boolean>;
@@ -34,6 +35,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   const [account, setAccount] = useState<string | null>(null);
   const [username, setUsernameState] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
+  const [arcBalance, setArcBalance] = useState<string | null>(null);
 
   const setUsername = (name: string) => {
     if(account) {
@@ -53,6 +55,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     const balance = await provider.getBalance(userAccount);
     const formattedBalance = parseFloat(formatEther(balance)).toFixed(4);
     setBalance(formattedBalance);
+    const arcContract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, provider);
+    const arcBalanceRaw = await arcContract.balanceOf(userAccount);
+    const formattedArcBalance = parseFloat(formatEther(arcBalanceRaw)).toFixed(2);
+    setArcBalance(formattedArcBalance);
   }, []);
 
   const handleAccountsChanged = useCallback(async (accounts: string[]) => {
@@ -71,6 +77,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   }, [getBalance]);
   
   const disconnect = () => {
+    setArcBalance(null);
     setAccount(null);
     setUsernameState(null);
     setBalance(null);
@@ -171,7 +178,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [handleAccountsChanged]);
 
-  const value = { account, username, setUsername, balance, connect, disconnect, payForGame };
+  const value = { account, username, setUsername, balance, arcBalance, connect, disconnect, payForGame };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 };

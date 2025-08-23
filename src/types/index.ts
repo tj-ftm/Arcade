@@ -94,6 +94,29 @@ export const DERP_ABI = [
   }
 ];
 
+export const ARC_TOKEN_ADDRESS = '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d';
+export const ARC_TOKEN_ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "balanceOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 // PLACEHOLDERS: Replace with your deployed smart contract address and ABI
 export const GAME_CONTRACT_ADDRESS = '0xYourContractAddressHere';
 export const GAME_CONTRACT_ABI = [

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const ConnectWallet = () => {
-  const { connect, disconnect, balance, username } = useWeb3();
+  const { connect, disconnect, balance, arcBalance, username } = useWeb3();
 
   if (username) {
     return (
@@ -27,6 +27,7 @@ export const ConnectWallet = () => {
             <div className="flex flex-col text-right">
               <span className="text-white font-bold text-sm leading-tight">{username}</span>
               <span className="text-accent font-bold text-md leading-tight">{balance} S</span>
+              <span className="text-accent font-bold text-md leading-tight">{arcBalance} ARC</span>
             </div>
           </div>
         </DropdownMenuTrigger>
@@ -35,6 +36,7 @@ export const ConnectWallet = () => {
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled>
             <span className="font-bold text-accent">{balance} S</span>
+            <span className="font-bold text-accent">{arcBalance} ARC</span>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={disconnect}>
             <LogOut className="mr-2 h-4 w-4" />
