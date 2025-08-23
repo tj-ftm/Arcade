@@ -108,13 +108,6 @@ export async function POST(req: NextRequest) {
     const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
 
     // Mint tokens
-    // The contract expects a MintRequest object and a signature.
-    // The current implementation only provides playerAddress and amount.
-    // This part needs to be updated to construct the MintRequest and provide a valid signature.
-    // For now, I will comment out the call to avoid errors until the full MintRequest and signature generation are implemented.
-    // const tx = await tokenContract.mintWithSignature(mintRequest, signature);
-    // await tx.wait();
-
     // Get the minter's wallet address
     const minterWallet = new ethers.Wallet(MINTER_PRIVATE_KEY!, provider);
     const minterAddress = minterWallet.address;
