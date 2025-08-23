@@ -57,7 +57,9 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     setBalance(formattedBalance);
     const arcContract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, provider);
     const arcBalanceRaw = await arcContract.balanceOf(userAccount);
-    const formattedArcBalance = parseFloat(formatEther(arcBalanceRaw)).toFixed(2);
+    console.log("ARC Balance Raw:", arcBalanceRaw.toString(), "for account:", userAccount);
+    const formattedArcBalance = parseFloat(formatEther(arcBalanceRaw)).toFixed(4);
+    console.log("ARC Balance Formatted:", formattedArcBalance);
     setArcBalance(formattedArcBalance);
   }, []);
 
