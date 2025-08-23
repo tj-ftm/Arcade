@@ -76,8 +76,28 @@ interface GameCompleteRequest {
 }
 
 export async function POST(req: NextRequest) {
+  // Log environment variable status for debugging
+  console.log('Environment check:', {
+    hasPrivateKey: !!MINTER_PRIVATE_KEY,
+    hasContractAddress: !!TOKEN_CONTRACT_ADDRESS,
+    hasRpcUrl: !!RPC_URL,
+    privateKeyLength: MINTER_PRIVATE_KEY?.length || 0,
+    contractAddress: TOKEN_CONTRACT_ADDRESS || 'undefined',
+    rpcUrl: RPC_URL || 'undefined'
+  });
+  
   if (!MINTER_PRIVATE_KEY || !TOKEN_CONTRACT_ADDRESS || !RPC_URL) {
-    return NextResponse.json({ error: 'Server configuration missing (private key, contract address, or RPC URL)' }, { status: 500 });
+    const missingVars = [];
+    if (!MINTER_PRIVATE_KEY) missingVars.push('MINTER_PRIVATE_KEY');
+    if (!TOKEN_CONTRACT_ADDRESS) missingVars.push('TOKEN_CONTRACT_ADDRESS');
+    if (!RPC_URL) missingVars.push('RPC_URL');
+    
+    console.error('Missing environment variables:', missingVars);
+    return NextResponse.json({ 
+      error: 'Server configuration missing', 
+      missingVariables: missingVars,
+      details: 'Required environment variables are not set'
+    }, { status: 500 });
   }
 
   try {
@@ -183,9 +203,24 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   }
 
   // Initialize provider and signer
-  const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
-  const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
+  let provider, signer, tokenContract;
+  try {
+    console.log('Initializing blockchain connection...');
+    provider = new ethers.JsonRpcProvider(RPC_URL);
+    signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
+    tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
+    
+    // Test connection
+    await provider.getNetwork();
+    console.log('Blockchain connection successful');
+  } catch (error: any) {
+    console.error('Failed to initialize blockchain connection:', error);
+    return NextResponse.json({ 
+      error: 'Blockchain connection failed', 
+      details: error.message,
+      rpcUrl: RPC_URL
+    }, { status: 500 });
+  }
 
   // Calculate tokens to mint based on game type and score
   let tokensToMint = 0;
@@ -256,23 +291,37 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   const logString = JSON.stringify(logData);
 
   // Store verified game log on contract
-  console.log('Storing verified game log on contract...');
-  const logTx = await tokenContract.setContractURI(logString);
-  await logTx.wait();
-  console.log('Verified game log stored successfully. Transaction:', logTx.hash);
-
-  let mintTxHash = null;
+  let logTx, mintTxHash = null;
   let rewardMessage = tokensToMint > 0 ? `${tokensToMint} ARC` : 'None';
+  
+  try {
+    console.log('Storing verified game log on contract...');
+    logTx = await tokenContract.setContractURI(logString);
+    await logTx.wait();
+    console.log('Verified game log stored successfully. Transaction:', logTx.hash);
+  } catch (error: any) {
+    console.error('Failed to store game log on contract:', error);
+    return NextResponse.json({ 
+      error: 'Failed to store game log on blockchain', 
+      details: error.message
+    }, { status: 500 });
+  }
   
   // Mint tokens if any are earned
   if (tokensToMint > 0) {
-    console.log(`Minting ${tokensToMint} ARC token(s) to ${storedLog.player}`);
-    const amountToMint = ethers.parseUnits(tokensToMint.toString(), 18);
-    
-    const mintTx = await tokenContract.mintTo(storedLog.player, amountToMint);
-    await mintTx.wait();
-    mintTxHash = mintTx.hash;
-    console.log('Token(s) minted successfully. Transaction:', mintTxHash);
+    try {
+      console.log(`Minting ${tokensToMint} ARC token(s) to ${storedLog.player}`);
+      const amountToMint = ethers.parseUnits(tokensToMint.toString(), 18);
+      
+      const mintTx = await tokenContract.mintTo(storedLog.player, amountToMint);
+      await mintTx.wait();
+      mintTxHash = mintTx.hash;
+      console.log('Token(s) minted successfully. Transaction:', mintTxHash);
+    } catch (error: any) {
+      console.error('Failed to mint tokens:', error);
+      // Continue execution even if minting fails, but log the error
+      console.log('Game log was stored successfully, but token minting failed');
+    }
   }
 
   // Update stored log with verification status and transaction hashes
