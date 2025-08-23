@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ensure Web3Modal is always on top */
+.web3modal-container,
+.web3modal-modal-card {
+  z-index: 9999 !important;
+}
+
+
 @layer base {
   :root {
     --background: 222 84% 4%;
