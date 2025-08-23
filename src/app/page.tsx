@@ -219,7 +219,7 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, on
 
 export default function HomePage() {
   const { toast } = useToast();
-  const { account, refreshBalances } = useWeb3();
+  const { account } = useWeb3();
   const [activeView, setActiveView] = useState<View>('menu');
   const [gameKey, setGameKey] = useState(0); // Used to reset game state
 
@@ -252,7 +252,6 @@ export default function HomePage() {
           title: "Minting Successful",
           description: `You have successfully minted 1 ARC token! Transaction: ${data.transactionHash}`,
         });
-        refreshBalances();
       } else {
         toast({
           title: "Minting Failed",
@@ -261,7 +260,7 @@ export default function HomePage() {
         });
       }
     } catch (error) {
-
+      console.error("Minting failed:", error);
       toast({
         title: "Minting Failed",
         description: "There was an error minting ARC tokens. Please try again.",

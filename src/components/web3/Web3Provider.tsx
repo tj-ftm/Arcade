@@ -14,7 +14,6 @@ interface Web3ContextType {
   connect: () => Promise<void>;
   disconnect: () => void;
   payForGame: () => Promise<boolean>;
-  refreshBalances: () => Promise<void>;
 }
 
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
@@ -58,7 +57,9 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     setBalance(formattedBalance);
     const arcContract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, provider);
     const arcBalanceRaw = await arcContract.balanceOf(userAccount);
+    console.log("ARC Balance Raw:", arcBalanceRaw.toString(), "for account:", userAccount);
     const formattedArcBalance = parseFloat(formatEther(arcBalanceRaw)).toFixed(4);
+    console.log("ARC Balance Formatted:", formattedArcBalance);
     setArcBalance(formattedArcBalance);
   }, []);
 
@@ -136,15 +137,6 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   };
   
-  const refreshBalances = useCallback(async () => {
-    if (account) {
-      const provider = getProvider();
-      if (provider) {
-        await getBalance(provider, account);
-      }
-    }
-  }, [account, getBalance]);
-
   const payForGame = async (): Promise<boolean> => {
     const provider = getProvider();
     if (!provider || !account) {
@@ -188,7 +180,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [handleAccountsChanged]);
 
-  const value = { account, username, setUsername, balance, arcBalance, connect, disconnect, payForGame, refreshBalances };
+  const value = { account, username, setUsername, balance, arcBalance, connect, disconnect, payForGame };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 };
