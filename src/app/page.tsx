@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react'; // Added a comment to force re-compilation
 import { Button } from "@/components/ui/button";
 import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2 } from "lucide-react";
 
@@ -245,7 +245,20 @@ export default function HomePage() {
         }),
       });
 
+
       const data = await response.json();
+      // Send data to a server-side logging endpoint
+      fetch('/api/debug-log', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'minting_debug',
+          account: account,
+          responseData: data,
+        }),
+      });
 
       if (response.ok) {
         toast({
