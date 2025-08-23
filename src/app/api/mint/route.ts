@@ -10,8 +10,66 @@ const MINTER_PRIVATE_KEY = process.env.MINTER_PRIVATE_KEY;
 // Replace with your actual contract details.
 const TOKEN_CONTRACT_ADDRESS = process.env.TOKEN_CONTRACT_ADDRESS;
 const TOKEN_CONTRACT_ABI = [
-  // Add your token contract's ABI here, specifically the 'mint' function
-  "function mint(address to, uint256 amount)"
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "to",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "primarySaleRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "quantity",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "price",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "currency",
+            "type": "address"
+          },
+          {
+            "internalType": "uint128",
+            "name": "validityStartTimestamp",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "validityEndTimestamp",
+            "type": "uint128"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "uid",
+            "type": "bytes32"
+          }
+        ],
+        "internalType": "struct ITokenERC20.MintRequest",
+        "name": "_req",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "mintWithSignature",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
 ];
 
 // This is a placeholder for your blockchain RPC URL.
@@ -50,7 +108,54 @@ export async function POST(req: NextRequest) {
     const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
 
     // Mint tokens
-    const tx = await tokenContract.mint(playerAddress, ethers.parseUnits(amount.toString(), 18)); // Assuming 18 decimals
+    // The contract expects a MintRequest object and a signature.
+    // The current implementation only provides playerAddress and amount.
+    // This part needs to be updated to construct the MintRequest and provide a valid signature.
+    // For now, I will comment out the call to avoid errors until the full MintRequest and signature generation are implemented.
+    // const tx = await tokenContract.mintWithSignature(mintRequest, signature);
+    // await tx.wait();
+
+    // Get the minter's wallet address
+    const minterWallet = new ethers.Wallet(MINTER_PRIVATE_KEY!, provider);
+    const minterAddress = minterWallet.address;
+
+    // Construct the MintRequest object
+    const mintRequest = {
+      to: playerAddress,
+      primarySaleRecipient: minterAddress, // Using minter as primary sale recipient
+      quantity: ethers.parseUnits(amount.toString(), 18),
+      price: 0, // Free minting
+      currency: "0x0000000000000000000000000000000000000000", // ETH address (zero address)
+      validityStartTimestamp: Math.floor(Date.now() / 1000),
+      validityEndTimestamp: Math.floor(Date.now() / 1000) + 3600, // Valid for 1 hour
+      uid: ethers.keccak256(ethers.toUtf8Bytes(`${playerAddress}-${Date.now()}`)) // Unique ID based on player and timestamp
+    };
+
+    // Generate signature for the mint request
+    const domain = {
+      name: "TokenERC20",
+      version: "1",
+      chainId: await provider.getNetwork().then(n => n.chainId),
+      verifyingContract: TOKEN_CONTRACT_ADDRESS
+    };
+
+    const types = {
+      MintRequest: [
+        { name: "to", type: "address" },
+        { name: "primarySaleRecipient", type: "address" },
+        { name: "quantity", type: "uint256" },
+        { name: "price", type: "uint256" },
+        { name: "currency", type: "address" },
+        { name: "validityStartTimestamp", type: "uint128" },
+        { name: "validityEndTimestamp", type: "uint128" },
+        { name: "uid", type: "bytes32" }
+      ]
+    };
+
+    const signature = await minterWallet.signTypedData(domain, types, mintRequest);
+
+    // Execute the mint transaction
+    const tx = await tokenContract.mintWithSignature(mintRequest, signature);
     await tx.wait();
 
     return NextResponse.json({ message: `Successfully minted ${amount} tokens to ${playerAddress}`, transactionHash: tx.hash });
