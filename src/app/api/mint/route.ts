@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { playerAddress, amount, gameId, score, signature } = await req.json();
+    const { playerAddress, amount, gameId, score, signature: requestSignature } = await req.json();
 
     // TODO: Implement robust server-side validation here to prevent cheating.
     // This might involve:
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     // 4. Rate limiting requests from a single playerAddress.
     // For now, we'll just add a basic check.
     // These parameters are optional for the simple "Mint 1 ARC" button.
-    // if (!gameId || !score || !signature) {
+    // if (!gameId || !score || !requestSignature) {
     //   return NextResponse.json({ error: 'Missing validation parameters' }, { status: 400 });
     // }
 
