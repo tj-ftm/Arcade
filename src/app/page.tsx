@@ -218,8 +218,40 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, on
 // --- Main App Component ---
 
 export default function HomePage() {
+  const { toast } = useToast();
+  const { account } = useWeb3();
   const [activeView, setActiveView] = useState<View>('menu');
   const [gameKey, setGameKey] = useState(0); // Used to reset game state
+
+  const handleMintArc = async () => {
+    if (!account) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to mint ARC tokens.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Placeholder for minting logic
+      // In a real application, you would interact with your ARC token contract here
+      // For example: const tx = await arcContract.mint(account, parseEther("1"));
+      // await tx.wait();
+
+      toast({
+        title: "Minting Successful",
+        description: "You have successfully minted 1 ARC token! (Placeholder)",
+      });
+    } catch (error) {
+      console.error("Minting failed:", error);
+      toast({
+        title: "Minting Failed",
+        description: "There was an error minting ARC tokens. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleNavigate = (view: View) => {
     setGameKey(prev => prev + 1); // Increment key to force re-mount of game components
@@ -364,6 +396,9 @@ export default function HomePage() {
                         </Button>
                         <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
                             <Settings />
+                        </Button>
+                        <Button onClick={handleMintArc} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                            <Ticket className="mr-2 h-5 w-5" /> Mint 1 ARC
                         </Button>
                         <ConnectWallet />
                     </div>
