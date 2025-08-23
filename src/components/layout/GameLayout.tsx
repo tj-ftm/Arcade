@@ -26,6 +26,14 @@ import { Progress } from "@/components/ui/progress";
 
 type View = 'menu' | 'uno' | 'snake' | 'chess' | 'platformer' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno';
 
+export const GameLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 to-black py-12 text-white">
+      {children}
+    </div>
+  );
+};
+
 // --- Replicated Page Components ---
 
 const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
