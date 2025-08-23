@@ -6,6 +6,8 @@ import useInterval from 'use-interval';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWeb3 } from '@/components/web3/Web3Provider';
+import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 
 const GRID_SIZE = 20;
 const INITIAL_SNAKE = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
@@ -23,11 +25,14 @@ const SnakeCell = ({ type }: { type: 'snake' | 'food' | 'empty' }) => {
 };
 
 export const SnakeClient = () => {
+    const { account } = useWeb3();
     const [gameState, setGameState] = useState<'idle' | 'running' | 'gameOver'>('idle');
     const [snake, setSnake] = useState(INITIAL_SNAKE);
     const [food, setFood] = useState(INITIAL_FOOD);
     const [direction, setDirection] = useState(INITIAL_DIRECTION);
     const [score, setScore] = useState(0);
+    const [gameStartTime, setGameStartTime] = useState<number>(0);
+    const [isLoggingGame, setIsLoggingGame] = useState(false);
 
     const generateFood = useCallback(() => {
         let newFoodPosition;
@@ -40,11 +45,42 @@ export const SnakeClient = () => {
         setFood(newFoodPosition);
     }, [snake]);
 
+    const handleGameOver = async () => {
+        setGameState('gameOver');
+        
+        // Only log game if wallet is connected
+        if (!isValidWalletAddress(account) || isLoggingGame) {
+            return;
+        }
+
+        setIsLoggingGame(true);
+        
+        try {
+            const gameDuration = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
+            const isWin = score >= 100; // Consider score >= 100 as a win
+            
+            const gameResult = createGameResult(
+                account!,
+                'snake',
+                score,
+                isWin,
+                gameDuration
+            );
+            
+            await logGameCompletion(gameResult);
+        } catch (error) {
+            console.error('Failed to log game completion:', error);
+        } finally {
+            setIsLoggingGame(false);
+        }
+    };
+
     const handleStartGame = () => {
         setSnake(INITIAL_SNAKE);
         setFood(INITIAL_FOOD);
         setDirection(INITIAL_DIRECTION);
         setScore(0);
+        setGameStartTime(Date.now());
         setGameState('running');
     };
 
@@ -84,14 +120,14 @@ export const SnakeClient = () => {
 
         // Wall collision
         if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
-            setGameState('gameOver');
+            handleGameOver();
             return;
         }
 
         // Self collision
         for (let i = 1; i < newSnake.length; i++) {
             if (head.x === newSnake[i].x && head.y === newSnake[i].y) {
-                setGameState('gameOver');
+                handleGameOver();
                 return;
             }
         }
@@ -135,8 +171,25 @@ export const SnakeClient = () => {
                              <h2 className={cn("font-bold", gameState === 'idle' ? "text-5xl text-green-400" : "text-6xl text-red-500")}>
                                 {gameState === 'idle' ? 'Ready to Play?' : 'Game Over'}
                             </h2>
-                            {gameState === 'gameOver' && <p className="text-xl mt-2">Your final score: {score}</p>}
-                            <Button onClick={handleStartGame} className="mt-4 text-xl h-12">
+                            {gameState === 'gameOver' && (
+                                <div className="text-center">
+                                    <p className="text-xl mt-2">Your final score: {score}</p>
+                                    {score >= 100 && (
+                                        <p className="text-green-400 text-lg mt-1">🎉 Winning Score! You earned 1 ARC!</p>
+                                    )}
+                                    {!isValidWalletAddress(account) && (
+                                        <p className="text-yellow-400 text-sm mt-2">Connect wallet to earn rewards</p>
+                                    )}
+                                    {isLoggingGame && (
+                                        <p className="text-blue-400 text-sm mt-2">Logging game result...</p>
+                                    )}
+                                </div>
+                            )}
+                            <Button 
+                                onClick={handleStartGame} 
+                                className="mt-4 text-xl h-12"
+                                disabled={isLoggingGame}
+                            >
                                 {gameState === 'idle' ? <><Play className="mr-2"/>Start Game</> : <><RefreshCw className="mr-2" /> Play Again</>}
                             </Button>
                         </div>
