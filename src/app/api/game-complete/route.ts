@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
+import { 
+  storeGameLog, 
+  getGameLog, 
+  verifyGameLog, 
+  updateGameLogVerification, 
+  gameIdExists,
+  getAllGameLogs,
+  getGameStats 
+} from '@/lib/game-database';
 
 // Environment variables
 const MINTER_PRIVATE_KEY = process.env.MINTER_PRIVATE_KEY;
@@ -62,6 +71,8 @@ interface GameCompleteRequest {
   won: boolean;
   timestamp?: string;
   gameId?: string;
+  verificationMode?: 'store' | 'verify'; // New field for two-step verification
+  storedGameId?: string; // For verification step
 }
 
 export async function POST(req: NextRequest) {
@@ -72,109 +83,14 @@ export async function POST(req: NextRequest) {
   try {
     const gameData: GameCompleteRequest = await req.json();
     
-    // Validate required fields
-    if (!gameData.playerAddress || !gameData.gameType || typeof gameData.score !== 'number' || typeof gameData.won !== 'boolean') {
-      return NextResponse.json({ error: 'Missing required game data: playerAddress, gameType, score, won' }, { status: 400 });
+    // Handle different verification modes
+    if (gameData.verificationMode === 'verify') {
+      return await handleGameVerification(gameData);
     }
-
-    // Validate player address
-    if (!ethers.isAddress(gameData.playerAddress)) {
-      return NextResponse.json({ error: 'Invalid player address' }, { status: 400 });
-    }
-
-    // Initialize provider and signer
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
-    const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
-
-    // Create detailed game log
-    const gameLog = {
-      timestamp: gameData.timestamp || new Date().toISOString(),
-      gameId: gameData.gameId || `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      player: gameData.playerAddress,
-      gameType: gameData.gameType,
-      score: gameData.score,
-      duration: gameData.duration || 0,
-      won: gameData.won,
-      result: gameData.won ? 'VICTORY' : 'DEFEAT',
-      rewardGiven: gameData.won,
-      contractAddress: TOKEN_CONTRACT_ADDRESS,
-      network: 'Sonic'
-    };
-
-    console.log('Processing game completion:', gameLog);
-
-    // Get existing logs to append new log
-    let existingLogs = [];
-    try {
-      const currentURI = await tokenContract.contractURI();
-      if (currentURI && currentURI.trim() !== '') {
-        // Try to parse existing logs as JSON
-        try {
-          const parsed = JSON.parse(currentURI);
-          if (Array.isArray(parsed.gameLogs)) {
-            existingLogs = parsed.gameLogs;
-          }
-        } catch {
-          // If not JSON, treat as legacy single log
-          existingLogs = [{ legacyLog: currentURI, timestamp: new Date().toISOString() }];
-        }
-      }
-    } catch (error) {
-      console.log('No existing logs found, starting fresh');
-    }
-
-    // Add new log to existing logs
-    existingLogs.push(gameLog);
-
-    // Keep only last 50 logs to prevent excessive gas costs
-    if (existingLogs.length > 50) {
-      existingLogs = existingLogs.slice(-50);
-    }
-
-    // Create comprehensive log structure
-    const logData = {
-      version: '1.0',
-      lastUpdated: new Date().toISOString(),
-      totalGames: existingLogs.length,
-      gameLogs: existingLogs
-    };
-
-    const logString = JSON.stringify(logData);
-
-    // Store game log on contract
-    console.log('Storing game log on contract...');
-    const logTx = await tokenContract.setContractURI(logString);
-    await logTx.wait();
-    console.log('Game log stored successfully. Transaction:', logTx.hash);
-
-    let mintTxHash = null;
     
-    // If player won, mint 1 ARC token
-    if (gameData.won) {
-      console.log(`Player won! Minting 1 ARC token to ${gameData.playerAddress}`);
-      const amountToMint = ethers.parseUnits('1', 18); // 1 ARC token with 18 decimals
-      
-      const mintTx = await tokenContract.mintTo(gameData.playerAddress, amountToMint);
-      await mintTx.wait();
-      mintTxHash = mintTx.hash;
-      console.log('Token minted successfully. Transaction:', mintTxHash);
-    }
-
-    // Return success response
-    const response = {
-      success: true,
-      message: `Game completed and logged successfully${gameData.won ? '. 1 ARC token minted as reward!' : ''}`,
-      gameLog: gameLog,
-      transactions: {
-        logTransaction: logTx.hash,
-        mintTransaction: mintTxHash
-      },
-      reward: gameData.won ? '1 ARC' : 'None'
-    };
-
-    return NextResponse.json(response);
-
+    // Default mode: store game log first
+    return await handleGameStorage(gameData);
+    
   } catch (error: any) {
     console.error('Game completion processing error:', error);
     return NextResponse.json({ 
@@ -182,6 +98,187 @@ export async function POST(req: NextRequest) {
       details: error.message 
     }, { status: 500 });
   }
+}
+
+/**
+ * Handles storing the game log in the database (Step 1)
+ */
+async function handleGameStorage(gameData: GameCompleteRequest) {
+  // Validate required fields
+  if (!gameData.playerAddress || !gameData.gameType || typeof gameData.score !== 'number' || typeof gameData.won !== 'boolean') {
+    return NextResponse.json({ error: 'Missing required game data: playerAddress, gameType, score, won' }, { status: 400 });
+  }
+
+  // Validate player address
+  if (!ethers.isAddress(gameData.playerAddress)) {
+    return NextResponse.json({ error: 'Invalid player address' }, { status: 400 });
+  }
+
+  const gameId = gameData.gameId || `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Check for duplicate game IDs
+  if (gameIdExists(gameId)) {
+    return NextResponse.json({ error: 'Game ID already exists' }, { status: 400 });
+  }
+
+  // Store game log in database
+  const storedLog = storeGameLog({
+    timestamp: gameData.timestamp || new Date().toISOString(),
+    gameId,
+    player: gameData.playerAddress,
+    gameType: gameData.gameType,
+    score: gameData.score,
+    duration: gameData.duration || 0,
+    won: gameData.won,
+    result: gameData.won ? 'VICTORY' : 'DEFEAT'
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: 'Game log stored successfully. Proceed to blockchain verification.',
+    storedGameId: storedLog.id,
+    gameData: storedLog,
+    nextStep: 'verification'
+  });
+}
+
+/**
+ * Handles verifying stored game log against blockchain and minting tokens (Step 2)
+ */
+async function handleGameVerification(gameData: GameCompleteRequest) {
+  if (!gameData.storedGameId) {
+    return NextResponse.json({ error: 'Missing stored game ID for verification' }, { status: 400 });
+  }
+
+  // Get stored game log
+  const storedLog = getGameLog(gameData.storedGameId);
+  if (!storedLog) {
+    return NextResponse.json({ error: 'Stored game log not found' }, { status: 404 });
+  }
+
+  // Validate that the verification data matches stored data
+  const isDataValid = (
+    storedLog.player.toLowerCase() === gameData.playerAddress.toLowerCase() &&
+    storedLog.gameType === gameData.gameType &&
+    storedLog.score === gameData.score &&
+    storedLog.won === gameData.won
+  );
+
+  if (!isDataValid) {
+    return NextResponse.json({ 
+      error: 'Verification failed: submitted data does not match stored game log',
+      storedData: {
+        player: storedLog.player,
+        gameType: storedLog.gameType,
+        score: storedLog.score,
+        won: storedLog.won
+      },
+      submittedData: {
+        player: gameData.playerAddress,
+        gameType: gameData.gameType,
+        score: gameData.score,
+        won: gameData.won
+      }
+    }, { status: 400 });
+  }
+
+  // Initialize provider and signer
+  const provider = new ethers.JsonRpcProvider(RPC_URL);
+  const signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
+  const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
+
+  // Create blockchain log from stored data
+  const blockchainLog = {
+    timestamp: storedLog.timestamp,
+    gameId: storedLog.gameId,
+    player: storedLog.player,
+    gameType: storedLog.gameType,
+    score: storedLog.score,
+    duration: storedLog.duration,
+    won: storedLog.won,
+    result: storedLog.result,
+    rewardGiven: storedLog.won,
+    contractAddress: TOKEN_CONTRACT_ADDRESS,
+    network: 'Sonic',
+    verified: true,
+    storedGameId: storedLog.id
+  };
+
+  console.log('Processing verified game completion:', blockchainLog);
+
+  // Get existing logs to append new log
+  let existingLogs = [];
+  try {
+    const currentURI = await tokenContract.contractURI();
+    if (currentURI && currentURI.trim() !== '') {
+      try {
+        const parsed = JSON.parse(currentURI);
+        if (Array.isArray(parsed.gameLogs)) {
+          existingLogs = parsed.gameLogs;
+        }
+      } catch {
+        existingLogs = [{ legacyLog: currentURI, timestamp: new Date().toISOString() }];
+      }
+    }
+  } catch (error) {
+    console.log('No existing logs found, starting fresh');
+  }
+
+  // Add verified log to existing logs
+  existingLogs.push(blockchainLog);
+
+  // Keep only last 50 logs to prevent excessive gas costs
+  if (existingLogs.length > 50) {
+    existingLogs = existingLogs.slice(-50);
+  }
+
+  // Create comprehensive log structure
+  const logData = {
+    version: '1.0',
+    lastUpdated: new Date().toISOString(),
+    totalGames: existingLogs.length,
+    gameLogs: existingLogs
+  };
+
+  const logString = JSON.stringify(logData);
+
+  // Store verified game log on contract
+  console.log('Storing verified game log on contract...');
+  const logTx = await tokenContract.setContractURI(logString);
+  await logTx.wait();
+  console.log('Verified game log stored successfully. Transaction:', logTx.hash);
+
+  let mintTxHash = null;
+  
+  // If player won, mint 1 ARC token (only after verification)
+  if (storedLog.won) {
+    console.log(`Player won! Minting 1 ARC token to ${storedLog.player}`);
+    const amountToMint = ethers.parseUnits('1', 18);
+    
+    const mintTx = await tokenContract.mintTo(storedLog.player, amountToMint);
+    await mintTx.wait();
+    mintTxHash = mintTx.hash;
+    console.log('Token minted successfully. Transaction:', mintTxHash);
+  }
+
+  // Update stored log with verification status and transaction hashes
+  updateGameLogVerification(storedLog.id, true, logTx.hash, mintTxHash || undefined);
+
+  // Return success response
+  const response = {
+    success: true,
+    message: `Game verified and logged successfully${storedLog.won ? '. 1 ARC token minted as reward!' : ''}`,
+    gameLog: blockchainLog,
+    storedGameId: storedLog.id,
+    transactions: {
+      logTransaction: logTx.hash,
+      mintTransaction: mintTxHash
+    },
+    reward: storedLog.won ? '1 ARC' : 'None',
+    verified: true
+  };
+
+  return NextResponse.json(response);
 }
 
 // GET endpoint to retrieve game logs

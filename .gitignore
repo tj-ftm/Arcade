@@ -40,6 +40,9 @@ next-env.d.ts
 .genkit/*
 .env*
 
+# local game database
+data/
+
 # firebase
 firebase-debug.log
 firestore-debug.log

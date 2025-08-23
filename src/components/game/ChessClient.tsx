@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useWeb3 } from '@/components/web3/Web3Provider';
+import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -46,6 +48,7 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 
 
 export const ChessClient = () => {
+    const { account } = useWeb3();
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
     const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
@@ -54,6 +57,9 @@ export const ChessClient = () => {
     const [winner, setWinner] = useState<string | null>(null);
     const [isLogVisible, setIsLogVisible] = useState(false);
     const [isBotThinking, setIsBotThinking] = useState(false);
+    const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
+    const [isLoggingGame, setIsLoggingGame] = useState(false);
+    const [moveCount, setMoveCount] = useState(0);
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -63,19 +69,56 @@ export const ChessClient = () => {
         });
     }
 
-    const checkGameState = useCallback(() => {
+    const checkGameState = useCallback(async () => {
         if (game.isCheckmate()) {
             const winnerColor = game.turn() === 'b' ? 'You' : 'Bot';
+            const playerWon = winnerColor === 'You';
             setWinner(`${winnerColor} win by checkmate!`);
             addGameLog(`${winnerColor} wins by checkmate!`);
+            await handleGameEnd(playerWon, 'checkmate');
         } else if (game.isStalemate()) {
             setWinner("Draw by stalemate!");
-             addGameLog("Draw by stalemate!");
+            addGameLog("Draw by stalemate!");
+            await handleGameEnd(false, 'stalemate');
         } else if (game.isDraw()) {
             setWinner("Draw!");
-             addGameLog("Draw!");
+            addGameLog("Draw!");
+            await handleGameEnd(false, 'draw');
         }
     }, [game]);
+
+    const handleGameEnd = async (playerWon: boolean, endReason: string) => {
+        // Only log game if wallet is connected
+        if (!isValidWalletAddress(account) || isLoggingGame) {
+            return;
+        }
+
+        setIsLoggingGame(true);
+        
+        try {
+            const gameDuration = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
+            // Calculate score based on game outcome and moves
+            let score = moveCount * 10; // Base score from moves
+            if (playerWon) {
+                score += 100; // Bonus for winning
+                if (endReason === 'checkmate') score += 50; // Extra bonus for checkmate
+            }
+            
+            const gameResult = createGameResult(
+                account!,
+                'chess',
+                score,
+                playerWon,
+                gameDuration
+            );
+            
+            await logGameCompletion(gameResult);
+        } catch (error) {
+            console.error('Failed to log chess game completion:', error);
+        } finally {
+            setIsLoggingGame(false);
+        }
+    };
 
     const handleBotMove = useCallback(() => {
       if (game.isGameOver() || game.turn() !== 'b') return;
@@ -107,6 +150,7 @@ export const ChessClient = () => {
           if (bestMove) {
               game.move(bestMove);
               setBoard(game.board());
+              setMoveCount(prev => prev + 1);
               addGameLog(`Bot: ${bestMove.san}`);
               checkGameState();
           }
@@ -133,6 +177,7 @@ export const ChessClient = () => {
 
                 if (move) {
                     setBoard(game.board());
+                    setMoveCount(prev => prev + 1);
                     addGameLog(`You: ${move.san}`);
                     checkGameState();
                 }
@@ -168,6 +213,9 @@ export const ChessClient = () => {
         setWinner(null);
         setGameLog(['Game started. Your turn.']);
         setIsBotThinking(false);
+        setGameStartTime(Date.now());
+        setMoveCount(0);
+        setIsLoggingGame(false);
     };
 
     return (
@@ -234,8 +282,24 @@ export const ChessClient = () => {
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-30">
                     <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>Game Over</h2>
                     <p className="text-2xl md:text-4xl text-white -mt-4">{winner}</p>
+                    {winner.includes('You win') && (
+                        <p className="text-green-400 text-lg mt-1">🎉 Victory! You earned 1 ARC token!</p>
+                    )}
+                    {!isValidWalletAddress(account) && (
+                        <p className="text-yellow-400 text-sm mt-2">Connect wallet to earn rewards</p>
+                    )}
+                    {isLoggingGame && (
+                        <p className="text-blue-400 text-sm mt-2">Logging game result...</p>
+                    )}
                     <div className="flex gap-4">
-                        <Button size="lg" onClick={handleNewGame} className="font-headline text-2xl"><RefreshCw className="mr-2"/> New Game</Button>
+                        <Button 
+                            size="lg" 
+                            onClick={handleNewGame} 
+                            className="font-headline text-2xl"
+                            disabled={isLoggingGame}
+                        >
+                            <RefreshCw className="mr-2"/> New Game
+                        </Button>
                     </div>
                 </div>
             )}

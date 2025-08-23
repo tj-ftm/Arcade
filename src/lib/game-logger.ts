@@ -21,15 +21,16 @@ interface GameLogResponse {
 }
 
 /**
- * Logs game completion and mints tokens for winners
+ * Logs game completion with two-step verification and mints tokens for winners
  * @param gameResult - The game result data
  * @returns Promise with the API response
  */
 export async function logGameCompletion(gameResult: GameResult): Promise<GameLogResponse | null> {
   try {
-    console.log('Logging game completion:', gameResult);
+    console.log('Starting two-step game logging process:', gameResult);
     
-    const response = await fetch('/api/game-complete', {
+    // Step 1: Store game log in database
+    const storeResponse = await fetch('/api/game-complete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,34 +38,64 @@ export async function logGameCompletion(gameResult: GameResult): Promise<GameLog
       body: JSON.stringify({
         ...gameResult,
         timestamp: new Date().toISOString(),
+        verificationMode: 'store'
       }),
     });
 
-    const data = await response.json();
+    const storeData = await storeResponse.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to log game completion');
+    if (!storeResponse.ok) {
+      throw new Error(storeData.error || 'Failed to store game log');
     }
 
-    // Show success toast
-    if (gameResult.won) {
+    console.log('Game stored successfully, proceeding to verification:', storeData.storedGameId);
+
+    // Step 2: Verify and mint tokens
+    const verifyResponse = await fetch('/api/game-complete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...gameResult,
+        timestamp: new Date().toISOString(),
+        verificationMode: 'verify',
+        storedGameId: storeData.storedGameId
+      }),
+    });
+
+    const verifyData = await verifyResponse.json();
+
+    if (!verifyResponse.ok) {
+      throw new Error(verifyData.error || 'Failed to verify game log');
+    }
+
+    // Show success toast based on verification result
+    if (gameResult.won && verifyData.verified) {
       toast({
-        title: "🎉 Victory!",
-        description: `Game logged successfully! You earned 1 ARC token as a reward.`,
+        title: "🎉 Victory Verified!",
+        description: `Game verified and logged on blockchain! You earned 1 ARC token as a reward.`,
         duration: 5000,
+      });
+    } else if (verifyData.verified) {
+      toast({
+        title: "Game Verified",
+        description: "Game result verified and logged on blockchain.",
+        duration: 3000,
       });
     } else {
       toast({
-        title: "Game Complete",
-        description: "Game result logged on blockchain.",
-        duration: 3000,
+        title: "Verification Failed",
+        description: "Game could not be verified. No rewards given.",
+        variant: "destructive",
+        duration: 5000,
       });
     }
 
-    return data;
+    return verifyData;
 
   } catch (error: any) {
-    console.error('Error logging game completion:', error);
+    console.error('Error in game logging process:', error);
     
     toast({
       title: "Error",
