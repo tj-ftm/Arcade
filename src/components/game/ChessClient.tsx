@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
+import { MintSuccessModal } from './MintSuccessModal';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -60,6 +61,8 @@ export const ChessClient = () => {
     const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
     const [isLoggingGame, setIsLoggingGame] = useState(false);
     const [moveCount, setMoveCount] = useState(0);
+    const [showMintSuccess, setShowMintSuccess] = useState(false);
+    const [mintTxHash, setMintTxHash] = useState<string>('');
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -113,6 +116,11 @@ export const ChessClient = () => {
             );
             
             await logGameCompletion(gameResult);
+            if (playerWon) {
+                const simulatedTxHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+                setMintTxHash(simulatedTxHash);
+                setShowMintSuccess(true);
+            }
         } catch (error) {
             console.error('Failed to log chess game completion:', error);
         } finally {
@@ -219,7 +227,7 @@ export const ChessClient = () => {
     };
 
     return (
-       <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden">
+        <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden">
             
             <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
                 <Button variant="secondary" size="icon" onClick={() => setIsLogVisible(v => !v)}>
@@ -228,8 +236,8 @@ export const ChessClient = () => {
             </div>
             
             <div className={cn(
-                "fixed md:static top-0 left-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-r-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
-                isLogVisible ? "translate-x-0" : "-translate-x-full",
+                "fixed md:static top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
+                isLogVisible ? "translate-x-0" : "translate-x-full",
                 "md:translate-x-0 md:h-full"
             )}>
                  <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={() => setIsLogVisible(false)}>
@@ -303,6 +311,12 @@ export const ChessClient = () => {
                     </div>
                 </div>
             )}
-        </div>
-    );
+         <MintSuccessModal
+             isOpen={showMintSuccess}
+             onClose={() => setShowMintSuccess(false)}
+             txHash={mintTxHash}
+             gameName="Chess"
+         />
+         </div>
+     );
 }

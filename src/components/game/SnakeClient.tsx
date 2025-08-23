@@ -8,6 +8,7 @@ import { RefreshCw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play } from 'luci
 import { cn } from '@/lib/utils';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
+import { MintSuccessModal } from './MintSuccessModal';
 
 const GRID_SIZE = 20;
 const INITIAL_SNAKE = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
@@ -33,6 +34,9 @@ export const SnakeClient = () => {
     const [score, setScore] = useState(0);
     const [gameStartTime, setGameStartTime] = useState<number>(0);
     const [isLoggingGame, setIsLoggingGame] = useState(false);
+    const [showMintSuccess, setShowMintSuccess] = useState(false);
+    const [mintTxHash, setMintTxHash] = useState<string>('');
+    const [tokensEarned, setTokensEarned] = useState<number>(0);
 
     const generateFood = useCallback(() => {
         let newFoodPosition;
@@ -47,6 +51,10 @@ export const SnakeClient = () => {
 
     const handleGameOver = async () => {
         setGameState('gameOver');
+        
+        // Calculate tokens earned (1 ARC per 10 points)
+        const tokensToMint = Math.floor(score / 10);
+        setTokensEarned(tokensToMint);
         
         // Only log game if wallet is connected
         if (!isValidWalletAddress(account) || isLoggingGame) {
@@ -67,7 +75,13 @@ export const SnakeClient = () => {
                 gameDuration
             );
             
-            await logGameCompletion(gameResult);
+            const logResponse = await logGameCompletion(gameResult);
+            
+            // Show mint success modal if tokens were earned
+            if (tokensToMint > 0 && logResponse?.transactions?.mintTransaction) {
+                setMintTxHash(logResponse.transactions.mintTransaction);
+                setShowMintSuccess(true);
+            }
         } catch (error) {
             console.error('Failed to log game completion:', error);
         } finally {
@@ -174,8 +188,11 @@ export const SnakeClient = () => {
                             {gameState === 'gameOver' && (
                                 <div className="text-center">
                                     <p className="text-xl mt-2">Your final score: {score}</p>
-                                    {score >= 100 && (
-                                        <p className="text-green-400 text-lg mt-1">🎉 Winning Score! You earned 1 ARC!</p>
+                                    {tokensEarned > 0 && (
+                                        <p className="text-green-400 text-lg mt-1">🎉 You earned {tokensEarned} ARC token{tokensEarned > 1 ? 's' : ''}!</p>
+                                    )}
+                                    {tokensEarned === 0 && score > 0 && (
+                                        <p className="text-yellow-400 text-sm mt-1">Score 10+ points to earn ARC tokens!</p>
                                     )}
                                     {!isValidWalletAddress(account) && (
                                         <p className="text-yellow-400 text-sm mt-2">Connect wallet to earn rewards</p>
@@ -221,6 +238,14 @@ export const SnakeClient = () => {
                 </div>
                 <p className="text-center text-sm text-muted-foreground mt-4 hidden md:block">Use arrow keys or WASD to move</p>
             </div>
+            
+            <MintSuccessModal
+                isOpen={showMintSuccess}
+                onClose={() => setShowMintSuccess(false)}
+                txHash={mintTxHash}
+                gameName="Snake"
+                tokensEarned={tokensEarned}
+            />
         </div>
     );
 };

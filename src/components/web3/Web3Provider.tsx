@@ -5,14 +5,28 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { ethers, formatEther, parseEther } from "ethers";
 import { GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI, ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI } from "@/types";
 
+// Extend Window interface for ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, callback: (...args: any[]) => void) => void;
+      removeListener: (event: string, callback: (...args: any[]) => void) => void;
+      isRabby?: boolean;
+      isMetaMask?: boolean;
+      chainId?: string;
+    };
+  }
+}
+
 interface Web3ContextType {
   account: string | null;
   username: string | null;
   setUsername: (name: string) => void;
-  balance: string | null;
+  sBalance: string | null;
   arcBalance: string | null;
   connect: () => Promise<void>;
-  disconnect: () => void;
+  disconnect: () => Promise<void>;
   payForGame: () => Promise<boolean>;
 }
 
@@ -46,8 +60,15 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 
   const getProvider = () => {
     if (typeof window !== "undefined" && window.ethereum) {
+      console.log("Ethereum provider detected:", window.ethereum);
+      console.log("Provider details:", {
+        isRabby: window.ethereum.isRabby,
+        isMetaMask: window.ethereum.isMetaMask,
+        chainId: window.ethereum.chainId
+      });
       return new ethers.BrowserProvider(window.ethereum);
     }
+    console.log("No ethereum provider found");
     return null;
   };
   
@@ -65,7 +86,11 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 
   const handleAccountsChanged = useCallback(async (accounts: string[]) => {
     if (accounts.length === 0) {
-      disconnect();
+      // Clear local state when accounts are disconnected
+      setArcBalance(null);
+      setAccount(null);
+      setUsernameState(null);
+      setBalance(null);
     } else {
       const userAccount = accounts[0];
       setAccount(userAccount);
@@ -78,62 +103,158 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [getBalance]);
   
-  const disconnect = () => {
-    setArcBalance(null);
-    setAccount(null);
-    setUsernameState(null);
-    setBalance(null);
+  const disconnect = async () => {
+    try {
+      // Clear local state first
+      setArcBalance(null);
+      setAccount(null);
+      setUsernameState(null);
+      setBalance(null);
+      
+      // Try to disconnect from the wallet provider
+      if (window.ethereum) {
+        // For Rabby and other wallets that support wallet_revokePermissions
+        try {
+          await window.ethereum.request({
+            method: 'wallet_revokePermissions',
+            params: [{
+              eth_accounts: {}
+            }]
+          });
+          console.log('Wallet permissions revoked successfully');
+        } catch (revokeError) {
+          console.log('wallet_revokePermissions not supported or failed:', revokeError);
+          
+          // Fallback: Try to request accounts with empty array (some wallets support this)
+          try {
+            await window.ethereum.request({
+              method: 'wallet_requestPermissions',
+              params: [{ eth_accounts: {} }]
+            });
+          } catch (permError) {
+            console.log('wallet_requestPermissions fallback failed:', permError);
+          }
+        }
+        
+        // Clear any cached connection data
+        if (typeof window !== 'undefined') {
+          // Clear localStorage items that might cache wallet connections
+          const keysToRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('wallet') || key.includes('ethereum') || key.includes('rabby'))) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+        }
+      }
+    } catch (error) {
+      console.error('Error during disconnect:', error);
+    }
   };
   
   const switchToSonicNetwork = async () => {
-    const provider = getProvider();
-    if (!provider || !window.ethereum) return;
+    if (!window.ethereum) {
+      console.log("No ethereum provider for network switch");
+      return;
+    }
 
     try {
+        console.log("Switching to Sonic network...");
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: SONIC_NETWORK.chainId }],
         });
+        console.log("Successfully switched to Sonic network");
     } catch (switchError: any) {
+        console.log("Switch error:", switchError);
         if (switchError.code === 4902) {
             try {
+                console.log("Adding Sonic network...");
                 await window.ethereum.request({
                     method: 'wallet_addEthereumChain',
                     params: [SONIC_NETWORK],
                 });
+                console.log("Successfully added Sonic network");
             } catch (addError) {
                 console.error("Failed to add Sonic network", addError);
+                throw addError;
             }
+        } else {
+            console.error("Failed to switch network", switchError);
+            throw switchError;
         }
     }
   };
 
 
   const connect = async () => {
-    const provider = getProvider();
-    if (!provider) {
-      alert("Please install Rabby Wallet or another Ethereum-compatible wallet.");
+    console.log("Connect function called");
+    
+    if (typeof window === "undefined" || !window.ethereum) {
+      console.log("No ethereum provider found");
+      alert("Please install Rabby Wallet, MetaMask, or another Ethereum-compatible wallet.");
       return;
     }
     
     try {
+      // First, try to revoke any existing permissions to force wallet selection
+      try {
+        await window.ethereum.request({
+          method: 'wallet_revokePermissions',
+          params: [{
+            eth_accounts: {}
+          }]
+        });
+        console.log('Previous wallet permissions revoked to force selection');
+      } catch (revokeError) {
+        console.log('wallet_revokePermissions not supported:', revokeError);
+      }
+      
+      console.log("Attempting to switch to Sonic network...");
       await switchToSonicNetwork();
-      const accounts = await provider.send("eth_requestAccounts", []);
+      
+      console.log("Requesting wallet selection...");
+      // Request permissions first to ensure wallet selection dialog appears
+      try {
+        await window.ethereum.request({
+          method: 'wallet_requestPermissions',
+          params: [{ eth_accounts: {} }]
+        });
+        console.log('Wallet permissions requested successfully');
+      } catch (permError) {
+        console.log('wallet_requestPermissions not supported, proceeding with eth_requestAccounts:', permError);
+      }
+      
+      // Now request accounts - this should show wallet selection
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
+      console.log("Accounts received:", accounts);
       
       if (accounts.length > 0) {
         const userAccount = accounts[0];
         setAccount(userAccount);
         const storedUsername = localStorage.getItem(`username_${userAccount}`);
         setUsernameState(storedUsername || userAccount);
-        await getBalance(provider, userAccount);
+        
+        // Get provider for balance checking
+        const provider = getProvider();
+        if (provider) {
+          await getBalance(provider, userAccount);
+        }
+        console.log("Wallet connected successfully:", userAccount);
       }
     } catch (error: any) {
        if (error.code === 4001 || error.code === -32001) { 
         // 4001 is user rejected request
         // -32001 is "Already processing unlock"
+        console.log("User rejected or already processing:", error.code);
         return; 
       }
       console.error("Failed to connect wallet", error);
+      alert(`Failed to connect wallet: ${error.message}`);
     }
   };
   
@@ -180,7 +301,21 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [handleAccountsChanged]);
 
-  const value = { account, username, setUsername, balance, arcBalance, connect, disconnect, payForGame };
+  // Refresh balance every 10 seconds when account is connected
+  useEffect(() => {
+    if (account) {
+      const interval = setInterval(async () => {
+        const provider = getProvider();
+        if (provider) {
+          await getBalance(provider, account);
+        }
+      }, 10000); // 10 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [account, getBalance]);
+
+  const value = { account, username, setUsername, sBalance: balance, arcBalance, connect, disconnect, payForGame };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 };

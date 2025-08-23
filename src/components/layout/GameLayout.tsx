@@ -10,6 +10,7 @@ import { UnoClient } from '@/components/game/UnoClient';
 import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
 import { PlatformerClient } from '@/components/game/PlatformerClient';
+import { GameRulesModal } from '@/components/game/GameRulesModal';
 
 // Page-like components
 import { ConnectWallet } from '@/components/web3/ConnectWallet';
@@ -240,10 +241,10 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, on
 
 
 // --- Main App Component ---
-
-export default function Home() {
   const [activeView, setActiveView] = useState<View>('menu');
   const [gameKey, setGameKey] = useState(0); // Used to reset game state
+  const [showUnoRules, setShowUnoRules] = useState(false);
+  const [showChessRules, setShowChessRules] = useState(false);
 
   const handleNavigate = (view: View) => {
     setGameKey(prev => prev + 1); // Increment key to force re-mount of game components
@@ -253,6 +254,14 @@ export default function Home() {
   const handleGameEnd = useCallback(() => {
     setActiveView('menu');
   }, []);
+
+  const handleUnoPlay = () => {
+    setShowUnoRules(true);
+  };
+
+  const handleChessPlay = () => {
+    setShowChessRules(true);
+  };
 
   const renderContent = () => {
     switch (activeView) {
@@ -273,6 +282,8 @@ export default function Home() {
        case 'multiplayer':
         return <MultiplayerContent onBack={() => handleNavigate('menu')} />;
       case 'menu':
+      case 'uno-rules':
+      case 'chess-rules':
       default:
         return (
           <>
@@ -283,7 +294,7 @@ export default function Home() {
                       <h1 className="text-5xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                       <p className="text-white/70 mt-1 mb-6 text-base">The classic card game!</p>
                       <div className="flex flex-col gap-4">
-                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full text-xl h-14 bg-primary hover:bg-primary/90 rounded-lg font-headline group">
+                        <Button onClick={handleUnoPlay} variant="default" size="lg" className="w-full text-xl h-14 bg-primary hover:bg-primary/90 rounded-lg font-headline group">
                            <Swords className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Single Player
                         </Button>
                         <Button onClick={() => handleNavigate('multiplayer')} variant="default" size="lg" className="w-full text-xl h-14 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group">
@@ -308,7 +319,7 @@ export default function Home() {
                        <h1 className="text-5xl font-headline text-purple-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
                        <p className="text-white/70 mt-1 mb-6 text-base">The classic strategy game!</p>
                         <div className="flex flex-col gap-4">
-                         <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full text-xl h-14 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group">
+                         <Button onClick={handleChessPlay} variant="default" size="lg" className="w-full text-xl h-14 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group">
                            <BrainCircuit className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Single Player
                          </Button>
                         <Button onClick={() => handleNavigate('multiplayer')} variant="default" size="lg" className="w-full text-xl h-14 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group">
@@ -337,6 +348,105 @@ export default function Home() {
                   </div>
               </div>
           </>
+        );
+    }
+  };
+
+  return (
+    <main className={`flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 md:p-8 overflow-hidden relative ${getBackgroundClass()}`}>
+      {activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer' ? (
+        <>
+          <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent"></div>
+        </>
+      ) : activeView === 'uno' ? (
+        <>
+          <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
+        </>
+      ) : activeView === 'snake' ? (
+        <>
+          <div className="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-900 via-gray-700 to-black z-0"></div>
+        </>
+      ) : activeView === 'chess' ? (
+        <>
+          <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 z-0"></div>
+        </>
+      ) : null}
+
+      {showHeader && (
+        <header className="w-full z-10 animate-fade-in self-start">
+          <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
+            <button onClick={() => handleNavigate('menu')}>
+              <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
+                Sonic <span className="text-primary">Arcade</span>
+              </div>
+            </button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
+                <Settings />
+              </Button>
+              <ConnectWallet />
+            </div>
+          </div>
+        </header>
+      )}
+
+      {showGenericHeader && (
+        <header className="absolute top-0 left-0 w-full z-20 p-2 sm:p-4">
+          <div className="flex justify-between items-center w-full">
+            <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-lg">
+              <Home className="mr-2 h-5 w-5"/> Main Menu
+            </Button>
+            <ConnectWallet />
+          </div>
+        </header>
+      )}
+
+      <div className="flex-1 w-full flex items-center justify-center">
+        {renderContent()}
+      </div>
+
+      {showUnoRules && (
+        <GameRulesModal
+          gameName="UNO"
+          rules={[
+            "Each player is dealt 7 cards.",
+            "Match the top card of the discard pile by color or number.",
+            "Action cards (Skip, Reverse, Draw Two) add twists.",
+            "Wild cards can change the color.",
+            "Say 'UNO' when you have one card left.",
+            "First player to empty their hand wins the round.",
+            "Points are scored by cards left in opponents' hands.",
+            "First player to 500 points wins the game."
+          ]}
+          onClose={() => setShowUnoRules(false)}
+          onStartGame={() => {
+            setShowUnoRules(false);
+            handleNavigate('uno');
+          }}
+        />
+      )}
+
+      {showChessRules && (
+        <GameRulesModal
+          gameName="Chess"
+          rules={[
+            "The goal is to checkmate the opponent's king.",
+            "Each piece has unique movement rules (Pawn, Rook, Knight, Bishop, Queen, King).",
+            "Players take turns moving one piece at a time.",
+            "The game ends when a king is checkmated, a stalemate occurs, or a draw is agreed."
+          ]}
+          onClose={() => setShowChessRules(false)}
+          onStartGame={() => {
+            setShowChessRules(false);
+            handleNavigate('chess');
+          }}
+        />
+      )}
+    </main>
+  );
+}
+
         );
     }
   };

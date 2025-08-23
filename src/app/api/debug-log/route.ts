@@ -4,11 +4,11 @@ import * as path from 'path';
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    console.log('Received debug log:', data);
-    return NextResponse.json({ message: 'Log received' }, { status: 200 });
-  } catch (error) {
-    console.error('Error receiving or writing debug log:', error);
-    return NextResponse.json({ error: 'Failed to receive or write debug log' }, { status: 500 });
+    const { message, data } = await request.json();
+    console.log(`[DEBUG LOG] Message: ${message}, Data:`, data);
+    return new Response(JSON.stringify({ status: 'success' }), { status: 200 });
+  } catch (error: any) {
+    console.error('Failed to process debug log request:', error);
+    return new Response(JSON.stringify({ status: 'error', message: error.message }), { status: 500 });
   }
 }

@@ -8,6 +8,7 @@ import { RefreshCw, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '../web3/Web3Provider';
+import { MintSuccessModal } from './MintSuccessModal';
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
 const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two'];
@@ -132,6 +133,8 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     const [flyingCard, setFlyingCard] = useState<FlyingCard | null>(null);
     const [turnMessage, setTurnMessage] = useState<string | null>(null);
     const [isLogVisible, setIsLogVisible] = useState(false);
+    const [showMintSuccess, setShowMintSuccess] = useState(false);
+    const [mintTxHash, setMintTxHash] = useState<string>('');
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -154,6 +157,10 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     useEffect(() => {
       if(gameState?.winner && onGameEnd) {
         onGameEnd();
+        // Simulate a transaction hash for now
+        const simulatedTxHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+        setMintTxHash(simulatedTxHash);
+        setShowMintSuccess(true);
       }
     }, [gameState?.winner, onGameEnd]);
 
@@ -446,42 +453,6 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                 <Button variant="secondary" onClick={() => setIsLogVisible(v => !v)}>
                     Log
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (!username) {
-                      alert('Please connect your wallet first.');
-                      return;
-                    }
-                    try {
-                      const response = await fetch('/api/mint', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          playerAddress: username, // Assuming username is the connected wallet address
-                          amount: 1, // Minting 1 ARC
-                          gameId: 'uno-test-game', // Placeholder game ID
-                          score: 100, // Placeholder score
-                          signature: 'test-signature', // Placeholder signature
-                        }),
-                      });
-
-                      const data = await response.json();
-                      if (response.ok) {
-                        alert(`Minting successful: ${data.message}. Transaction: ${data.transactionHash}`);
-                      } else {
-                        alert(`Minting failed: ${data.error}. Details: ${data.details}`);
-                      }
-                    } catch (error) {
-                      console.error('Error minting:', error);
-                      alert('An error occurred during minting.');
-                    }
-                  }}
-                >
-                  Mint 1 ARC
-                </Button>
             </div>
 
             {/* Draw Pile moved below main menu button */}
@@ -497,9 +468,9 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
             </div>
             
             <div className={cn(
-                "fixed md:static top-0 left-0 h-full w-64 md:w-64 bg-black/80 md:bg-black/50 rounded-r-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
-                isLogVisible ? "translate-x-0" : "-translate-x-full",
-                "md:translate-x-0 md:h-full"
+                "fixed md:static top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
+                isLogVisible ? "translate-x-0" : "translate-x-full",
+                "md:translate-x-full md:h-full"
             )}>
                  <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={() => setIsLogVisible(false)}>
                     X
@@ -623,6 +594,12 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                      </div>
                  </div>
             )}
+            <MintSuccessModal
+                isOpen={showMintSuccess}
+                onClose={() => setShowMintSuccess(false)}
+                txHash={mintTxHash}
+                gameName="UNO"
+            />
         </div>
     );
 }

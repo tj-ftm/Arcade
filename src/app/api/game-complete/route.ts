@@ -187,6 +187,18 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   const signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
   const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
 
+  // Calculate tokens to mint based on game type and score
+  let tokensToMint = 0;
+  if (storedLog.gameType === 'snake') {
+    // For Snake: 1 ARC per 10 points
+    tokensToMint = Math.floor(storedLog.score / 10);
+  } else {
+    // For other games: 1 ARC if won
+    if (storedLog.won) {
+      tokensToMint = 1;
+    }
+  }
+
   // Create blockchain log from stored data
   const blockchainLog = {
     timestamp: storedLog.timestamp,
@@ -197,7 +209,8 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
     duration: storedLog.duration,
     won: storedLog.won,
     result: storedLog.result,
-    rewardGiven: storedLog.won,
+    rewardGiven: tokensToMint > 0,
+    tokensEarned: tokensToMint,
     contractAddress: TOKEN_CONTRACT_ADDRESS,
     network: 'Sonic',
     verified: true,
@@ -249,16 +262,17 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   console.log('Verified game log stored successfully. Transaction:', logTx.hash);
 
   let mintTxHash = null;
+  let rewardMessage = tokensToMint > 0 ? `${tokensToMint} ARC` : 'None';
   
-  // If player won, mint 1 ARC token (only after verification)
-  if (storedLog.won) {
-    console.log(`Player won! Minting 1 ARC token to ${storedLog.player}`);
-    const amountToMint = ethers.parseUnits('1', 18);
+  // Mint tokens if any are earned
+  if (tokensToMint > 0) {
+    console.log(`Minting ${tokensToMint} ARC token(s) to ${storedLog.player}`);
+    const amountToMint = ethers.parseUnits(tokensToMint.toString(), 18);
     
     const mintTx = await tokenContract.mintTo(storedLog.player, amountToMint);
     await mintTx.wait();
     mintTxHash = mintTx.hash;
-    console.log('Token minted successfully. Transaction:', mintTxHash);
+    console.log('Token(s) minted successfully. Transaction:', mintTxHash);
   }
 
   // Update stored log with verification status and transaction hashes
@@ -267,14 +281,15 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   // Return success response
   const response = {
     success: true,
-    message: `Game verified and logged successfully${storedLog.won ? '. 1 ARC token minted as reward!' : ''}`,
+    message: `Game verified and logged successfully${tokensToMint > 0 ? `. ${tokensToMint} ARC token(s) minted as reward!` : ''}`,
     gameLog: blockchainLog,
     storedGameId: storedLog.id,
     transactions: {
       logTransaction: logTx.hash,
       mintTransaction: mintTxHash
     },
-    reward: storedLog.won ? '1 ARC' : 'None',
+    reward: rewardMessage,
+    tokensEarned: tokensToMint,
     verified: true
   };
 

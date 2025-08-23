@@ -18,8 +18,11 @@ const spaceGrotesk = Space_Grotesk({
 
 
 export const metadata: Metadata = {
-  title: 'Tekken Firebase Arena',
-  description: 'A fighting game built with Next.js and Firebase.',
+  title: 'Sonic Arcade',
+  description: 'Play games and earn ARC tokens!',
+  icons: {
+    icon: '/arcade_icon.png',
+  },
 };
 
 export default function RootLayout({

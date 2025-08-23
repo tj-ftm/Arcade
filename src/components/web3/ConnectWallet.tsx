@@ -1,9 +1,11 @@
 
 "use client";
 
-import { useWeb3 } from "./Web3Provider";
+import { Wallet, LogOut, User, DollarSign, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Wallet } from "lucide-react";
+import { useWeb3 } from "@/components/web3/Web3Provider";
+import { formatEther } from "ethers";
+import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +16,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const ConnectWallet = () => {
-  const { connect, disconnect, balance, arcBalance, username } = useWeb3();
+
+  const { account, connect, disconnect, sBalance, arcBalance, username } = useWeb3();
+  
+  const handleDisconnect = async () => {
+    try {
+      await disconnect();
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+    }
+  };
 
   if (username) {
     return (
@@ -26,7 +37,7 @@ export const ConnectWallet = () => {
               </div>
             <div className="flex flex-col text-right">
               <span className="text-white font-bold text-sm leading-tight">{username}</span>
-              <span className="text-accent font-bold text-md leading-tight">{balance} S</span>
+              <span className="text-accent font-bold text-md leading-tight">{sBalance} S</span>
               <span className="text-accent font-bold text-md leading-tight">{arcBalance} ARC</span>
             </div>
           </div>
@@ -35,10 +46,10 @@ export const ConnectWallet = () => {
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled>
-            <span className="font-bold text-accent">{balance} S</span>
+            <span className="font-bold text-accent">{sBalance} S</span>
             <span className="font-bold text-accent">{arcBalance} ARC</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={disconnect}>
+          <DropdownMenuItem onSelect={handleDisconnect}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Disconnect</span>
           </DropdownMenuItem>
@@ -48,9 +59,10 @@ export const ConnectWallet = () => {
   }
 
   return (
-    <Button onClick={connect} className="font-headline text-lg rounded-lg">
+    <Button onClick={connect} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
       <Wallet className="mr-2 h-5 w-5" />
       Connect Wallet
     </Button>
+
   );
 };
