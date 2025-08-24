@@ -9,7 +9,9 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '../web3/Web3Provider';
 
+
 import { UnoEndGameScreen } from './UnoEndGameScreen';
+import { UnoStartScreen } from './UnoStartScreen';
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
 const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two'];
@@ -153,6 +155,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
 
     const [mintTxHash, setMintTxHash] = useState<string>('');
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
+    const [showStartScreen, setShowStartScreen] = useState(true);
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -225,11 +228,17 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
             gameLog: ['Game started. Your turn!'],
         });
         setTurnMessage("Your Turn!");
+        setShowStartScreen(false);
+        setShowEndGameScreen(false);
     }, [username]);
 
-    useEffect(() => {
-        handleNewGame();
-    }, [handleNewGame]);
+    // Don't auto-start the game - let the start screen handle it
+
+    const handleShowStartScreen = () => {
+        setShowStartScreen(true);
+        setShowEndGameScreen(false);
+        setGameState(null);
+    };
 
     const nextPlayer = (state: UnoGameState): number => {
         const direction = state.isReversed ? -1 : 1;
@@ -445,6 +454,17 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
         }
     }, [gameState?.activePlayerIndex, gameState?.winner, handleBotTurn, showColorPicker]);
 
+    if (showStartScreen) {
+        return (
+            <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
+                <UnoStartScreen
+                    onStartGame={handleNewGame}
+                    onGoToMenu={onGameEnd || (() => {})}
+                />
+            </div>
+        );
+    }
+
     if (!gameState) {
         return <div className="text-white text-center text-4xl">Loading Game...</div>;
     }
@@ -497,7 +517,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                     </div>
                 </ScrollArea>
                 <div className="mt-4">
-                    <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleNewGame}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
+                    <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleShowStartScreen}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
                 </div>
             </div>
 
@@ -602,7 +622,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                     <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO!</h2>
                     <p className="text-2xl md:text-4xl text-white -mt-4">{winner} Wins!</p>
                     <div className="flex gap-4">
-                        <Button size="lg" onClick={handleNewGame} className="font-headline text-2xl"><RefreshCw className="mr-2"/> New Game</Button>
+                        <Button size="lg" onClick={handleShowStartScreen} className="font-headline text-2xl"><RefreshCw className="mr-2"/> New Game</Button>
                     </div>
                 </div>
             )}
@@ -613,7 +633,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                     winner={gameState.winner}
                     playerScore={calculateUnoScore(gameState.players[0].hand)}
                     botScore={calculateUnoScore(gameState.players[1].hand)}
-                    onPlayAgain={handleNewGame}
+                    onPlayAgain={handleShowStartScreen}
                     onGoToMenu={onGameEnd}
                     mintTxHash={mintTxHash}
                 />
@@ -637,12 +657,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                      </div>
                  </div>
             )}
-            <MintSuccessModal
-                isOpen={showMintSuccess}
-                onClose={() => setShowMintSuccess(false)}
-                txHash={mintTxHash}
-                gameName="UNO"
-            />
+
         </div>
     );
 }
