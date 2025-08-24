@@ -27,7 +27,13 @@ export default function UnoMultiplayerPage() {
     setCurrentLobby(lobby);
     setIsHost(isHostPlayer);
     setCurrentView('game');
-    console.log('State updated - currentView should be game');
+    console.log('handleStartGame - currentView after update:', 'game', 'currentLobby after update:', lobby, 'isHost after update:', isHostPlayer);
+  };
+
+  console.log('Render - currentView:', currentView, 'currentLobby:', currentLobby);
+
+  if (currentView === 'game' && currentLobby) {
+    console.log('Rendering MultiplayerUnoClient');
   };
 
   const handleBackToLobby = () => {
@@ -38,6 +44,12 @@ export default function UnoMultiplayerPage() {
 
   const handleBackToUno = () => {
     window.location.href = '/singleplayer';
+  };
+
+  console.log('Render - currentView:', currentView, 'currentLobby:', currentLobby);
+
+  if (currentView === 'game' && currentLobby) {
+    console.log('Rendering MultiplayerUnoClient');
   };
 
   if (currentView === 'game' && currentLobby) {
