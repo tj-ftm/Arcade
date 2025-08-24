@@ -428,8 +428,8 @@ export default function HomePage() {
                      <div className="flex-grow flex justify-center">
                          <button onClick={() => handleNavigate('menu')}>
                              <h1 className="text-4xl sm:text-6xl font-headline uppercase tracking-wider bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 bg-clip-text text-transparent" style={{ WebkitTextStroke: '2px black' }}>
-                                 SONIC ARCADE
-                             </h1>
+                                 Sonic Arcade
+                               </h1>
                              <p className="text-white/70 text-base sm:text-lg font-headline">PLAY. EARN. COMPETE.</p>
                          </button>
                      </div>
