@@ -1,0 +1,242 @@
+import { useEffect, useState, useRef } from 'react';
+import { database } from '@/lib/firebase';
+import { ref, push, onValue, off, remove, set, serverTimestamp } from 'firebase/database';
+
+interface Lobby {
+  id: string;
+  gameType: 'chess' | 'uno';
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
+  status: 'waiting' | 'playing' | 'finished';
+  createdAt: any; // Firebase timestamp
+}
+
+interface UseFirebaseMultiplayerReturn {
+  isConnected: boolean;
+  lobbies: Lobby[];
+  currentLobby: Lobby | null;
+  createLobby: (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => Promise<void>;
+  joinLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
+  leaveLobby: (lobbyId: string) => Promise<void>;
+  sendGameMove: (lobbyId: string, moveData: any) => Promise<void>;
+  onGameMove: (callback: (moveData: any) => void) => void;
+  onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
+  onLobbyLeft: (callback: (lobby: Lobby) => void) => void;
+  onLobbyClosed: (callback: () => void) => void;
+}
+
+export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [lobbies, setLobbies] = useState<Lobby[]>([]);
+  const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
+  const [gameMovesCallbacks, setGameMovesCallbacks] = useState<((moveData: any) => void)[]>([]);
+  const [lobbyJoinedCallbacks, setLobbyJoinedCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
+  const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
+  const [lobbyClosedCallbacks, setLobbyClosedCallbacks] = useState<(() => void)[]>([]);
+  const currentUserIdRef = useRef<string>('');
+
+  useEffect(() => {
+    // Check if Firebase is configured
+    const isFirebaseConfigured = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
+                                 process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+    
+    if (!isFirebaseConfigured) {
+      console.warn('Firebase not configured. Multiplayer features disabled.');
+      setIsConnected(false);
+      return;
+    }
+
+    try {
+      // Generate a unique user ID for this session
+      currentUserIdRef.current = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Listen to lobbies
+      const lobbiesRef = ref(database, 'lobbies');
+      const unsubscribeLobbies = onValue(lobbiesRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const lobbiesArray = Object.entries(data).map(([key, value]: [string, any]) => ({
+            ...value,
+            id: key
+          }));
+          setLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting'));
+        } else {
+          setLobbies([]);
+        }
+      });
+
+      setIsConnected(true);
+
+      return () => {
+        off(lobbiesRef);
+        setIsConnected(false);
+      };
+    } catch (error) {
+      console.error('Firebase connection error:', error);
+      setIsConnected(false);
+    }
+  }, []);
+
+  const generateLobbyId = (gameType: 'chess' | 'uno'): string => {
+    const prefix = gameType.toUpperCase();
+    const pin = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}-${pin}`;
+  };
+
+  const createLobby = async (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => {
+    if (!isConnected) return;
+
+    try {
+      const lobbyId = generateLobbyId(gameType);
+      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      
+      const newLobby: Omit<Lobby, 'id'> = {
+        gameType,
+        player1Id: currentUserIdRef.current,
+        player1Name,
+        status: 'waiting',
+        createdAt: serverTimestamp()
+      };
+
+      await set(lobbyRef, newLobby);
+      setCurrentLobby({ ...newLobby, id: lobbyId });
+
+      // Listen for lobby updates
+      const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const updatedLobby = { ...data, id: lobbyId };
+          setCurrentLobby(updatedLobby);
+          
+          // Check if someone joined
+          if (data.player2Id && data.status === 'playing') {
+            lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
+          }
+        } else {
+          // Lobby was deleted
+          setCurrentLobby(null);
+          lobbyClosedCallbacks.forEach(callback => callback());
+        }
+      });
+
+      return () => off(lobbyRef);
+    } catch (error) {
+      console.error('Error creating lobby:', error);
+      throw error;
+    }
+  };
+
+  const joinLobby = async (lobbyId: string, player2Name: string, player2Id: string) => {
+    if (!isConnected) return;
+
+    try {
+      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      
+      // Get current lobby data
+      const snapshot = await new Promise<any>((resolve) => {
+        onValue(lobbyRef, resolve, { onlyOnce: true });
+      });
+      
+      const lobbyData = snapshot.val();
+      if (!lobbyData || lobbyData.status !== 'waiting' || lobbyData.player2Id) {
+        throw new Error('Lobby not available');
+      }
+
+      // Update lobby with player 2
+      await set(lobbyRef, {
+        ...lobbyData,
+        player2Id: currentUserIdRef.current,
+        player2Name,
+        status: 'playing'
+      });
+
+      const updatedLobby = {
+        ...lobbyData,
+        id: lobbyId,
+        player2Id: currentUserIdRef.current,
+        player2Name,
+        status: 'playing' as const
+      };
+      
+      setCurrentLobby(updatedLobby);
+      lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
+
+    } catch (error) {
+      console.error('Error joining lobby:', error);
+      throw error;
+    }
+  };
+
+  const leaveLobby = async (lobbyId: string) => {
+    if (!isConnected || !currentLobby) return;
+
+    try {
+      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      
+      if (currentLobby.player1Id === currentUserIdRef.current) {
+        // Host is leaving, delete the lobby
+        await remove(lobbyRef);
+      } else {
+        // Player 2 is leaving, reset to waiting
+        await set(lobbyRef, {
+          ...currentLobby,
+          player2Id: null,
+          player2Name: null,
+          status: 'waiting'
+        });
+      }
+      
+      setCurrentLobby(null);
+      lobbyLeftCallbacks.forEach(callback => callback(currentLobby));
+    } catch (error) {
+      console.error('Error leaving lobby:', error);
+    }
+  };
+
+  const sendGameMove = async (lobbyId: string, moveData: any) => {
+    if (!isConnected) return;
+
+    try {
+      const moveRef = ref(database, `game-moves/${lobbyId}`);
+      await push(moveRef, {
+        moveData,
+        playerId: currentUserIdRef.current,
+        timestamp: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error sending game move:', error);
+    }
+  };
+
+  const onGameMove = (callback: (moveData: any) => void) => {
+    setGameMovesCallbacks(prev => [...prev, callback]);
+  };
+
+  const onLobbyJoined = (callback: (lobby: Lobby) => void) => {
+    setLobbyJoinedCallbacks(prev => [...prev, callback]);
+  };
+
+  const onLobbyLeft = (callback: (lobby: Lobby) => void) => {
+    setLobbyLeftCallbacks(prev => [...prev, callback]);
+  };
+
+  const onLobbyClosed = (callback: () => void) => {
+    setLobbyClosedCallbacks(prev => [...prev, callback]);
+  };
+
+  return {
+    isConnected,
+    lobbies,
+    currentLobby,
+    createLobby,
+    joinLobby,
+    leaveLobby,
+    sendGameMove,
+    onGameMove,
+    onLobbyJoined,
+    onLobbyLeft,
+    onLobbyClosed
+  };
+};

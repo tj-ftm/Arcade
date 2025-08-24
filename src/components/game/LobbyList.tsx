@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Users, Clock, GamepadIcon } from 'lucide-react';
-import { useSocket } from '@/hooks/use-socket';
+import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 
 interface Lobby {
@@ -26,7 +26,7 @@ interface LobbyListProps {
 }
 
 export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProps) {
-  const { lobbies, joinLobby, isConnected } = useSocket();
+  const { lobbies, joinLobby, isConnected } = useFirebaseMultiplayer();
   const { username, account } = useWeb3();
   const [playerName, setPlayerName] = useState('');
   const [lobbyIdToJoin, setLobbyIdToJoin] = useState('');
@@ -111,9 +111,9 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
         {!isConnected && (
           <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 sm:p-4">
             <p className="text-red-300 text-sm sm:text-base">
-              {process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SOCKET_URL 
-                ? 'Multiplayer features are not available in this deployment. Please play locally for full multiplayer support.' 
-                : 'Connecting to multiplayer server...'}
+              {!process.env.NEXT_PUBLIC_FIREBASE_API_KEY 
+                ? 'Multiplayer features require Firebase configuration. Please set up Firebase to enable multiplayer.' 
+                : 'Connecting to multiplayer service...'}
             </p>
           </div>
         )}

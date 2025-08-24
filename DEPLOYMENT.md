@@ -1,5 +1,47 @@
 # Deployment Guide
 
+## Firebase Setup (Recommended)
+
+The project now uses Firebase Realtime Database for multiplayer functionality, which works perfectly with Netlify and other static hosting platforms.
+
+### 1. Create Firebase Project
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Click "Create a project"
+3. Follow the setup wizard
+4. Enable "Realtime Database" in the Firebase console
+5. Set database rules to allow read/write (for development):
+
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+```
+
+### 2. Get Firebase Configuration
+
+1. Go to Project Settings > General
+2. Scroll down to "Your apps"
+3. Click "Web" icon to create a web app
+4. Copy the configuration values
+
+### 3. Set Environment Variables
+
+Create a `.env.local` file (copy from `.env.example`):
+
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your_project_id-default-rtdb.firebaseio.com/
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
 ## Local Development
 
 For local development with full multiplayer support:
@@ -8,61 +50,73 @@ For local development with full multiplayer support:
 npm run dev
 ```
 
-This runs the custom Socket.IO server at `http://localhost:3000`.
+This runs the custom Socket.IO server at `http://localhost:3000` (fallback) or Firebase (recommended).
 
 ## Netlify Deployment
 
-Netlify is a static hosting platform and doesn't support custom Node.js servers like our Socket.IO implementation. Here are your options:
+With Firebase, Netlify deployment is straightforward:
 
-### Option 1: Deploy Frontend Only (Current Setup)
+### 1. Configure Environment Variables in Netlify
 
-The current Netlify deployment will work but without multiplayer features. Users will see a message indicating multiplayer is not available.
+1. Go to your Netlify site dashboard
+2. Navigate to Site settings > Environment variables
+3. Add all Firebase environment variables:
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_DATABASE_URL`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
 
-### Option 2: Separate Socket.IO Server
+### 2. Deploy
 
-To enable multiplayer on Netlify, you need to deploy the Socket.IO server separately:
+Push your code to your connected Git repository. Netlify will automatically build and deploy with full multiplayer support!
 
-1. **Deploy Socket.IO server to a platform that supports Node.js:**
-   - Heroku
-   - Railway
-   - Render
-   - DigitalOcean App Platform
-   - AWS/Google Cloud/Azure
+## Alternative: Socket.IO Server (Legacy)
 
-2. **Set up the server:**
-   ```bash
-   # Create a separate repository for the server
-   # Copy server.js and package.json (with socket.io dependency)
-   # Deploy to your chosen platform
-   ```
+If you prefer to use Socket.IO instead of Firebase:
 
-3. **Configure Netlify environment variable:**
-   - In Netlify dashboard, go to Site settings > Environment variables
-   - Add: `NEXT_PUBLIC_SOCKET_URL=https://your-socket-server.herokuapp.com`
+1. **Deploy Socket.IO server separately:**
+   - Heroku, Railway, Render, or DigitalOcean App Platform
+   - Copy `server.js` and relevant dependencies
 
-### Option 3: Alternative Platforms
+2. **Set environment variable:**
+   - `NEXT_PUBLIC_SOCKET_URL=https://your-socket-server.herokuapp.com`
 
-For full-stack deployment with Socket.IO support, consider:
-- **Vercel**: Supports serverless functions but limited WebSocket support
+## Alternative Platforms
+
+For full-stack deployment with the custom server:
 - **Railway**: Full Node.js support with easy deployment
 - **Render**: Free tier with Node.js support
 - **Heroku**: Classic platform with Node.js support
+- **Vercel**: Limited WebSocket support
 
 ## Environment Variables
 
-- `NEXT_PUBLIC_SOCKET_URL`: URL of your Socket.IO server (required for production multiplayer)
+### Firebase (Recommended)
+- All `NEXT_PUBLIC_FIREBASE_*` variables listed above
+
+### Socket.IO (Alternative)
+- `NEXT_PUBLIC_SOCKET_URL`: URL of your Socket.IO server
 
 ## Build Configuration
 
-The project uses a custom server for development but builds as a static site for Netlify. The `package.json` scripts are:
-
-- `dev`: Custom server with Socket.IO
-- `build`: Standard Next.js build for static deployment
-- `start`: Standard Next.js start (for platforms supporting it)
+- `dev`: Custom server with Socket.IO (fallback)
+- `dev:next`: Standard Next.js dev server
+- `build`: Static build for deployment
+- `start`: Standard Next.js start
+- `start:server`: Custom server for platforms supporting it
 
 ## Troubleshooting
 
-If you see Socket.IO connection errors in production:
+### Firebase Issues
+1. Verify all Firebase environment variables are set
+2. Check Firebase Realtime Database rules
+3. Ensure your Firebase project has Realtime Database enabled
+4. Check browser console for Firebase connection errors
+
+### Socket.IO Issues (if using legacy approach)
 1. Verify `NEXT_PUBLIC_SOCKET_URL` is set correctly
 2. Ensure your Socket.IO server is running and accessible
 3. Check CORS settings on your Socket.IO server
