@@ -72,7 +72,10 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 
 export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: MultiplayerChessClientProps) => {
   const [game] = useState(() => new Chess());
-  const [board, setBoard] = useState(game.board());
+  const [board, setBoard] = useState(() => {
+    const chessGame = new Chess();
+    return chessGame.board();
+  });
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
   const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
@@ -86,6 +89,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const [opponentName, setOpponentName] = useState('');
   
   const { sendGameMove, onGameMove, leaveLobby } = useFirebaseMultiplayer();
+
+  // Initialize board from game instance
+  useEffect(() => {
+    setBoard(game.board());
+  }, [game]);
 
   useEffect(() => {
     if (lobby.status === 'playing' && lobby.player1Color && lobby.player2Color) {
