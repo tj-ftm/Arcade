@@ -75,7 +75,7 @@ export const useSocket = (): UseSocketReturn => {
         status: 'waiting',
         createdAt: new Date()
       };
-      socket.emit('createLobby', newLobby);
+      socket.emit('create-lobby', newLobby.gameType, newLobby.player1Name, newLobby.player1Id);
       setCurrentLobby(newLobby);
     }
   };

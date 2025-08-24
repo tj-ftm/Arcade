@@ -9,10 +9,10 @@ interface SocketServer extends NetServer {
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno';
-  hostId: string;
-  hostName: string;
-  playerId?: string;
-  playerName?: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: Date;
 }
@@ -38,11 +38,11 @@ export async function GET(req: NextRequest) {
       console.log('Client connected:', socket.id);
 
       // Join lobby
-      socket.on('join-lobby', (lobbyId: string, playerName: string) => {
+      socket.on('join-lobby', (lobbyId: string, player2Name: string, player2Id: string) => {
         const lobby = lobbies.get(lobbyId);
-        if (lobby && lobby.status === 'waiting' && !lobby.playerId) {
-          lobby.playerId = socket.id;
-          lobby.playerName = playerName;
+        if (lobby && lobby.status === 'waiting' && !lobby.player2Id) {
+          lobby.player2Id = player2Id;
+          lobby.player2Name = player2Name;
           lobby.status = 'playing';
           
           socket.join(lobbyId);
@@ -54,13 +54,13 @@ export async function GET(req: NextRequest) {
       });
 
       // Create lobby
-      socket.on('create-lobby', (gameType: 'chess' | 'uno', hostName: string) => {
+      socket.on('create-lobby', (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => {
         const lobbyId = `${gameType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const lobby: Lobby = {
           id: lobbyId,
           gameType,
-          hostId: socket.id,
-          hostName,
+          player1Id: player1Id,
+          player1Name: player1Name,
           status: 'waiting',
           createdAt: new Date()
         };
@@ -75,11 +75,11 @@ export async function GET(req: NextRequest) {
       socket.on('leave-lobby', (lobbyId: string) => {
         const lobby = lobbies.get(lobbyId);
         if (lobby) {
-          if (lobby.hostId === socket.id) {
+          if (lobby.player1Id === socket.id) {
             lobbies.delete(lobbyId);
-          } else if (lobby.playerId === socket.id) {
-            lobby.playerId = undefined;
-            lobby.playerName = undefined;
+          } else if (lobby.player2Id === socket.id) {
+            lobby.player2Id = undefined;
+            lobby.player2Name = undefined;
             lobby.status = 'waiting';
           }
           socket.leave(lobbyId);
@@ -103,12 +103,12 @@ export async function GET(req: NextRequest) {
         console.log('Client disconnected:', socket.id);
         // Clean up lobbies where this socket was involved
         for (const [lobbyId, lobby] of lobbies.entries()) {
-          if (lobby.hostId === socket.id) {
+          if (lobby.player1Id === socket.id) {
             lobbies.delete(lobbyId);
             io.to(lobbyId).emit('lobby-closed');
-          } else if (lobby.playerId === socket.id) {
-            lobby.playerId = undefined;
-            lobby.playerName = undefined;
+          } else if (lobby.player2Id === socket.id) {
+            lobby.player2Id = undefined;
+            lobby.player2Name = undefined;
             lobby.status = 'waiting';
             io.to(lobbyId).emit('lobby-left', lobby);
           }
