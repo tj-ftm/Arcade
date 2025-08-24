@@ -13,6 +13,8 @@ interface Lobby {
   playerName?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: Date;
+  player1Color?: 'white' | 'black';
+  player2Color?: 'white' | 'black';
 }
 
 export default function UnoMultiplayerPage() {

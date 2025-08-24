@@ -10,7 +10,9 @@ interface Lobby {
   player2Id?: string;
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
-  createdAt: any; // Firebase timestamp
+  createdAt: Date;
+  player1Color?: 'white' | 'black';
+  player2Color?: 'white' | 'black';any; // Firebase timestamp
 }
 
 interface UseFirebaseMultiplayerReturn {
@@ -88,12 +90,15 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const lobbyId = generateLobbyId(gameType);
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
+      const colors = Math.random() < 0.5 ? { player1: 'white', player2: 'black' } : { player1: 'black', player2: 'white' };
       const newLobby: Omit<Lobby, 'id'> = {
         gameType,
         player1Id,
         player1Name,
         status: 'waiting',
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        player1Color: colors.player1,
+        player2Color: colors.player2
       };
 
       await set(lobbyRef, newLobby);
@@ -106,8 +111,8 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           const updatedLobby = { ...data, id: lobbyId };
           setCurrentLobby(updatedLobby);
           
-          // Check if someone joined
-          if (data.player2Id && data.status === 'playing') {
+          // Check if someone joined and game is ready to start
+          if (data.player2Id && data.status === 'playing' && data.player1Color && data.player2Color) {
             lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
           }
         } else {
@@ -141,11 +146,17 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       }
 
       // Update lobby with player 2
+      // Assign colors if not already assigned (should be assigned by host on creation)
+      const player1Color = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
+      const player2Color = lobbyData.player2Color || (player1Color === 'white' ? 'black' : 'white');
+
       await set(lobbyRef, {
         ...lobbyData,
         player2Id,
         player2Name,
-        status: 'playing'
+        status: 'playing',
+        player1Color: player1Color,
+        player2Color: player2Color
       });
 
       const updatedLobby = {
@@ -153,7 +164,9 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         id: lobbyId,
         player2Id,
         player2Name,
-        status: 'playing' as const
+        status: 'playing' as const,
+        player1Color: updatedLobby.player1Color || (updatedLobby.player2Color === 'white' ? 'black' : 'white'),
+        player2Color: updatedLobby.player2Color || (updatedLobby.player1Color === 'white' ? 'black' : 'white')
       };
       
       setCurrentLobby(updatedLobby);

@@ -17,6 +17,8 @@ interface Lobby {
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: Date;
+  player1Color?: 'white' | 'black';
+  player2Color?: 'white' | 'black';
 }
 
 interface CreateLobbyProps {

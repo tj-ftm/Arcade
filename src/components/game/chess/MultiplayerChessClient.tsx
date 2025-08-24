@@ -27,6 +27,8 @@ interface Lobby {
   playerName?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: Date;
+  player1Color?: 'white' | 'black';
+  player2Color?: 'white' | 'black';
 }
 
 interface MultiplayerChessClientProps {
@@ -79,36 +81,49 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const [score, setScore] = useState(0);
   const [isLogVisible, setIsLogVisible] = useState(false);
   const [showEndGameScreen, setShowEndGameScreen] = useState(false);
-  const [playerColor] = useState<Color>(isHost ? 'w' : 'b');
-  const [isMyTurn, setIsMyTurn] = useState(isHost); // Host starts first
+  const [playerColor, setPlayerColor] = useState<Color>('w');
+  const [isMyTurn, setIsMyTurn] = useState(false);
   const [opponentName, setOpponentName] = useState('');
   
   const { sendGameMove, onGameMove, leaveLobby } = useSocket();
 
   useEffect(() => {
-    // Set opponent name
-    setOpponentName(isHost ? (lobby.playerName || 'Player') : lobby.hostName);
-    
-    // Listen for opponent moves
-    onGameMove((moveData: any) => {
-      if (moveData.type === 'chess-move') {
-        try {
-          const move = game.move(moveData.move);
-          if (move) {
-            setBoard(game.board());
-            setMoveCount(prev => prev + 1);
-            addGameLog(`${opponentName}: ${move.san}`);
-            setIsMyTurn(true); // Now it's my turn
-            checkGameState();
-          }
-        } catch (error) {
-          console.error('Invalid move received:', error);
-        }
-      } else if (moveData.type === 'game-end') {
-        setWinner(moveData.winner);
-        setShowEndGameScreen(true);
+    if (lobby.status === 'playing' && lobby.player1Color && lobby.player2Color) {
+      // Determine player color and starting turn
+      const myColor = isHost ? lobby.player1Color : lobby.player2Color;
+
+      if (myColor === 'white') {
+        setPlayerColor('w');
+        setIsMyTurn(true); // White always starts
+      } else if (myColor === 'black') {
+        setPlayerColor('b');
+        setIsMyTurn(false); // Black waits for white's first move
       }
-    });
+
+      // Set opponent name
+      setOpponentName(isHost ? (lobby.playerName || 'Player') : lobby.hostName);
+      
+      // Listen for opponent moves
+      onGameMove((moveData: any) => {
+        if (moveData.type === 'chess-move') {
+          try {
+            const move = game.move(moveData.move);
+            if (move) {
+              setBoard(game.board());
+              setMoveCount(prev => prev + 1);
+              addGameLog(`${opponentName}: ${move.san}`);
+              setIsMyTurn(true); // Now it's my turn
+              checkGameState();
+            }
+          } catch (error) {
+            console.error('Invalid move received:', error);
+          }
+        } else if (moveData.type === 'game-end') {
+          setWinner(moveData.winner);
+          setShowEndGameScreen(true);
+        }
+      });
+    }
   }, [game, lobby, isHost, opponentName, onGameMove]);
 
   const addGameLog = useCallback((message: string) => {
@@ -169,8 +184,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
     setWinner(null);
     setScore(0);
     setShowEndGameScreen(false);
-    setIsMyTurn(isHost);
-  }, [game, isHost]);
+    setIsMyTurn(playerColor === 'w'); // White always starts
+  }, [game, playerColor]);
 
   const handleSquareClick = (square: Square) => {
     if (winner || !isMyTurn || game.turn() !== playerColor) return;
