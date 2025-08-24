@@ -55,11 +55,12 @@ export async function GET(req: NextRequest) {
 
       // Create lobby
       socket.on('create-lobby', (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => {
-        const lobbyId = `${gameType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const pin = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit number
+        const lobbyId = `${gameType.toUpperCase()}-${pin}`;
         const lobby: Lobby = {
           id: lobbyId,
           gameType,
-          player1Id: player1Id,
+          player1Id: socket.id,
           player1Name: player1Name,
           status: 'waiting',
           createdAt: new Date()

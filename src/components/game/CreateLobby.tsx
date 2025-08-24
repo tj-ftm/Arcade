@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,7 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
   // Use wallet username if available, otherwise require manual input
   const effectiveHostName = username && account ? username : hostName;
 
-  const handleCreateLobby = async () => {
+  const handleCreateLobby = () => {
     if (!effectiveHostName.trim()) {
       if (account) {
         alert('Please set a username in your wallet profile');
@@ -46,15 +46,9 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
     }
 
     setIsCreating(true);
-    try {
-      createLobby(gameType, effectiveHostName.trim(), account || 'mock-user');
-      setIsWaiting(true);
-    } catch (error) {
-      console.error('Failed to create lobby:', error);
-      alert('Failed to create lobby. Please try again.');
-    } finally {
-      setIsCreating(false);
-    }
+    createLobby(gameType, effectiveHostName.trim(), account || 'mock-user');
+    // The lobby creation will be handled by the socket event listener
+    // setIsWaiting will be triggered when currentLobby is set
   };
 
   const handleCancelLobby = () => {
@@ -65,8 +59,17 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
     }
   };
 
+  // Handle lobby creation success
+  useEffect(() => {
+    if (currentLobby && currentLobby.player1Id && isCreating) {
+      setIsCreating(false);
+      setIsWaiting(true);
+      onLobbyCreated?.(currentLobby);
+    }
+  }, [currentLobby, isCreating, onLobbyCreated]);
+
   // If we have a current lobby and we're the host, show waiting screen
-  if (currentLobby && isWaiting) {
+  if (currentLobby && (isWaiting || currentLobby.player1Name === effectiveHostName)) {
     return (
       <div className="w-full max-w-md mx-auto">
         <Card className="bg-black/50 border-white/10">

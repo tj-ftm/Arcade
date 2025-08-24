@@ -34,8 +34,9 @@ export const useSocket = (): UseSocketReturn => {
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
 
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000'); // Use environment variable for production
-    socketRef.current = socket;
+    const serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
+    socketRef.current = io(serverUrl);
+    const socket = socketRef.current;
 
     socket.on('connect', () => {
       setIsConnected(true);
@@ -67,58 +68,49 @@ export const useSocket = (): UseSocketReturn => {
 
   const createLobby = (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => {
     if (socketRef.current) {
-      const newLobby: Lobby = {
-        id: generateLobbyId(gameType),
-        gameType,
-        player1Id: player1Id,
-        player1Name: player1Name,
-        status: 'waiting',
-        createdAt: new Date()
-      };
-      socket.emit('create-lobby', newLobby.gameType, newLobby.player1Name, newLobby.player1Id);
-      setCurrentLobby(newLobby);
+      socket.emit('create-lobby', gameType, player1Name, player1Id);
     }
   };
 
   const joinLobby = (lobbyId: string, player2Name: string, player2Id: string) => {
     if (socketRef.current) {
-      socket.emit('joinLobby', lobbyId, player2Name, socket.id);
+      socket.emit('join-lobby', lobbyId, player2Name, player2Id);
     }
   };
 
   const leaveLobby = (lobbyId: string) => {
     if (socketRef.current) {
-      socket.emit('leaveLobby', lobbyId);
+      socket.emit('leave-lobby', lobbyId);
     }
   };
 
   const sendGameMove = (lobbyId: string, moveData: any) => {
     if (socketRef.current) {
-      socket.emit('gameMove', { lobbyId, moveData });
+      socket.emit('game-move', lobbyId, moveData);
     }
   };
 
   const onGameMove = (callback: (moveData: any) => void) => {
     if (socketRef.current) {
-      socket.on('gameMove', callback);
+      socket.on('game-move', callback);
     }
   };
 
   const onLobbyJoined = (callback: (lobby: Lobby) => void) => {
     if (socketRef.current) {
-      socket.on('lobbyJoined', callback);
+      socket.on('lobby-joined', callback);
     }
   };
 
   const onLobbyLeft = (callback: (lobby: Lobby) => void) => {
     if (socketRef.current) {
-      socket.on('lobbyLeft', callback);
+      socket.on('lobby-left', callback);
     }
   };
 
   const onLobbyClosed = (callback: () => void) => {
     if (socketRef.current) {
-      socket.on('lobbyClosed', callback);
+      socket.on('lobby-closed', callback);
     }
   };
 
@@ -127,6 +119,10 @@ export const useSocket = (): UseSocketReturn => {
     if (socket) {
       const handleLobbyCreated = (lobby: Lobby) => {
         setLobbies(prev => [...prev, lobby]);
+        // If this is the lobby we just created, set it as current
+        if (lobby.player1Id === socket.id) {
+          setCurrentLobby(lobby);
+        }
       };
 
       const handleLobbyList = (lobbies: Lobby[]) => {
@@ -147,16 +143,19 @@ export const useSocket = (): UseSocketReturn => {
         }
       };
 
-      socket.on('lobbyCreated', handleLobbyCreated);
-      socket.on('lobbyList', handleLobbyList);
-      socket.on('lobbyUpdated', handleLobbyUpdated);
-      socket.on('lobbyDeleted', handleLobbyDeleted);
+      socket.on('lobby-created', handleLobbyCreated);
+      socket.on('lobbies-updated', handleLobbyList);
+      socket.on('lobby-updated', handleLobbyUpdated);
+      socket.on('lobby-deleted', handleLobbyDeleted);
+      
+      // Request initial lobby list when connected
+      socket.emit('get-lobbies');
 
       return () => {
-        socket.off('lobbyCreated', handleLobbyCreated);
-        socket.off('lobbyList', handleLobbyList);
-        socket.off('lobbyUpdated', handleLobbyUpdated);
-        socket.off('lobbyDeleted', handleLobbyDeleted);
+        socket.off('lobby-created', handleLobbyCreated);
+        socket.off('lobbies-updated', handleLobbyList);
+        socket.off('lobby-updated', handleLobbyUpdated);
+        socket.off('lobby-deleted', handleLobbyDeleted);
       };
     }
   }, [currentLobby, socketRef.current]);
