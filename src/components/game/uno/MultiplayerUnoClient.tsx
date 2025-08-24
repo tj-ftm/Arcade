@@ -147,10 +147,13 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   }, [isHost, lobby.id, sendGameMove, addGameLog]);
 
   useEffect(() => {
-    setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
-    
-    if (isHost) {
-      initializeGame();
+    // Only initialize when lobby is in playing status and both players are present
+    if (lobby.status === 'playing' && lobby.player1Id && lobby.player2Id) {
+      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
+      
+      if (isHost) {
+        initializeGame();
+      }
     }
     
     // Listen for opponent moves

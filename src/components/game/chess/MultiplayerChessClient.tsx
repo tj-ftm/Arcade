@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useSocket } from '@/hooks/use-socket';
+import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { ChessEndGameScreen } from './ChessEndGameScreen';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
@@ -21,12 +21,12 @@ const pieceValues: Record<PieceSymbol, number> = {
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno';
-  hostId: string;
-  hostName: string;
-  playerId?: string;
-  playerName?: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
-  createdAt: Date;
+  createdAt: any; // Firebase timestamp
   player1Color?: 'white' | 'black';
   player2Color?: 'white' | 'black';
 }
@@ -85,7 +85,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [opponentName, setOpponentName] = useState('');
   
-  const { sendGameMove, onGameMove, leaveLobby } = useSocket();
+  const { sendGameMove, onGameMove, leaveLobby } = useFirebaseMultiplayer();
 
   useEffect(() => {
     if (lobby.status === 'playing' && lobby.player1Color && lobby.player2Color) {
@@ -101,7 +101,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       }
 
       // Set opponent name
-      setOpponentName(isHost ? (lobby.playerName || 'Player') : lobby.hostName);
+      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
       
       // Listen for opponent moves
       onGameMove((moveData: any) => {
