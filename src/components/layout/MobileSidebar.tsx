@@ -76,7 +76,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
           </div>
 
           {/* Menu Items */}
-          <div className="flex flex-col space-y-2 bg-red-800 pl-2 pr-2 rounded-lg">
+          <div className="flex flex-col space-y-2 bg-red-800 rounded-lg">
             {/* Wallet Connect */}
             <div className="mb-2">
               <ConnectWallet />
