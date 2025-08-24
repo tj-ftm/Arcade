@@ -123,8 +123,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [isLoadingGame, setIsLoadingGame] = useState(true); // New state for loading screen
   
   const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
-  const { account } = useWeb3();
-  const currentUserId = account || 'mock-user';
+  const { account, username } = useWeb3();
+  const currentUserId = account || `guest-${Date.now()}`;
 
   const addGameLog = useCallback((message: string) => {
     setGameLog(prev => [...prev, message]);
@@ -151,7 +151,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
       playerCards: opponentCards, // What opponent gets as their cards
       firstCard,
       currentColor: firstCard.color
-    });
+    }, currentUserId);
     
     addGameLog('Game initialized!');
   }, [isHost, lobby.id, sendGameMove, addGameLog]);
@@ -257,7 +257,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
       card,
       newColor,
       opponentHandSize: newPlayerHand.length
-    });
+    }, currentUserId);
     
     addGameLog(`You played ${card.value}`);
     
@@ -268,7 +268,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
       sendGameMove(lobby.id, {
         type: 'game-end',
         winner: 'You'
-      });
+      }, currentUserId);
     }
     
     // Handle special cards for opponent
@@ -299,7 +299,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     sendGameMove(lobby.id, {
       type: 'uno-draw-card',
       opponentHandSize: playerHand.length + 1
-    });
+    }, currentUserId);
     
     addGameLog('You drew a card');
   };

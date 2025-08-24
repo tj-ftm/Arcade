@@ -113,6 +113,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           
           // Check if someone joined and game is ready to start
           if (data.player2Id && data.status === 'playing' && data.player1Color && data.player2Color) {
+            console.log('Player joined lobby, starting game as host');
             lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
           }
         } else {
@@ -146,20 +147,27 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       }
 
       // Update lobby with player 2
-      // Assign colors if not already assigned (should be assigned by host on creation)
-      // Assign colors if not already assigned (should be assigned by host on creation)
-      // If for some reason colors are not set, assign them here (fallback)
       const assignedPlayer1Color = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
       const assignedPlayer2Color = lobbyData.player2Color || (assignedPlayer1Color === 'white' ? 'black' : 'white');
 
-      await set(lobbyRef, {
+      const updatedLobbyData = {
         ...lobbyData,
         player2Id,
         player2Name,
         status: 'playing',
         player1Color: assignedPlayer1Color,
         player2Color: assignedPlayer2Color
-      });
+      };
+
+      await set(lobbyRef, updatedLobbyData);
+      
+      // Set current lobby immediately for joining player
+      const joinedLobby = { ...updatedLobbyData, id: lobbyId };
+      setCurrentLobby(joinedLobby);
+      
+      // Immediately trigger callback for joining player
+      console.log('Joined lobby, triggering game start for joining player');
+      lobbyJoinedCallbacks.forEach(callback => callback(joinedLobby));
 
       // Listen for lobby updates for the joining player
       const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
@@ -167,11 +175,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         if (data) {
           const updatedLobby = { ...data, id: lobbyId };
           setCurrentLobby(updatedLobby);
-          
-          // Trigger callback only when both players are present and status is playing
-          if (data.player1Id && data.player2Id && data.status === 'playing' && data.player1Color && data.player2Color) {
-            lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
-          }
         } else {
           // Lobby was deleted
           setCurrentLobby(null);
@@ -214,14 +217,14 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
   };
 
-  const sendGameMove = async (lobbyId: string, moveData: any) => {
+  const sendGameMove = async (lobbyId: string, moveData: any, playerId?: string) => {
     if (!isConnected) return;
 
     try {
       const moveRef = ref(database, `game-moves/${lobbyId}`);
       await push(moveRef, {
         moveData,
-        playerId: currentUserIdRef.current,
+        playerId: playerId || 'unknown',
         timestamp: serverTimestamp()
       });
     } catch (error) {

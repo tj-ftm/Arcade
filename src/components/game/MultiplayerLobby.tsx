@@ -44,7 +44,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     setGameStarting(true);
     setTimeout(() => {
       onStartGame?.(lobby, isHost);
-    }, 1000);
+    }, 2000); // Increased delay to ensure both players see loading screen
   }, [onStartGame]);
 
   // Set up lobby joined callback to automatically start game

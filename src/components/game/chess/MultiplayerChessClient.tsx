@@ -90,8 +90,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const [opponentName, setOpponentName] = useState('');
   const [isLoadingGame, setIsLoadingGame] = useState(true); // New state for loading screen
   
-  const { account } = useWeb3();
-  const currentUserId = account || 'mock-user';
+  const { account, username } = useWeb3();
+  const currentUserId = account || `guest-${Date.now()}`;
   
   const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
 
@@ -195,7 +195,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       sendGameMove(lobby.id, {
         type: 'game-end',
         winner: gameWinner
-      });
+      }, currentUserId);
     }
   }, [game, addGameLog, calculateScore, lobby.id, sendGameMove]);
 
@@ -232,12 +232,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
           // Send move to opponent
           sendGameMove(lobby.id, {
             type: 'chess-move',
-            move: {
-              from: selectedSquare,
-              to: square,
-              promotion: 'q'
-            }
-          });
+            move: moveResult
+          }, currentUserId);
           
           checkGameState();
         }
