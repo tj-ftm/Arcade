@@ -134,16 +134,3 @@
 .animate-spin-coin {
     animation: spin-coin 1s linear infinite;
 }
-
-@keyframes gradient-animation {
-  0% { background-position: 0% 50%; }
-  33% { background-position: 50% 50%; }
-  66% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animated-gradient-bg {
-  background: linear-gradient(270deg, #FF0000, #800080, #00FF00);
-  background-size: 600% 600%;
-  animation: gradient-animation 15s ease infinite;
-}

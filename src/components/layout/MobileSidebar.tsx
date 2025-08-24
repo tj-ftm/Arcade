@@ -31,7 +31,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
         onClick={toggleSidebar}
         variant="ghost"
         size="icon"
-        className="md:hidden text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 z-[9999] transition-all duration-200"
+        className="md:hidden text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 z-[99999] transition-all duration-200"
       >
         <Menu className="h-6 w-6" />
       </Button>
@@ -39,7 +39,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9998] md:hidden"
+          className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[99998] md:hidden"
           onClick={closeSidebar}
         />
       )}
@@ -47,7 +47,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-0 z-[9999] md:hidden transition-transform duration-300 ease-in-out transform-gpu",
+          "fixed inset-0 z-[99999] md:hidden transition-transform duration-300 ease-in-out transform-gpu",
           isOpen ? "translate-x-0" : "-translate-x-full",
           !isOpen && "pointer-events-none"
         )}

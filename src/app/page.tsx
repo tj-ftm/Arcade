@@ -299,51 +299,51 @@ export default function HomePage() {
         return (
           <>
              
-             <div className="w-full flex-1 flex flex-col items-center justify-center pt-6 px-6 pb-6 sm:pt-2 sm:px-2 sm:pb-2">
-                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-6 sm:gap-2 w-full max-w-sm sm:max-w-6xl mx-auto h-full">
+             <div className="w-full flex-1 flex flex-col items-center justify-center pt-3 px-3 pb-3 sm:pt-2 sm:px-2 sm:pb-2">
+                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-3 sm:gap-2 w-full max-w-xs sm:max-w-6xl mx-auto h-full">
                   <div className="animate-fade-in text-center">
-                    <div className="bg-black/50 py-6 px-6 sm:py-4 sm:px-3 pb-8 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
-                      <div className="pt-4 sm:pt-6">
-                           <h1 className="text-5xl sm:text-5xl font-headline text-accent uppercase tracking-wider mb-3 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
-                           <p className="text-white/70 mb-4 sm:mb-6 text-lg sm:text-lg">The classic card game!</p>
+                    <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
+                      <div className="pt-2 sm:pt-6">
+                           <h1 className="text-2xl sm:text-5xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>UNO</h1>
+                           <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">The classic card game!</p>
                          </div>
-                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider">
+                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider">
                            Play
                          </Button>
                     </div>
                   </div>
 
                   <div className="animate-fade-in text-center">
-                    <div className="bg-black/50 py-6 px-6 sm:py-4 sm:px-3 pb-8 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
-                       <div className="pt-4 sm:pt-6">
-                           <h1 className="text-5xl sm:text-5xl font-headline text-green-500 uppercase tracking-wider mb-3 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
-                           <p className="text-white/70 mb-4 sm:mb-6 text-lg sm:text-lg">The retro classic!</p>
+                    <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
+                       <div className="pt-2 sm:pt-6">
+                           <h1 className="text-2xl sm:text-5xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>SNAKE</h1>
+                           <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">The retro classic!</p>
                          </div>
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider">
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider">
                             Play
                           </Button>
                     </div>
                   </div>
                   
                   <div className="animate-fade-in text-center">
-                    <div className="bg-black/50 py-6 px-6 sm:py-4 sm:px-3 pb-8 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
-                       <div className="pt-4 sm:pt-6">
-                           <h1 className="text-5xl sm:text-5xl font-headline text-purple-500 uppercase tracking-wider mb-3 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
-                           <p className="text-white/70 mb-4 sm:mb-6 text-lg sm:text-lg">The classic strategy game!</p>
+                    <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
+                       <div className="pt-2 sm:pt-6">
+                           <h1 className="text-2xl sm:text-5xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>CHESS</h1>
+                           <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">The classic strategy game!</p>
                          </div>
-                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                             Play
                           </Button>
                     </div>
                   </div>
                   
                   <div className="animate-fade-in text-center">
-                    <div className="bg-black/50 py-6 px-6 sm:py-4 sm:px-3 pb-8 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
-                       <div className="pt-4 sm:pt-6">
-                            <h1 className="text-5xl sm:text-5xl font-headline text-yellow-500 uppercase tracking-wider mb-3 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>SHOP</h1>
-                            <p className="text-white/70 mb-4 sm:mb-6 text-lg sm:text-lg">Browse and purchase items!</p>
+                    <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
+                       <div className="pt-2 sm:pt-6">
+                            <h1 className="text-2xl sm:text-5xl font-headline text-yellow-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>SHOP</h1>
+                            <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">Browse and purchase items!</p>
                           </div>
-                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                             Visit
                           </Button>
                     </div>
