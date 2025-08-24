@@ -35,6 +35,14 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     // The CreateLobby component will handle the waiting state
   };
 
+  const handleGameStart = (lobby: Lobby, isHost: boolean) => {
+    console.log('Game starting:', lobby, 'isHost:', isHost);
+    setGameStarting(true);
+    setTimeout(() => {
+      onStartGame?.(lobby, isHost);
+    }, 1000);
+  };
+
   const handleJoinLobby = (lobby: Lobby) => {
     console.log('Joining lobby:', lobby);
     setGameStarting(true);
@@ -112,6 +120,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
                 <CreateLobby
                   gameType={gameType}
                   onLobbyCreated={handleLobbyCreated}
+                  onGameStart={handleGameStart}
                   onBackToMenu={handleBackToMenu}
                 />
               </div>

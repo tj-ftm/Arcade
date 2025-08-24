@@ -22,10 +22,11 @@ interface Lobby {
 interface CreateLobbyProps {
   gameType: 'chess' | 'uno';
   onLobbyCreated?: (lobby: Lobby) => void;
+  onGameStart?: (lobby: Lobby, isHost: boolean) => void;
   onBackToMenu?: () => void;
 }
 
-export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLobbyProps) {
+export function CreateLobby({ gameType, onLobbyCreated, onGameStart, onBackToMenu }: CreateLobbyProps) {
   const { createLobby, currentLobby, isConnected } = useFirebaseMultiplayer();
   const { username, account } = useWeb3();
   const [hostName, setHostName] = useState('');
@@ -67,6 +68,14 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
       onLobbyCreated?.(currentLobby);
     }
   }, [currentLobby, isCreating, onLobbyCreated]);
+
+  // Handle when a player joins and game should start
+  useEffect(() => {
+    if (currentLobby && currentLobby.player2Id && currentLobby.status === 'playing') {
+      console.log('Player joined lobby, starting game as host');
+      onGameStart?.(currentLobby, true);
+    }
+  }, [currentLobby, onGameStart]);
 
   // If we have a current lobby and we're the host, show waiting screen
   if (currentLobby && (isWaiting || currentLobby.player1Name === effectiveHostName)) {

@@ -52,14 +52,11 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
     console.log('Attempting to join lobby:', lobby.id);
     console.log('Effective Player Name:', effectivePlayerName.trim());
     console.log('Is Connected:', isConnected);
-    if (!effectivePlayerName.trim() || !isConnected) {
-      console.warn('Join attempt aborted: Player name missing or not connected.');
-      setJoiningLobby(null);
-      return;
-    }
+    
     setJoiningLobby(lobby.id);
     try {
-      joinLobby(lobby.id, effectivePlayerName.trim(), account || 'mock-user');
+      await joinLobby(lobby.id, effectivePlayerName.trim(), account || `guest_${Date.now()}`);
+      console.log('Successfully joined lobby, calling onJoinLobby callback');
       onJoinLobby?.(lobby);
     } catch (error) {
       console.error('Failed to join lobby:', error);
@@ -92,15 +89,17 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
     console.log('Attempting to join lobby by ID:', fullLobbyId);
     console.log('Effective Player Name:', effectivePlayerName.trim());
     console.log('Is Connected:', isConnected);
-    if (!effectivePlayerName.trim() || !isConnected) {
-      console.warn('Join by ID attempt aborted: Player name missing or not connected.');
-      setJoiningLobby(null);
-      return;
-    }
+    
     setJoiningLobby(fullLobbyId);
     try {
-      joinLobby(fullLobbyId, effectivePlayerName.trim(), account || 'mock-user');
-      // Assuming successful join will be handled by socket context, no direct onJoinLobby call here
+      await joinLobby(fullLobbyId, effectivePlayerName.trim(), account || `guest_${Date.now()}`);
+      console.log('Successfully joined lobby by ID');
+      // Find the lobby in the list to pass to callback
+      const foundLobby = lobbies.find(l => l.id === fullLobbyId);
+      if (foundLobby) {
+        onJoinLobby?.(foundLobby);
+      }
+      setLobbyIdToJoin(''); // Clear the input
     } catch (error) {
       console.error('Failed to join lobby by ID:', error);
       alert('Failed to join lobby. Please check the PIN and your name.');

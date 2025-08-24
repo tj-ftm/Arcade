@@ -19,7 +19,7 @@ interface UseFirebaseMultiplayerReturn {
   currentLobby: Lobby | null;
   createLobby: (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => Promise<void>;
   joinLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
-  leaveLobby: (lobbyId: string) => Promise<void>;
+  leaveLobby: (lobbyId: string, playerId?: string) => Promise<void>;
   sendGameMove: (lobbyId: string, moveData: any) => Promise<void>;
   onGameMove: (callback: (moveData: any) => void) => void;
   onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
@@ -165,13 +165,13 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
   };
 
-  const leaveLobby = async (lobbyId: string) => {
+  const leaveLobby = async (lobbyId: string, playerId?: string) => {
     if (!isConnected || !currentLobby) return;
 
     try {
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
-      if (currentLobby.player1Id === currentUserIdRef.current) {
+      if (currentLobby.player1Id === playerId) {
         // Host is leaving, delete the lobby
         await remove(lobbyRef);
       } else {
