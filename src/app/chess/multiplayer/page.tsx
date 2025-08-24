@@ -7,12 +7,12 @@ import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChess
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno';
-  hostId: string;
-  hostName: string;
-  playerId?: string;
-  playerName?: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
-  createdAt: Date;
+  createdAt: any; // Firebase timestamp
   player1Color?: 'white' | 'black';
   player2Color?: 'white' | 'black';
 }

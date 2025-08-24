@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,16 +8,18 @@ import { Plus, Users, ArrowLeft } from 'lucide-react';
 import { CreateLobby } from './CreateLobby';
 import { LobbyList } from './LobbyList';
 import { MenuLayout } from '@/components/layout/MenuLayout';
+import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
+import { useWeb3 } from '@/components/web3/Web3Provider';
 
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno';
-  hostId: string;
-  hostName: string;
-  playerId?: string;
-  playerName?: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
-  createdAt: Date;
+  createdAt: any; // Firebase timestamp
   player1Color?: 'white' | 'black';
   player2Color?: 'white' | 'black';
 }
@@ -31,6 +33,19 @@ interface MultiplayerLobbyProps {
 export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: MultiplayerLobbyProps) {
   const [activeTab, setActiveTab] = useState('browse');
   const [gameStarting, setGameStarting] = useState(false);
+  
+  const { onLobbyJoined } = useFirebaseMultiplayer();
+  const { account } = useWeb3();
+  
+  const currentUserId = account || 'mock-user';
+  
+  // Set up lobby joined callback to automatically start game
+  useEffect(() => {
+    onLobbyJoined((lobby: Lobby) => {
+      const isHost = currentUserId === lobby.player1Id;
+      handleGameStart(lobby, isHost);
+    });
+  }, [currentUserId, onLobbyJoined, handleGameStart]);
 
   const handleLobbyCreated = (lobby: Lobby) => {
     console.log('Lobby created:', lobby);
@@ -47,11 +62,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
 
   const handleJoinLobby = (lobby: Lobby) => {
     console.log('Joining lobby:', lobby);
-    setGameStarting(true);
-    // Start the game as a player (not host)
-    setTimeout(() => {
-      onStartGame?.(lobby, false);
-    }, 1000);
+    // The onLobbyJoined callback will handle game starting automatically
   };
 
   const handleBackToMenu = () => {
