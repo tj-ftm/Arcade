@@ -235,6 +235,9 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
   const onLobbyJoined = (callback: (lobby: Lobby) => void) => {
     setLobbyJoinedCallbacks(prev => [...prev, callback]);
+    return () => {
+      setLobbyJoinedCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
   };
 
   const onLobbyLeft = (callback: (lobby: Lobby) => void) => {

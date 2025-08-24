@@ -49,10 +49,13 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
 
   // Set up lobby joined callback to automatically start game
   useEffect(() => {
-    onLobbyJoined((lobby: Lobby) => {
+    const unsubscribe = onLobbyJoined((lobby: Lobby) => {
       const isHost = currentUserId === lobby.player1Id;
       handleGameStart(lobby, isHost);
     });
+    return () => {
+      unsubscribe();
+    };
   }, [currentUserId, onLobbyJoined, handleGameStart]);
 
   const handleLobbyCreated = (lobby: Lobby) => {
