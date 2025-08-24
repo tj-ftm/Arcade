@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Users, Loader2 } from 'lucide-react';
 import { useSocket } from '@/hooks/use-socket';
+import { useWeb3 } from '@/components/web3/Web3Provider';
 
 interface Lobby {
   id: string;
@@ -26,19 +27,27 @@ interface CreateLobbyProps {
 
 export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLobbyProps) {
   const { createLobby, currentLobby, isConnected } = useSocket();
-  const [hostName, setHostName] = useState('Player' + Math.floor(Math.random() * 1000)); // Placeholder for username
+  const { username, account } = useWeb3();
+  const [hostName, setHostName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
 
+  // Use wallet username if available, otherwise require manual input
+  const effectiveHostName = username && account ? username : hostName;
+
   const handleCreateLobby = async () => {
-    if (!hostName.trim()) {
-      alert('Please enter your name');
+    if (!effectiveHostName.trim()) {
+      if (account) {
+        alert('Please set a username in your wallet profile');
+      } else {
+        alert('Please connect your wallet or enter your name');
+      }
       return;
     }
 
     setIsCreating(true);
     try {
-      createLobby(gameType, hostName.trim());
+      createLobby(gameType, effectiveHostName.trim());
       setIsWaiting(true);
     } catch (error) {
       console.error('Failed to create lobby:', error);
@@ -132,27 +141,37 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
           )}
 
           <div className="space-y-3 sm:space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs sm:text-sm font-medium text-white/70">
-                Your Name
-              </label>
-              <Input
-                placeholder="Enter your name"
-                value={hostName}
-                onChange={(e) => setHostName(e.target.value)}
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm sm:text-base"
-                maxLength={20}
-                disabled={isCreating}
-              />
-            </div>
-
-
+            {username && account ? (
+              <div className="bg-white/10 rounded-lg p-3 sm:p-4 space-y-1 sm:space-y-2">
+                <p className="text-xs sm:text-sm text-white/70">Playing as:</p>
+                <p className="font-semibold text-sm sm:text-base text-white">{username}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium text-white/70">
+                  Your Name
+                </label>
+                <Input
+                  placeholder="Enter your name"
+                  value={hostName}
+                  onChange={(e) => setHostName(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm sm:text-base"
+                  maxLength={20}
+                  disabled={isCreating}
+                />
+                {!account && (
+                  <p className="text-xs text-white/50">
+                    Tip: Connect your wallet to use your saved username
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-center">
             <Button
               onClick={handleCreateLobby}
-              disabled={!hostName.trim() || isCreating || !isConnected}
+              disabled={!effectiveHostName.trim() || isCreating || !isConnected}
               className="w-full bg-primary hover:bg-primary/80 text-white text-sm sm:text-base"
             >
               {isCreating ? (

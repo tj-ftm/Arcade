@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Users, Clock, GamepadIcon } from 'lucide-react';
 import { useSocket } from '@/hooks/use-socket';
+import { useWeb3 } from '@/components/web3/Web3Provider';
 
 interface Lobby {
   id: string;
@@ -26,23 +27,31 @@ interface LobbyListProps {
 
 export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProps) {
   const { lobbies, joinLobby, isConnected } = useSocket();
+  const { username, account } = useWeb3();
   const [playerName, setPlayerName] = useState('');
   const [lobbyIdToJoin, setLobbyIdToJoin] = useState('');
   const [joiningLobby, setJoiningLobby] = useState<string | null>(null);
+
+  // Use wallet username if available, otherwise require manual input
+  const effectivePlayerName = username && account ? username : playerName;
 
   const filteredLobbies = lobbies.filter(lobby => 
     lobby.gameType === gameType && lobby.status === 'waiting'
   );
 
   const handleJoinLobby = async (lobby: Lobby) => {
-    if (!playerName.trim()) {
-      alert('Please enter your name');
+    if (!effectivePlayerName.trim()) {
+      if (account) {
+        alert('Please set a username in your wallet profile');
+      } else {
+        alert('Please connect your wallet or enter your name');
+      }
       return;
     }
 
     setJoiningLobby(lobby.id);
     try {
-      joinLobby(lobby.id, playerName.trim());
+      joinLobby(lobby.id, effectivePlayerName.trim());
       onJoinLobby?.(lobby);
     } catch (error) {
       console.error('Failed to join lobby:', error);
@@ -53,22 +62,32 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
   };
 
   const handleJoinLobbyById = async () => {
-    if (!playerName.trim()) {
-      alert('Please enter your name');
+    if (!effectivePlayerName.trim()) {
+      if (account) {
+        alert('Please set a username in your wallet profile');
+      } else {
+        alert('Please connect your wallet or enter your name');
+      }
       return;
     }
     if (!lobbyIdToJoin.trim()) {
-      alert('Please enter a Lobby ID');
+      alert('Please enter a 4-digit PIN');
+      return;
+    }
+    if (lobbyIdToJoin.length !== 4 || !/^\d{4}$/.test(lobbyIdToJoin)) {
+      alert('Please enter a valid 4-digit PIN');
       return;
     }
 
-    setJoiningLobby(lobbyIdToJoin);
+    // Automatically add game prefix to the 4-digit PIN
+    const fullLobbyId = `${gameType.toUpperCase()}-${lobbyIdToJoin}`;
+    setJoiningLobby(fullLobbyId);
     try {
-      joinLobby(lobbyIdToJoin, playerName.trim());
+      joinLobby(fullLobbyId, effectivePlayerName.trim());
       // Assuming successful join will be handled by socket context, no direct onJoinLobby call here
     } catch (error) {
       console.error('Failed to join lobby by ID:', error);
-      alert('Failed to join lobby. Please check the ID and your name.');
+      alert('Failed to join lobby. Please check the PIN and your name.');
     } finally {
       setJoiningLobby(null);
     }
@@ -97,27 +116,44 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
-          <Input
-            placeholder="Enter your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm sm:text-base"
-            maxLength={20}
-          />
-        </div>
+        {username && account ? (
+          <div className="bg-white/10 rounded-lg p-3 sm:p-4 space-y-1 sm:space-y-2">
+            <p className="text-xs sm:text-sm text-white/70">Playing as:</p>
+            <p className="font-semibold text-sm sm:text-base text-white">{username}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+              <Input
+                placeholder="Enter your name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm sm:text-base"
+                maxLength={20}
+              />
+            </div>
+            {!account && (
+              <p className="text-xs text-white/50 text-center">
+                Tip: Connect your wallet to use your saved username
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
           <Input
-            placeholder="Enter Lobby PIN (e.g. CHESS-1234)"
+            placeholder="Enter 4-digit PIN (e.g. 1234)"
             value={lobbyIdToJoin}
-            onChange={(e) => setLobbyIdToJoin(e.target.value.toUpperCase())}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+              setLobbyIdToJoin(value);
+            }}
             className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm sm:text-base"
-            maxLength={9} // Format: CHESS-1234 or UNO-1234
+            maxLength={4} // Only 4 digits needed
           />
           <Button
             onClick={handleJoinLobbyById}
-            disabled={!lobbyIdToJoin.trim() || !playerName.trim() || joiningLobby !== null || !isConnected}
+            disabled={lobbyIdToJoin.length !== 4 || !effectivePlayerName.trim() || joiningLobby !== null || !isConnected}
             className="w-full sm:w-auto bg-primary hover:bg-primary/80 text-white text-sm sm:text-base"
           >
             {joiningLobby === lobbyIdToJoin ? 'Joining...' : 'Join by ID'}
@@ -160,7 +196,7 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
 
                     <Button
                       onClick={() => handleJoinLobby(lobby)}
-                      disabled={!playerName.trim() || joiningLobby === lobby.id || !isConnected}
+                      disabled={!effectivePlayerName.trim() || joiningLobby === lobby.id || !isConnected}
                       className="w-full bg-primary hover:bg-primary/80 text-white text-sm sm:text-base"
                     >
                       {joiningLobby === lobby.id ? 'Joining...' : 'Join Game'}

@@ -30,25 +30,7 @@ interface UseSocketReturn {
 export const useSocket = (): UseSocketReturn => {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(true); // Mock as connected for now
-  const [lobbies, setLobbies] = useState<Lobby[]>([
-    // Mock lobbies for demonstration
-    {
-      id: 'CHESS-1234',
-      gameType: 'chess',
-      hostId: 'demo-host-1',
-      hostName: 'ChessMaster',
-      status: 'waiting',
-      createdAt: new Date(Date.now() - 300000) // 5 minutes ago
-    },
-    {
-      id: 'UNO-5678',
-      gameType: 'uno',
-      hostId: 'demo-host-2',
-      hostName: 'UnoChamp',
-      status: 'waiting',
-      createdAt: new Date(Date.now() - 120000) // 2 minutes ago
-    }
-  ]);
+  const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
 
   useEffect(() => {
