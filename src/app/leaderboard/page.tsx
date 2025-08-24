@@ -81,6 +81,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
               <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
             </Button>
           </div>
+        </div>
       </div>
     </div>
   );
