@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useSocket } from '@/hooks/use-socket';
+import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { UnoEndGameScreen } from '../UnoEndGameScreen';
 
 type UnoColor = 'red' | 'blue' | 'green' | 'yellow';
@@ -19,12 +19,14 @@ interface UnoCard {
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno';
-  hostId: string;
-  hostName: string;
-  playerId?: string;
-  playerName?: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
-  createdAt: Date;
+  createdAt: any; // Firebase timestamp
+  player1Color?: 'white' | 'black';
+  player2Color?: 'white' | 'black';
 }
 
 interface MultiplayerUnoClientProps {
@@ -112,7 +114,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [opponentName, setOpponentName] = useState('');
   const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
   
-  const { sendGameMove, onGameMove, leaveLobby } = useSocket();
+  const { sendGameMove, onGameMove, leaveLobby } = useFirebaseMultiplayer();
 
   const addGameLog = useCallback((message: string) => {
     setGameLog(prev => [...prev, message]);
@@ -145,7 +147,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   }, [isHost, lobby.id, sendGameMove, addGameLog]);
 
   useEffect(() => {
-    setOpponentName(isHost ? (lobby.playerName || 'Player') : lobby.hostName);
+    setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
     
     if (isHost) {
       initializeGame();

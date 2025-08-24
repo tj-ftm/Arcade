@@ -10,9 +10,9 @@ interface Lobby {
   player2Id?: string;
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
-  createdAt: Date;
+  createdAt: any; // Firebase timestamp
   player1Color?: 'white' | 'black';
-  player2Color?: 'white' | 'black';any; // Firebase timestamp
+  player2Color?: 'white' | 'black';
 }
 
 interface UseFirebaseMultiplayerReturn {
@@ -158,7 +158,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         player2Name,
         status: 'playing',
         player1Color: assignedPlayer1Color,
-        player2Color: assignedPlayerPlayer2Color
+        player2Color: assignedPlayer2Color
       });
 
       // Listen for lobby updates for the joining player
