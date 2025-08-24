@@ -23,9 +23,11 @@ export default function UnoMultiplayerPage() {
   const [isHost, setIsHost] = useState(false);
 
   const handleStartGame = (lobby: Lobby, isHostPlayer: boolean) => {
+    console.log('handleStartGame called with:', { lobby, isHostPlayer });
     setCurrentLobby(lobby);
     setIsHost(isHostPlayer);
     setCurrentView('game');
+    console.log('State updated - currentView should be game');
   };
 
   const handleBackToLobby = () => {
