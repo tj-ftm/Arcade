@@ -307,7 +307,7 @@ export default function HomePage() {
                            <h1 className="text-2xl sm:text-3xl font-headline text-accent uppercase tracking-wider mb-3 sm:mb-4" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                            <p className="text-white/70 mb-4 sm:mb-6 text-xs sm:text-sm">The classic card game!</p>
                          </div>
-                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-800 to-red-900 text-white rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                            Play
                          </Button>
                     </div>
@@ -319,7 +319,7 @@ export default function HomePage() {
                            <h1 className="text-2xl sm:text-3xl font-headline text-green-500 uppercase tracking-wider mb-3 sm:mb-4" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
                            <p className="text-white/70 mb-4 sm:mb-6 text-xs sm:text-sm">The retro classic!</p>
                          </div>
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-green-800 to-green-900 text-white rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight">
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight">
                             Play
                           </Button>
                     </div>
@@ -331,7 +331,7 @@ export default function HomePage() {
                            <h1 className="text-2xl sm:text-3xl font-headline text-purple-500 uppercase tracking-wider mb-3 sm:mb-4" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
                            <p className="text-white/70 mb-4 sm:mb-6 text-xs sm:text-sm">The classic strategy game!</p>
                          </div>
-                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-purple-800 to-purple-900 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                             Play
                           </Button>
                     </div>
@@ -343,7 +343,7 @@ export default function HomePage() {
                             <h1 className="text-2xl sm:text-3xl font-headline text-yellow-500 uppercase tracking-wider mb-3 sm:mb-4" style={{ WebkitTextStroke: '2px black' }}>SHOP</h1>
                             <p className="text-white/70 mb-4 sm:mb-6 text-xs sm:text-sm">Browse and purchase items!</p>
                           </div>
-                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-yellow-700 to-yellow-800 text-white rounded-xl shadow-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                             Visit
                           </Button>
                     </div>
