@@ -417,7 +417,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                 }
             }
             
-            handleAction(card.value);
+
             newState.activePlayerIndex = tempNextPlayerIndex;
 
             const nextPlayerName = newState.players[newState.activePlayerIndex].id;
