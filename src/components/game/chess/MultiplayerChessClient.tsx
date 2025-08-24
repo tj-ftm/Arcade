@@ -278,26 +278,10 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
         </div>
       ) : (
         !showEndGameScreen && (
-          <>
-            <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
-            <Button variant="secondary" size="icon" onClick={() => setIsLogVisible(v => !v)}>
-              Log
-            </Button>
+          <div>
+            <p>Test Content</p>
           </div>
-          
-          <div className={cn(
-            "fixed md:static top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
-            isLogVisible ? "translate-x-0" : "translate-x-full",
-            "md:translate-x-0 md:h-full"
-          )}>
-            <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={() => setIsLogVisible(false)}>
-              X
-            </Button>
-            <h3 className="text-2xl text-accent text-center font-bold uppercase tracking-wider mb-4">Game Info</h3>
-            
-            <div className="mb-4 space-y-2">
-              <div className="text-sm">
-                <span className="text-white/70">You: </span>
+        )
                 <span className={cn("font-bold", playerColor === 'w' ? "text-white" : "text-gray-400")}>
                   {playerColor === 'w' ? 'White' : 'Black'}
                 </span>
