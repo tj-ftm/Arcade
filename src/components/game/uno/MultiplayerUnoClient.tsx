@@ -358,7 +358,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
           <p className="text-lg text-white">Lobby ID: {lobby.id}</p>
         </div>
       ) : (
-      {/* Color Picker Modal */}
+        <>
+          {/* Color Picker Modal */}
       {showColorPicker && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 space-y-4">
@@ -464,6 +465,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
           ))}
         </div>
       </div>
+        </>
       )}
     </div>
   );

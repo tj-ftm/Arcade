@@ -278,25 +278,27 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
         </div>
       ) : (
         !showEndGameScreen && (
-          <div>
-            <p>Test Content</p>
-          </div>
-        )
-                <span className={cn("font-bold", playerColor === 'w' ? "text-white" : "text-gray-400")}>
-                  {playerColor === 'w' ? 'White' : 'Black'}
-                </span>
+          <>
+            <div className="w-full md:w-80 h-full flex flex-col bg-black/20 backdrop-blur-sm border border-purple-400/30 rounded-lg p-4">
+              <div className="mb-4">
+                <h3 className="text-xl font-bold mb-2">Game Info</h3>
+                <div className="text-sm">
+                  <span className="text-white/70">You are: </span>
+                  <span className={cn("font-bold", playerColor === 'w' ? "text-white" : "text-gray-400")}>
+                    {playerColor === 'w' ? 'White' : 'Black'}
+                  </span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-white/70">Opponent: </span>
+                  <span className="font-bold">{opponentName}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-white/70">Turn: </span>
+                  <span className={cn("font-bold", isMyTurn ? "text-green-400" : "text-yellow-400")}>
+                    {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
+                  </span>
+                </div>
               </div>
-              <div className="text-sm">
-                <span className="text-white/70">Opponent: </span>
-                <span className="font-bold">{opponentName}</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-white/70">Turn: </span>
-                <span className={cn("font-bold", isMyTurn ? "text-green-400" : "text-yellow-400")}>
-                  {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
-                </span>
-              </div>
-            </div>
             
             <ScrollArea className="flex-1">
               <div className="flex flex-col gap-2">
@@ -344,6 +346,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
             {game.isCheck() && !winner && <div className="mt-2 text-2xl text-red-500 font-bold animate-pulse">CHECK!</div>}
           </div>
         </>
+        )
       )}
 
       {showEndGameScreen && (
