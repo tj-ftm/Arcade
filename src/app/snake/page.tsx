@@ -339,7 +339,7 @@ export default function SnakeHome() {
           case 'pay-uno':
               return 'bg-red-900';
           case 'snake':
-              return 'bg-gray-900';
+              return 'bg-green-800';
           case 'chess':
               return 'bg-purple-900/50';
           case 'platformer':
@@ -357,7 +357,7 @@ export default function SnakeHome() {
   const showGenericHeader = !showHeader && activeView !== 'platformer'; // Platformer has no top header
 
   return (
-      <main className="flex flex-col items-center justify-center min-h-screen py-2 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative overflow-hidden">
+      <main className="flex flex-col items-center justify-center min-h-screen py-2 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative overflow-hidden touch-none">
         {activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer' ? (
              <>
               <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
@@ -371,7 +371,7 @@ export default function SnakeHome() {
             </>
         ) : activeView === 'snake' ? (
             <>
-                <div className="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-900 via-gray-700 to-black z-0"></div>
+                <div className="absolute inset-0 bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-lime-900 z-0"></div>
                 
             </>
         ) : activeView === 'chess' ? (

@@ -29,8 +29,6 @@ const SnakeCell = ({ type }: { type: 'snake' | 'food' | 'empty' }) => {
 };
 
 export const SnakeClient = () => {
-    // Add a ref to the main game container
-    const gameContainerRef = useRef<HTMLDivElement>(null);
     const { account } = useWeb3();
     const isMobile = useIsMobile();
     const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -230,16 +228,14 @@ export const SnakeClient = () => {
     useInterval(gameLoop, gameState === 'running' ? GAME_SPEED : null);
 
     return (
-        <div ref={gameContainerRef} className="relative flex flex-col items-center justify-center w-full h-full p-4 overflow-hidden">
+        <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in h-full w-full max-w-4xl mx-auto p-4 overflow-hidden touch-none">
             {showStartScreen && (
                 <SnakeStartScreen onStartGame={handleStartGame} />
             )}
 
             {showEndGameScreen && (
                 <SnakeEndGameScreen
-                    winner={score >= 100 ? 'player' : 'bot'}
-                    playerScore={score}
-                    botScore={0}
+                    score={score}
                     onPlayAgain={handleNewGame}
                     onGoToMenu={handleShowStartScreen}
                     mintTxHash={mintTxHash}
@@ -251,10 +247,10 @@ export const SnakeClient = () => {
 
             {!showStartScreen && !showEndGameScreen && (
                 <>
-                    <h1 className="text-4xl md:text-6xl text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Snake</h1>
-                    <div className="bg-black/50 p-4 rounded-xl shadow-2xl border-2 border-green-500/50 relative w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh]">
+                    <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg relative w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh]">
                         <div className="flex justify-between items-center mb-4 px-2">
                             <div className="text-xl md:text-2xl">Score: <span className="text-accent font-bold">{score}</span></div>
+                            <h1 className="text-4xl md:text-6xl text-green-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>Snake</h1>
                             <div className="flex gap-2">
                                <Button size="icon" variant="secondary" onClick={handleStartGame}><RefreshCw/></Button>
                             </div>

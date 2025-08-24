@@ -68,8 +68,8 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
   };
 
   const sizeClasses = {
-      normal: 'w-full max-w-[70px] md:max-w-[90px] min-w-[50px] md:min-w-[70px] h-auto aspect-[5/7]',
-      large: 'w-full max-w-[90px] md:max-w-[138px] min-w-[70px] md:min-w-[106px] h-auto aspect-[5/7]',
+      normal: 'w-[12vw] max-w-[70px] md:max-w-[90px] min-w-[40px] md:min-w-[60px] h-auto aspect-[5/7]',
+      large: 'w-[15vw] max-w-[90px] md:max-w-[120px] min-w-[50px] md:min-w-[80px] h-auto aspect-[5/7]',
   }
 
   const cardStyle = {
@@ -128,8 +128,8 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
 
 const CardBack = ({ style, size = 'normal' }: { style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
     const sizeClasses = {
-      normal: 'w-full max-w-[60px] md:max-w-[80px] min-w-[40px] md:min-w-[60px] h-auto aspect-[5/7]',
-      large: 'w-full max-w-[80px] md:max-w-[128px] min-w-[60px] md:min-w-[96px] h-auto aspect-[5/7]',
+      normal: 'w-[12vw] max-w-[60px] md:max-w-[80px] min-w-[35px] md:min-w-[55px] h-auto aspect-[5/7]',
+      large: 'w-[15vw] max-w-[80px] md:max-w-[110px] min-w-[45px] md:min-w-[75px] h-auto aspect-[5/7]',
     }
     const logoSize = size === 'large' ? 'text-lg md:text-3xl lg:text-6xl' : 'text-sm md:text-2xl lg:text-5xl';
     return (
@@ -483,15 +483,19 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
     
     const handStyle = (index: number, total: number) => {
-        const maxWidth = window.innerWidth * (window.innerWidth < 768 ? 0.9 : 0.8); // More space on mobile
-        const baseSpread = window.innerWidth < 768 ? 15 : 30; // Adjusted desktop spacing
-        const maxSpread = Math.min(baseSpread, maxWidth / Math.max(total, 1));
-        const spread = Math.max(window.innerWidth < 768 ? 8 : 10, maxSpread); // Adjusted minimums
-        const totalWidth = total * spread;
-        const startOffset = -totalWidth / 2;
-        const translateX = startOffset + index * spread;
+        const containerWidth = playerHandRef.current?.offsetWidth || window.innerWidth * 0.9;
+        const cardWidth = window.innerWidth < 768 ? 50 : 70; // Estimated card width
+        const availableSpace = containerWidth - (cardWidth * 0.5); // More space for better visibility
+        const maxCards = Math.max(total, 1);
+        const spreadPercentage = Math.min(availableSpace / maxCards / containerWidth * 100, 120); // Doubled max spacing to 120%
+        const minSpreadPercentage = window.innerWidth < 768 ? 40 : 60; // Doubled minimum spacing
+        const finalSpread = Math.max(spreadPercentage, minSpreadPercentage);
+        const totalSpread = (maxCards - 1) * finalSpread;
+        const startOffset = -totalSpread / 2;
+        const translateX = startOffset + index * finalSpread;
         return {
-            transform: `translateX(${translateX}px)`,
+            transform: `translateX(${translateX}%)`,
+            zIndex: index,
         };
     };
 
@@ -528,11 +532,11 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                 </div>
             </div>
 
-             <div className="flex-1 h-full flex flex-col justify-between items-center py-0 px-2 md:px-4">
+             <div className="flex-1 h-full flex flex-col justify-between items-center py-2 md:py-4 px-2 md:px-4">
                 {/* Bot Area */}
-                <div className="flex flex-col items-center gap-1 md:gap-2 h-12 md:h-16 lg:h-24 w-full">
-                     <div className={cn("text-xs md:text-lg lg:text-xl uppercase tracking-wider bg-black/50 px-2 md:px-4 py-0.5 md:py-1 rounded-full transition-all duration-300", activePlayerIndex === 1 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{bot.name} ({bot.hand.length} cards)</div>
-                    <div className="relative flex justify-center items-center h-12 md:h-20 lg:h-24 w-full">
+                <div className="flex flex-col items-center gap-2 md:gap-4 min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] w-full max-w-7xl">
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", activePlayerIndex === 1 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{bot.name} ({bot.hand.length} cards)</div>
+                    <div className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
                         {bot.hand.map((_, i) => (
                             <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, bot.hand.length), top: 0 }}>
                                 <CardBack />
@@ -542,20 +546,20 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                 </div>
 
                 {/* Center Area with Played and Draw Cards */}
-                <div className="flex flex-col items-center gap-2 md:gap-4">
+                <div className="flex flex-col items-center gap-3 md:gap-6 my-4 md:my-6">
                     {/* Labels Row */}
-                    <div className="flex items-center justify-center gap-6 md:gap-12">
-                        <h3 className="text-xs md:text-lg lg:text-xl font-bold uppercase tracking-wider text-center w-16 md:w-24">Played</h3>
-                        <h3 className="text-xs md:text-lg lg:text-xl font-bold uppercase tracking-wider text-center w-16 md:w-24">Draw</h3>
+                    <div className="flex items-center justify-center gap-12 md:gap-20">
+                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Played</h3>
+                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Draw</h3>
                     </div>
                     
                     {/* Cards Row */}
-                    <div className="flex items-start justify-center gap-6 md:gap-12">
-                        <div className="flex justify-center items-start w-16 md:w-24">
+                    <div className="flex items-start justify-center gap-12 md:gap-20">
+                        <div className="flex justify-center items-start w-20 md:w-32">
                             <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
                         </div>
                         
-                        <div className="flex justify-center items-start w-16 md:w-24">
+                        <div className="flex justify-center items-start w-20 md:w-32">
                             <div onClick={activePlayerIndex === 0 ? handleDrawCard : undefined} className={cn("transition-transform hover:scale-105 relative", activePlayerIndex === 0 && !playerHasPlayableCard ? "cursor-pointer" : "cursor-not-allowed")} style={{transform: 'translateX(-32px)'}}>
                                {Array.from({ length: 3 }).map((_, i) => (
                                     <div key={i} className="absolute" style={{ top: `${i * 2}px`, left: `${i * 2}px` }}>
@@ -568,8 +572,8 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                 </div>
                 
                 {/* Player Area */}
-                <div className="flex flex-col items-center gap-1 md:gap-2 w-full h-16 md:h-24 lg:h-32 pb-0 mb-2 md:mb-4">
-                    <div ref={playerHandRef} className="relative flex justify-center items-center h-12 md:h-20 lg:h-24 w-full">
+                <div className="flex flex-col items-center gap-2 md:gap-4 w-full max-w-7xl min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] pb-0 mb-2 md:mb-4">
+                    <div ref={playerHandRef} className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
                         {player.hand.map((card, i) => (
                             <div
                               key={`${card.color}-${card.value}-${i}`}
@@ -590,7 +594,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                             </div>)
                         )}
                     </div>
-                     <div className={cn("text-xs md:text-lg lg:text-xl uppercase tracking-wider bg-black/50 px-4 py-1 rounded-full transition-all duration-300", activePlayerIndex === 0 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", activePlayerIndex === 0 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
                 </div>
             </div>
 
