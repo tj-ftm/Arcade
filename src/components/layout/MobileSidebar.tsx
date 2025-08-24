@@ -76,9 +76,9 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
           </div>
 
           {/* Menu Items */}
-          <div className="flex flex-col space-y-4 bg-red-800 p-4 rounded-lg">
+          <div className="flex flex-col space-y-2 bg-red-800 pl-2 pr-2 rounded-lg">
             {/* Wallet Connect */}
-            <div className="mb-4">
+            <div className="mb-2">
               <ConnectWallet />
             </div>
 
@@ -88,7 +88,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
             <Button
               onClick={() => handleNavigation('leaderboard')}
               variant="ghost"
-              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
             >
               <BarChart className="mr-3 h-5 w-5" />
               Leaderboard
@@ -98,7 +98,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
             <Button
               onClick={() => handleNavigation('settings')}
               variant="ghost"
-              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
             >
               <Settings className="mr-3 h-5 w-5" />
               Settings
