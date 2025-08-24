@@ -4,7 +4,9 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* config options here */
   webpack: (config, { isServer }) => {
-    config.resolve.fallback = { process: require.resolve('process/browser') };
+    if (!isServer) {
+      config.resolve.fallback = { process: require.resolve('process/browser') };
+    }
     return config;
   },
   typescript: {
