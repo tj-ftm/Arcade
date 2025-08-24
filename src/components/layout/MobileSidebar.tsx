@@ -8,10 +8,10 @@ import { cn } from '@/lib/utils';
 
 interface MobileSidebarProps {
   onNavigate: (view: 'leaderboard' | 'settings') => void;
-  onMintArc: () => void;
+
 }
 
-export function MobileSidebar({ onNavigate, onMintArc }: MobileSidebarProps) {
+export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -22,10 +22,7 @@ export function MobileSidebar({ onNavigate, onMintArc }: MobileSidebarProps) {
     closeSidebar();
   };
 
-  const handleMintArc = () => {
-    onMintArc();
-    closeSidebar();
-  };
+
 
   return (
     <>
@@ -78,15 +75,7 @@ export function MobileSidebar({ onNavigate, onMintArc }: MobileSidebarProps) {
               <ConnectWallet />
             </div>
 
-            {/* Mint 1 ARC */}
-            <Button
-              onClick={handleMintArc}
-              variant="ghost"
-              className="w-full justify-start text-lg h-12 text-white hover:bg-red-700/50 font-headline border border-white/20"
-            >
-              <Ticket className="mr-3 h-5 w-5" />
-              Mint 1 ARC
-            </Button>
+
 
             {/* Leaderboard */}
             <Button

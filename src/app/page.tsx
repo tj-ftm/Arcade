@@ -318,51 +318,53 @@ export default function HomePage() {
       default:
         return (
           <>
-             <div className="w-full flex-1 flex flex-col items-center justify-center">
-                <div className="flex flex-row flex-wrap items-center justify-center gap-2">
-                  <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
-                      <h1 className="text-3xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
-                      <p className="text-white/70 mt-1 mb-4 text-sm">The classic card game!</p>
-                      <div className="flex flex-col gap-2">
-                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full text-lg h-16 bg-primary hover:bg-primary/90 rounded-lg font-headline group whitespace-normal leading-tight">
-                           <Play className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play Uno
-                        </Button>
-                      </div>
+             <div className="w-full flex-1 flex flex-col items-center justify-center pt-4 sm:pt-2 px-2">
+                <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-2 w-full max-w-sm sm:max-w-none mx-auto">
+                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                    <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
+                      <div className="pt-2 sm:pt-3">
+                           <h1 className="text-2xl sm:text-3xl font-headline text-accent uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
+                           <p className="text-white/70 mb-3 text-xs sm:text-sm">The classic card game!</p>
+                         </div>
+                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-primary hover:bg-primary/90 rounded-lg font-headline group whitespace-normal leading-tight">
+                           Play
+                         </Button>
                     </div>
                   </div>
 
-                  <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
-                       <h1 className="text-3xl font-headline text-green-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
-                       <p className="text-white/70 mt-1 mb-4 text-sm">The retro classic!</p>
-                         <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full text-lg h-16 bg-green-600 hover:bg-green-500 rounded-lg font-headline group mx-auto whitespace-normal leading-tight">
-                           <Gamepad2 className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play Snake
-                         </Button>
+                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                    <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
+                       <div className="pt-2 sm:pt-3">
+                           <h1 className="text-2xl sm:text-3xl font-headline text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
+                           <p className="text-white/70 mb-3 text-xs sm:text-sm">The retro classic!</p>
+                         </div>
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group mx-auto whitespace-normal leading-tight">
+                            Play
+                          </Button>
                     </div>
                   </div>
                   
-                  <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
-                       <h1 className="text-3xl font-headline text-purple-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
-                       <p className="text-white/70 mt-1 mb-4 text-sm">The classic strategy game!</p>
-                        <div className="flex flex-col gap-2">
-                         <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full text-lg h-16 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group whitespace-normal leading-tight">
-                           <BrainCircuit className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play Chess
-                         </Button>
-                       </div>
+                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                    <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
+                       <div className="pt-2 sm:pt-3">
+                           <h1 className="text-2xl sm:text-3xl font-headline text-purple-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
+                           <p className="text-white/70 mb-3 text-xs sm:text-sm">The classic strategy game!</p>
+                         </div>
+                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                            Play
+                          </Button>
                     </div>
                   </div>
                   
-                  <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
-                       <h1 className="text-3xl font-headline text-yellow-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>SHOP</h1>
-                       <p className="text-white/70 mt-1 mb-4 text-sm">Browse and purchase items!</p>
-                        <div className="flex flex-col gap-2">
-                         <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full text-lg h-16 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-headline group whitespace-normal leading-tight">
-                           <Ticket className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Visit Shop
-                         </Button>
-                       </div>
+                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                    <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
+                       <div className="pt-2 sm:pt-3">
+                            <h1 className="text-2xl sm:text-3xl font-headline text-yellow-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>SHOP</h1>
+                            <p className="text-white/70 mb-3 text-xs sm:text-sm">Browse and purchase items!</p>
+                          </div>
+                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                            Visit
+                          </Button>
                     </div>
                   </div>
 
@@ -428,33 +430,34 @@ export default function HomePage() {
         {showMainMenuHeader && (
              <header className="w-full z-10 animate-fade-in flex-shrink-0 p-2 sm:p-4">
                 <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
-                    <button onClick={() => handleNavigate('menu')}>
-                        <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
-                        Sonic <span className="text-primary">Arcade</span>
-                        </div>
-                    </button>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                        {isMobile ? (
-                            <MobileSidebar 
-                                onNavigate={handleNavigate}
-                                onMintArc={handleMintArc}
-                            />
-                        ) : (
-                            <>
+                    {isMobile ? (
+                        <MobileSidebar onNavigate={handleNavigate} />
+                    ) : (
+                        <>
+                            {/* Left section for desktop */}
+                            <div className="flex items-center gap-1 sm:gap-2">
                                 <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                                     Leaderboard
                                 </Button>
-                                <Button onClick={() => handleNavigate('settings')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                                    <Settings className="mr-2 h-5 w-5" /> Settings
+                                <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                    <Settings className="h-5 w-5" />
                                 </Button>
-                                <Button onClick={handleMintArc} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                                    <Ticket className="mr-2 h-5 w-5" /> Mint 1 ARC
-                                </Button>
+                            </div>
+                            {/* Center section for desktop */}
+                            <div className="flex-grow flex justify-center">
+                                <button onClick={() => handleNavigate('menu')}>
+                                    <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
+                                    Sonic <span className="text-primary">Arcade</span>
+                                    </div>
+                                </button>
+                            </div>
+                            {/* Right section for desktop */}
+                            <div className="flex items-center gap-1 sm:gap-2">
 
                                 <ConnectWallet />
-                            </>
-                        )}
-                    </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </header>
         )}

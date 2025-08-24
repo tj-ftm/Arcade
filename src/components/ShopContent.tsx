@@ -1,84 +1,89 @@
-import { ArrowLeft, Play, Ticket } from "lucide-react";
+import { ArrowLeft, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ShopContent = ({ onBack }: { onBack: () => void }) => {
   return (
-    <div className="w-full h-full max-w-4xl z-10 animate-fade-in my-auto overflow-y-auto">
-      <div className="bg-black/50 p-8 rounded-xl">
-        <h1 className="text-8xl font-headline text-center uppercase tracking-wider mb-2 text-accent" style={{ WebkitTextStroke: '4px black' }}>Shop</h1>
-        <p className="text-white/70 text-center mb-8 text-lg">Browse and buy in-game cosmetics!</p>
-
-        {/* Shop Categories */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-black/30 p-6 rounded-xl text-center">
-            <h2 className="text-4xl font-headline text-accent mb-2" style={{ WebkitTextStroke: '2px black' }}>UNO</h2>
-            <p className="text-white/70 mb-4">Custom card backs, avatars, and more!</p>
-            <Button size="lg" className="w-full h-12 text-xl font-headline rounded-lg">
-              <Play className="mr-2" /> Browse UNO
-            </Button>
-          </div>
-          <div className="bg-black/30 p-6 rounded-xl text-center">
-            <h2 className="text-4xl font-headline text-accent mb-2" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h2>
-            <p className="text-white/70 mb-4">Unique snake skins and trail effects!</p>
-            <Button size="lg" className="w-full h-12 text-xl font-headline rounded-lg">
-              <Play className="mr-2" /> Browse Snake
-            </Button>
-          </div>
-          <div className="bg-black/30 p-6 rounded-xl text-center">
-            <h2 className="text-4xl font-headline text-accent mb-2" style={{ WebkitTextStroke: '2px black' }}>CHESS</h2>
-            <p className="text-white/70 mb-4">Exclusive chess piece sets and board designs!</p>
-            <Button size="lg" className="w-full h-12 text-xl font-headline rounded-lg">
-              <Play className="mr-2" /> Browse Chess
-            </Button>
-          </div>
-        </div>
-
-        {/* Featured Items */}
-        <h2 className="text-6xl font-headline text-accent mb-6 text-center" style={{ WebkitTextStroke: '3px black' }}>Featured Items</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {/* Example Shop Item */}
-          <div className="bg-black/30 rounded-xl p-6 flex flex-col items-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg mb-4 flex items-center justify-center">
-              <span className="text-2xl font-bold text-black">UNO</span>
+    <main className="relative flex flex-col items-center justify-center min-h-screen py-2">
+      <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: 'url(/platformer-bg-mid.svg)' }}></div>
+      <div className="absolute inset-0 z-0 bg-cover bg-center opacity-30" style={{ backgroundImage: 'url(/platformer-bg-front.svg)' }}></div>
+      <div className="absolute inset-0 z-0 bg-cover bg-center opacity-20" style={{ backgroundImage: 'url(/platformer-bg-back.svg)' }}></div>
+    
+      <div className="w-full flex-1 flex flex-col items-center justify-center pt-20 sm:pt-20 px-2">
+        <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-2 w-full max-w-xs sm:max-w-none mx-auto">
+          <div className="sm:flex-1 animate-fade-in text-center">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
+              <div className="pt-2 sm:pt-3">
+                <div className="w-12 h-12 sm:w-24 sm:h-24 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
+                  <span className="text-lg sm:text-2xl font-bold text-black">UNO</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-headline text-yellow-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Golden Card</h1>
+                <p className="text-white/70 mb-3 text-xs sm:text-sm">Premium card back design!</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-accent text-lg sm:text-xl font-bold">100 ARC</p>
+                <Button size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                  Buy
+                </Button>
+              </div>
             </div>
-            <h3 className="text-2xl font-headline text-white mb-2">Golden Card Back</h3>
-            <p className="text-white/70 text-center mb-4">A shimmering card back for Uno.</p>
-            <p className="text-accent text-2xl font-bold mb-4">100 ARC</p>
-            <Button size="lg" className="w-full h-12 text-xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
-              <Ticket className="mr-2" /> Buy Now
-            </Button>
           </div>
-          <div className="bg-black/30 rounded-xl p-6 flex flex-col items-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg mb-4 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">🐍</span>
-            </div>
-            <h3 className="text-2xl font-headline text-white mb-2">Neon Snake Skin</h3>
-            <p className="text-white/70 text-center mb-4">Glow in the dark snake trail.</p>
-            <p className="text-accent text-2xl font-bold mb-4">150 ARC</p>
-            <Button size="lg" className="w-full h-12 text-xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
-              <Ticket className="mr-2" /> Buy Now
-            </Button>
-          </div>
-          <div className="bg-black/30 rounded-xl p-6 flex flex-col items-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">♔</span>
-            </div>
-            <h3 className="text-2xl font-headline text-white mb-2">Royal Chess Set</h3>
-            <p className="text-white/70 text-center mb-4">Elegant golden chess pieces.</p>
-            <p className="text-accent text-2xl font-bold mb-4">200 ARC</p>
-            <Button size="lg" className="w-full h-12 text-xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
-              <Ticket className="mr-2" /> Buy Now
-            </Button>
-          </div>
-        </div>
 
-        <div className="flex justify-center">
-          <Button onClick={onBack} variant="secondary" size="lg" className="font-headline text-xl">
-            <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
-          </Button>
+          <div className="sm:flex-1 animate-fade-in text-center">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
+              <div className="pt-2 sm:pt-3">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
+                  <span className="text-lg sm:text-2xl font-bold text-white">🐍</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-headline text-purple-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Neon Skin</h1>
+                <p className="text-white/70 mb-3 text-xs sm:text-sm">Glowing snake trail effect!</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-accent text-lg sm:text-xl font-bold">150 ARC</p>
+                <Button size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                  Buy
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="sm:flex-1 animate-fade-in text-center">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-blue-500/30 hover:border-blue-500/60 transition-all duration-300">
+              <div className="pt-2 sm:pt-3">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
+                  <span className="text-lg sm:text-2xl font-bold text-white">♔</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-headline text-blue-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Royal Set</h1>
+                <p className="text-white/70 mb-3 text-xs sm:text-sm">Elegant chess pieces!</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-accent text-lg sm:text-xl font-bold">200 ARC</p>
+                <Button size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                  Buy
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="sm:flex-1 animate-fade-in text-center">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-red-500/30 hover:border-red-500/60 transition-all duration-300">
+              <div className="pt-2 sm:pt-3">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
+                  <span className="text-lg sm:text-2xl font-bold text-white">🎮</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-headline text-red-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Pro Pack</h1>
+                <p className="text-white/70 mb-3 text-xs sm:text-sm">Ultimate gaming bundle!</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-accent text-lg sm:text-xl font-bold">500 ARC</p>
+                <Button size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                  Buy
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

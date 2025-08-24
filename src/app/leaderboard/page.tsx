@@ -52,31 +52,32 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
   }
 
   return (
-    <div className="w-full max-w-4xl z-10 animate-fade-in my-auto">
-      <div className="bg-black/50 p-6 rounded-xl">
-        <h1 className="text-6xl font-headline text-center uppercase tracking-wider mb-6 text-accent">Leaderboard</h1>
-        <Table>
+    <div className="w-full max-w-full px-2 z-10 animate-fade-in my-auto">
+      <div className="bg-black/50 p-2 rounded-xl">
+        <h1 className="text-xl sm:text-2xl font-headline text-center uppercase tracking-wider mb-2 text-accent">Leaderboard</h1>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow className="border-b-primary/50">
-              <TableHead className="w-[50px] text-accent text-lg">Rank</TableHead>
-              <TableHead className="text-accent text-lg">Player</TableHead>
-              <TableHead className="text-accent text-lg">Win Streak</TableHead>
-              <TableHead className="text-right text-accent text-lg">Total Wins</TableHead>
+              <TableHead className="w-[40px] text-accent text-xs sm:text-sm py-1">Rank</TableHead>
+               <TableHead className="text-accent text-xs sm:text-sm py-1">Player</TableHead>
+               <TableHead className="text-accent text-xs sm:text-sm py-1">Win Streak</TableHead>
+               <TableHead className="text-right text-accent text-xs sm:text-sm py-1">Total Wins</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {leaderboardData.map((player) => (
-              <TableRow key={player.rank} className="font-medium hover:bg-accent/10 border-b-0 text-xl">
-                <TableCell className="text-2xl text-primary font-bold">{player.rank}</TableCell>
-                <TableCell>{player.name}</TableCell>
-                <TableCell className="text-center">{player.winStreak}</TableCell>
-                <TableCell className="text-right font-bold text-white">{player.wins.toLocaleString()}</TableCell>
+              <TableRow key={player.rank} className="font-medium hover:bg-accent/10 border-b-0 text-xs sm:text-sm">
+                <TableCell className="text-sm sm:text-base text-primary font-bold py-1">{player.rank}</TableCell>
+                <TableCell className="py-1">{player.name}</TableCell>
+                <TableCell className="text-center py-1">{player.winStreak}</TableCell>
+                <TableCell className="text-right font-bold text-white py-1">{player.wins.toLocaleString()}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-         <div className="mt-8 flex justify-center">
-             <Button onClick={onBack} variant="secondary" className="font-headline text-lg">
+         <div className="mt-2 flex justify-center">
+             <Button onClick={onBack} variant="secondary" className="font-headline text-sm py-1 px-3">
                 <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
             </Button>
         </div>
