@@ -74,14 +74,6 @@ export async function POST(req: NextRequest) {
   try {
     const gameData: GameCompleteRequest = await req.json();
     
-    // Handle different verification modes
-
-    
-    // Store game log first
-    const storageResponse = await handleGameStorage(gameData);
-    if (storageResponse.status !== 200) {
-      return storageResponse; // Return error if storage failed
-    }
     // Proceed to verification and minting
     return await handleGameVerification(gameData);
     
@@ -192,10 +184,10 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   // Mint tokens if any are earned
   if (tokensToMint > 0) {
     try {
-      console.log(`Minting ${tokensToMint} ARC token(s) to ${storedLog.player}`);
+      console.log(`Minting ${tokensToMint} ARC token(s) to ${storedLog.playerAddress}`);
       const amountToMint = ethers.parseUnits(tokensToMint.toString(), 18);
       
-      const mintTx = await tokenContract.mintTo(storedLog.player, amountToMint);
+      const mintTx = await tokenContract.mintTo(storedLog.playerAddress, amountToMint);
       await mintTx.wait();
       mintTxHash = mintTx.hash;
       console.log('Token(s) minted successfully. Transaction:', mintTxHash);
@@ -206,20 +198,15 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
     }
   }
 
-  // Update stored log with verification status
-  updateGameLogVerification(storedLog.id, true, undefined, mintTxHash || undefined);
+
 
   // Return success response
   const response = {
     success: true,
     message: `Game completed and tokens minted${tokensToMint > 0 ? `. ${tokensToMint} ARC token(s) minted as reward!` : ''}`,
-    storedGameId: storedLog.id,
-    transactions: {
-      mintTransaction: mintTxHash
-    },
+    mintTransaction: mintTxHash,
     reward: rewardMessage,
-    tokensEarned: tokensToMint,
-    verified: true
+    tokensEarned: tokensToMint
   };
 
   return NextResponse.json(response);
