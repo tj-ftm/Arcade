@@ -147,30 +147,40 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
       // Update lobby with player 2
       // Assign colors if not already assigned (should be assigned by host on creation)
-      const player1Color = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
-      const player2Color = lobbyData.player2Color || (player1Color === 'white' ? 'black' : 'white');
+      // Assign colors if not already assigned (should be assigned by host on creation)
+      // If for some reason colors are not set, assign them here (fallback)
+      const assignedPlayer1Color = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
+      const assignedPlayer2Color = lobbyData.player2Color || (assignedPlayer1Color === 'white' ? 'black' : 'white');
 
       await set(lobbyRef, {
         ...lobbyData,
         player2Id,
         player2Name,
         status: 'playing',
-        player1Color: player1Color,
-        player2Color: player2Color
+        player1Color: assignedPlayer1Color,
+        player2Color: assignedPlayerPlayer2Color
       });
 
-      const updatedLobby = {
-        ...lobbyData,
-        id: lobbyId,
-        player2Id,
-        player2Name,
-        status: 'playing' as const,
-        player1Color: updatedLobby.player1Color || (updatedLobby.player2Color === 'white' ? 'black' : 'white'),
-        player2Color: updatedLobby.player2Color || (updatedLobby.player1Color === 'white' ? 'black' : 'white')
-      };
-      
-      setCurrentLobby(updatedLobby);
-      lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
+      // Listen for lobby updates for the joining player
+      const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const updatedLobby = { ...data, id: lobbyId };
+          setCurrentLobby(updatedLobby);
+          
+          // Trigger callback only when both players are present and status is playing
+          if (data.player1Id && data.player2Id && data.status === 'playing' && data.player1Color && data.player2Color) {
+            lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
+          }
+        } else {
+          // Lobby was deleted
+          setCurrentLobby(null);
+          lobbyClosedCallbacks.forEach(callback => callback());
+        }
+      });
+
+      // Clean up listener when component unmounts or lobby is left
+      return () => off(lobbyRef);
 
     } catch (error) {
       console.error('Error joining lobby:', error);
