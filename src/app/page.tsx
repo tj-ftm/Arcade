@@ -307,7 +307,7 @@ export default function HomePage() {
                            <h1 className="text-2xl sm:text-3xl font-headline text-accent uppercase tracking-wider mb-3 sm:mb-4" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                            <p className="text-white/70 mb-4 sm:mb-6 text-xs sm:text-sm">The classic card game!</p>
                          </div>
-                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider">
                            Play
                          </Button>
                     </div>
@@ -319,7 +319,7 @@ export default function HomePage() {
                            <h1 className="text-2xl sm:text-3xl font-headline text-green-500 uppercase tracking-wider mb-3 sm:mb-4" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
                            <p className="text-white/70 mb-4 sm:mb-6 text-xs sm:text-sm">The retro classic!</p>
                          </div>
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight">
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider">
                             Play
                           </Button>
                     </div>
@@ -409,8 +409,8 @@ export default function HomePage() {
 
         
         {showMainMenuHeader && (
-             <header className="w-full z-10 animate-fade-in flex-shrink-0 p-2 sm:p-4">
-                <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
+             <header className="w-full z-10 animate-fade-in flex-shrink-0 p-4 sm:p-4">
+                <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-4 sm:p-3 border-b-2 border-primary/50 rounded-lg">
                     <div className="flex items-center gap-1 sm:gap-2">
 
                          {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
@@ -427,8 +427,14 @@ export default function HomePage() {
                      </div>
                      <div className="flex-grow flex justify-center">
                          <button onClick={() => handleNavigate('menu')}>
-                             <div className="font-headline text-2xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
-                                 Sonic <span className="text-primary">Arcade</span>
+                             <div className="font-headline text-4xl sm:text-5xl font-bold cursor-pointer bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 bg-clip-text text-transparent" style={{ WebkitTextStroke: '1px black' }}>
+                                 <div className="block sm:hidden leading-tight">
+                                     <div>Sonic</div>
+                                     <div>Arcade</div>
+                                 </div>
+                                 <div className="hidden sm:block">
+                                     Sonic <span className="text-primary">Arcade</span>
+                                 </div>
                              </div>
                              <p className="text-white/70 text-xs sm:text-sm">Play • Earn • Compete</p>
                          </button>
