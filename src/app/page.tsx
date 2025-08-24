@@ -12,6 +12,7 @@ import { UnoClient } from '@/components/game/UnoClient';
 import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
 import ShopContent from '@/components/ShopContent';
+import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 
 
 // Page-like components
@@ -27,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer';
 
 // --- Replicated Page Components ---
 
@@ -278,7 +279,7 @@ export default function HomePage() {
   const renderContent = () => {
     switch (activeView) {
       case 'uno':
-        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} />;
+        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} />;
       case 'pay-uno':
         return <PayToPlayModal onPaymentSuccess={() => handleNavigate('uno')} onCancel={() => handleNavigate('menu')} />;
       case 'shop':
@@ -286,8 +287,27 @@ export default function HomePage() {
       case 'snake':
         return <SnakeClient key={gameKey} />;
       case 'chess':
-        return <ChessClient key={gameKey} />;
-
+        return <ChessClient key={gameKey} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} />;
+      case 'uno-multiplayer':
+        return (
+          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center">
+            <MultiplayerLobby
+              gameType="uno"
+              onStartGame={() => {/* Handle game start */}}
+              onBackToMenu={() => handleNavigate('menu')}
+            />
+          </div>
+        );
+      case 'chess-multiplayer':
+        return (
+          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center">
+            <MultiplayerLobby
+              gameType="chess"
+              onStartGame={() => {/* Handle game start */}}
+              onBackToMenu={() => handleNavigate('menu')}
+            />
+          </div>
+        );
       case 'leaderboard':
         return <LeaderboardContent onBack={() => handleNavigate('menu')} />;
       case 'settings':
@@ -366,10 +386,12 @@ export default function HomePage() {
       switch(activeView) {
           case 'uno':
           case 'pay-uno':
+          case 'uno-multiplayer':
               return 'bg-red-900';
           case 'snake':
               return 'bg-gray-900';
           case 'chess':
+          case 'chess-multiplayer':
               return 'bg-purple-900/50';
 
           case 'shop':
@@ -384,7 +406,8 @@ export default function HomePage() {
   }
   
   const showMainMenuHeader = activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer';
-  const isGameActive = !showMainMenuHeader;
+  const showMultiplayerHeader = activeView === 'uno-multiplayer' || activeView === 'chess-multiplayer';
+  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader;
 
   return (
       <main className={`flex h-screen flex-col items-center overflow-hidden relative ${getBackgroundClass()}`}>
@@ -394,7 +417,7 @@ export default function HomePage() {
               
               <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent"></div>
             </>
-        ) : activeView === 'uno' || activeView === 'pay-uno' ? (
+        ) : activeView === 'uno' || activeView === 'pay-uno' || activeView === 'uno-multiplayer' ? (
              <>
                 <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
                 
@@ -404,7 +427,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-900 via-gray-700 to-black z-0"></div>
                 
             </>
-        ) : activeView === 'chess' ? (
+        ) : activeView === 'chess' || activeView === 'chess-multiplayer' ? (
              <>
                 <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 z-0"></div>
                 
@@ -446,8 +469,24 @@ export default function HomePage() {
              </header>
          )}
 
-         {isGameActive && activeView !== 'platformer' && (
-             <header className="absolute top-0 left-0 w-full z-20 p-1 sm:p-2">
+         {showMultiplayerHeader && (
+             <header className="absolute top-0 left-0 w-full z-20 p-0">
+                <div className="flex justify-between items-center w-full">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                        <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
+                    </Button>
+                    <div className="flex items-center gap-2">
+                        <div className="hidden md:block">
+                            <ConnectWallet />
+                        </div>
+                        {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
+                    </div>
+                </div>
+            </header>
+        )}
+
+         {isGameActive && activeView !== 'platformer' && !showMultiplayerHeader && (
+             <header className="absolute top-0 left-0 w-full z-20 px-1 pb-1 sm:px-2 sm:pb-2">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                         <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
@@ -460,7 +499,7 @@ export default function HomePage() {
             </header>
         )}
         
-        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto" style={{paddingTop: isGameActive && activeView !== 'platformer' ? '80px' : showMainMenuHeader ? '0' : '0', minHeight: 0}}>
+        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative z-10" style={{paddingTop: (isGameActive && activeView !== 'platformer') || showMultiplayerHeader ? '80px' : showMainMenuHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>

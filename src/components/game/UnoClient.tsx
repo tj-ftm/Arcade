@@ -146,7 +146,12 @@ type FlyingCard = {
   startRect: DOMRect;
 };
 
-export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
+interface UnoClientProps {
+  onGameEnd?: () => void;
+  onNavigateToMultiplayer?: () => void;
+}
+
+export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps) => {
     const { username } = useWeb3();
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
@@ -257,6 +262,16 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
         setShowStartScreen(false);
         setShowEndGameScreen(false);
     }, [username]);
+
+    const handleStartMultiplayer = () => {
+        // Logic to start multiplayer game
+        // This might involve navigating to a different route or showing a multiplayer specific UI
+        console.log("Starting multiplayer UNO game...");
+        // Navigate to the UNO multiplayer page within the SPA
+        if (onNavigateToMultiplayer) {
+            onNavigateToMultiplayer();
+        }
+    };
 
     // Don't auto-start the game - let the start screen handle it
 
@@ -486,6 +501,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                 <UnoStartScreen
                     onStartGame={handleNewGame}
                     onGoToMenu={onGameEnd || (() => {})}
+                    onStartMultiplayer={handleStartMultiplayer}
                 />
             </div>
         );

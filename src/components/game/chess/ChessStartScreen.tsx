@@ -1,11 +1,12 @@
 import { Button } from '@/components/ui/button';
-import { Play } from 'lucide-react';
+import { Play, Users } from 'lucide-react';
 
 interface ChessStartScreenProps {
   onStartGame: () => void;
+  onStartMultiplayer?: () => void;
 }
 
-export const ChessStartScreen = ({ onStartGame }: ChessStartScreenProps) => {
+export const ChessStartScreen = ({ onStartGame, onStartMultiplayer }: ChessStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
@@ -25,6 +26,16 @@ export const ChessStartScreen = ({ onStartGame }: ChessStartScreenProps) => {
           <Play className="mr-4 h-8 w-8" />
           Start Game
         </Button>
+        {onStartMultiplayer && (
+          <Button 
+            size="lg" 
+            onClick={onStartMultiplayer}
+            className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-indigo-600 hover:bg-indigo-700 text-white border-2 border-white/20"
+          >
+            <Users className="mr-4 h-8 w-8" />
+            Multiplayer
+          </Button>
+        )}
         {/* Rewards Info */}
         <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 rounded-xl p-4 border border-yellow-400/30">
           <div className="flex items-center justify-center gap-3">

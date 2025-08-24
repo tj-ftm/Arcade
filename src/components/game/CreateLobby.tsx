@@ -1,0 +1,175 @@
+"use client";
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Plus, Users, Loader2 } from 'lucide-react';
+import { useSocket } from '@/hooks/use-socket';
+
+interface Lobby {
+  id: string;
+  gameType: 'chess' | 'uno';
+  hostId: string;
+  hostName: string;
+  playerId?: string;
+  playerName?: string;
+  status: 'waiting' | 'playing' | 'finished';
+  createdAt: Date;
+}
+
+interface CreateLobbyProps {
+  gameType: 'chess' | 'uno';
+  onLobbyCreated?: (lobby: Lobby) => void;
+  onBackToMenu?: () => void;
+}
+
+export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLobbyProps) {
+  const { createLobby, currentLobby, isConnected } = useSocket();
+  const [hostName, setHostName] = useState('Player' + Math.floor(Math.random() * 1000)); // Placeholder for username
+  const [isCreating, setIsCreating] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false);
+
+  const handleCreateLobby = async () => {
+    if (!hostName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      createLobby(gameType, hostName.trim());
+      setIsWaiting(true);
+    } catch (error) {
+      console.error('Failed to create lobby:', error);
+      alert('Failed to create lobby. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleCancelLobby = () => {
+    if (currentLobby) {
+      // Leave the lobby
+      setIsWaiting(false);
+      onBackToMenu?.();
+    }
+  };
+
+  // If we have a current lobby and we're the host, show waiting screen
+  if (currentLobby && isWaiting) {
+    return (
+      <div className="w-full max-w-md mx-auto">
+        <Card className="bg-black/50 border-white/10">
+          <CardHeader className="text-center pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl lg:text-2xl font-headline uppercase tracking-wider text-white" style={{ WebkitTextStroke: '1px black' }}>
+              Lobby Created
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 text-center pb-4 sm:pb-6">
+            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 lg:h-16 lg:w-16 animate-spin text-primary" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 sm:mb-2">
+                  Waiting for a player...
+                </h3>
+                <p className="text-white/70 text-xs sm:text-sm lg:text-base">
+                  Share your lobby ID with friends or wait for someone to join
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-2 sm:p-3 lg:p-4 space-y-1 sm:space-y-2">
+              <p className="text-xs sm:text-sm text-white/70">Lobby PIN:</p>
+              <p className="font-mono text-sm sm:text-lg lg:text-xl text-primary">
+                {currentLobby.id}
+              </p>
+            </div>
+
+            <div className="space-y-1 sm:space-y-2">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Host: {currentLobby.hostName}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span>Game: {currentLobby.gameType.toUpperCase()}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleCancelLobby}
+                variant="outline"
+                className="w-full border-white/20 text-white hover:bg-white/10 text-sm sm:text-base"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <Card className="bg-black/50 border-white/10">
+        <CardHeader className="text-center pb-3 sm:pb-4">
+          <CardTitle className="text-lg sm:text-xl lg:text-2xl font-headline uppercase tracking-wider text-white" style={{ WebkitTextStroke: '1px black' }}>
+            Create {gameType.toUpperCase()} Lobby
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 overflow-auto pb-4 sm:pb-6">
+          {!isConnected && (
+            <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 sm:p-4">
+              <p className="text-red-300 text-xs sm:text-sm text-center">
+                Connecting to multiplayer server...
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-medium text-white/70">
+                Your Name
+              </label>
+              <Input
+                placeholder="Enter your name"
+                value={hostName}
+                onChange={(e) => setHostName(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm sm:text-base"
+                maxLength={20}
+                disabled={isCreating}
+              />
+            </div>
+
+
+          </div>
+
+          <div className="flex justify-center">
+            <Button
+              onClick={handleCreateLobby}
+              disabled={!hostName.trim() || isCreating || !isConnected}
+              className="w-full bg-primary hover:bg-primary/80 text-white text-sm sm:text-base"
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                  Create Lobby
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

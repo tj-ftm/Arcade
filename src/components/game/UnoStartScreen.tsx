@@ -6,9 +6,10 @@ import { Play, ArrowLeft } from 'lucide-react';
 interface UnoStartScreenProps {
   onStartGame: () => void;
   onGoToMenu: () => void;
+  onStartMultiplayer: () => void;
 }
 
-export const UnoStartScreen = ({ onStartGame, onGoToMenu }: UnoStartScreenProps) => {
+export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer }: UnoStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
@@ -27,6 +28,14 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu }: UnoStartScreenProps)
         >
           <Play className="mr-4 h-8 w-8" />
           Start Game
+        </Button>
+        <Button 
+          size="lg" 
+          onClick={onStartMultiplayer}
+          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-blue-600 hover:bg-blue-700 text-white border-2 border-white/20"
+        >
+          <Play className="mr-4 h-8 w-8" />
+          Multiplayer
         </Button>
         {/* Rewards Info */}
         <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 rounded-xl p-4 border border-yellow-400/30">

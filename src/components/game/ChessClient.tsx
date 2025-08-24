@@ -50,7 +50,11 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 };
 
 
-export const ChessClient = () => {
+interface ChessClientProps {
+  onNavigateToMultiplayer?: () => void;
+}
+
+export const ChessClient = ({ onNavigateToMultiplayer }: ChessClientProps = {}) => {
     const { account } = useWeb3();
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
@@ -203,10 +207,18 @@ export const ChessClient = () => {
     }, [showStartScreen, handleNewGame]);
 
     const handleShowStartScreen = useCallback(() => {
-      setShowStartScreen(true);
-      setShowEndGameScreen(false);
-      handleNewGame();
+        setShowStartScreen(true);
+        setShowEndGameScreen(false);
+        handleNewGame();
     }, [handleNewGame]);
+
+    const handleStartMultiplayer = () => {
+        console.log("Starting multiplayer Chess game...");
+        // Navigate to the multiplayer lobby for chess within the SPA
+        if (onNavigateToMultiplayer) {
+            onNavigateToMultiplayer();
+        }
+    };
 
     const handleSquareClick = (square: Square) => {
         if (winner || game.turn() !== 'w' || isBotThinking) return;
@@ -253,7 +265,10 @@ export const ChessClient = () => {
     return (
         <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8">
             {showStartScreen && (
-                <ChessStartScreen onStartGame={() => setShowStartScreen(false)} />
+                <ChessStartScreen 
+                    onStartGame={() => setShowStartScreen(false)} 
+                    onStartMultiplayer={handleStartMultiplayer}
+                />
             )}
 
             {!showStartScreen && !showEndGameScreen && (
