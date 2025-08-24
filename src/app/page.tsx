@@ -4,6 +4,8 @@
 import { useState, useCallback } from 'react'; // Added a comment to force re-compilation
 import { Button } from "@/components/ui/button";
 import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2 } from "lucide-react";
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileSidebar } from '@/components/layout/MobileSidebar';
 
 // Game Clients
 import { UnoClient } from '@/components/game/UnoClient';
@@ -222,6 +224,7 @@ export default function HomePage() {
   const { account } = useWeb3();
   const [activeView, setActiveView] = useState<View>('menu');
   const [gameKey, setGameKey] = useState(0); // Used to reset game state
+  const isMobile = useIsMobile();
 
   const handleMintArc = async () => {
     if (!account) {
@@ -420,16 +423,25 @@ export default function HomePage() {
                         </div>
                     </button>
                     <div className="flex items-center gap-1 sm:gap-2">
-                        <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                            Leaderboard
-                        </Button>
-                        <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
-                            <Settings />
-                        </Button>
-                        <Button onClick={handleMintArc} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                            <Ticket className="mr-2 h-5 w-5" /> Mint 1 ARC
-                        </Button>
-                        <ConnectWallet />
+                        {isMobile ? (
+                            <MobileSidebar 
+                                onNavigate={handleNavigate}
+                                onMintArc={handleMintArc}
+                            />
+                        ) : (
+                            <>
+                                <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                    Leaderboard
+                                </Button>
+                                <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
+                                    <Settings />
+                                </Button>
+                                <Button onClick={handleMintArc} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                    <Ticket className="mr-2 h-5 w-5" /> Mint 1 ARC
+                                </Button>
+                                <ConnectWallet />
+                            </>
+                        )}
                     </div>
                 </div>
             </header>
