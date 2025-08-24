@@ -52,9 +52,7 @@ export const SnakeClient = () => {
     const handleGameOver = async () => {
         setGameState('gameOver');
         
-        // Calculate tokens earned (1 ARC per 10 points)
-        const tokensToMint = Math.floor(score / 10);
-        setTokensEarned(tokensToMint);
+
         
         // Only log game if wallet is connected
         if (!isValidWalletAddress(account) || isLoggingGame) {
@@ -76,12 +74,19 @@ export const SnakeClient = () => {
             );
             
             const logResponse = await logGameCompletion(gameResult);
+
+        // Update tokensToMint based on actual reward from backend
+        let tokensToMint = 0;
+        if (logResponse?.reward) {
+            tokensToMint = parseFloat(logResponse.reward);
+        }
+        setTokensEarned(tokensToMint);
             
-            // Show mint success modal if tokens were earned
-            if (tokensToMint > 0 && logResponse?.mintTransaction) {
-                setMintTxHash(logResponse.mintTransaction);
-                setShowMintSuccess(true);
-            }
+        // Show mint success modal if tokens were earned
+        if (tokensToMint > 0 && logResponse?.mintTransaction) {
+            setMintTxHash(logResponse.mintTransaction);
+            setShowMintSuccess(true);
+        }
         } catch (error) {
             console.error('Failed to log game completion:', error);
         } finally {

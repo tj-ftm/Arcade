@@ -42,23 +42,25 @@ export async function logGameCompletion(gameResult: GameResult): Promise<GameLog
       throw new Error(data.error || 'Failed to log game completion');
     }
 
-    // Show success toast based on verification result
-    if (gameResult.won && verifyData.verified) {
-      toast({
-        title: "🎉 Victory Verified!",
-        description: `Game verified and logged on blockchain! You earned 1 ARC token as a reward.`,
-        duration: 5000,
-      });
-    } else if (verifyData.verified) {
-      toast({
-        title: "Game Verified",
-        description: "Game result verified and logged on blockchain.",
-        duration: 3000,
-      });
+    // Show success toast based on response
+    if (data.success) {
+      if (gameResult.won && data.reward) {
+        toast({
+          title: "🎉 Game Completed!",
+          description: `Game logged successfully! You earned ${data.reward} ARC tokens.`,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Game Completed",
+          description: "Game logged successfully.",
+          duration: 3000,
+        });
+      }
     } else {
       toast({
-        title: "Verification Failed",
-        description: "Game could not be verified. No rewards given.",
+        title: "Game Completion Failed",
+        description: data.message || "An unknown error occurred during game completion.",
         variant: "destructive",
         duration: 5000,
       });
