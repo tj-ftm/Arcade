@@ -300,7 +300,7 @@ export default function HomePage() {
           <>
              
              <div className="w-full flex-1 flex flex-col items-center justify-center pt-2 px-2 pb-2">
-                <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-stretch justify-center gap-2 w-full max-w-sm sm:max-w-none mx-auto h-full">
+                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-2 w-full max-w-sm sm:max-w-none mx-auto h-full">
                   <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
                     <div className="bg-gradient-to-br from-red-900 via-red-700 to-rose-900 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-full flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
                       <div className="pt-2 sm:pt-3">
