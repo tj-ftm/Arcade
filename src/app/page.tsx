@@ -430,7 +430,7 @@ export default function HomePage() {
                              <h1 className="text-4xl sm:text-6xl font-headline uppercase tracking-wider bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 bg-clip-text text-transparent" style={{ WebkitTextStroke: '2px black' }}>
                                  SONIC ARCADE
                              </h1>
-                             <p className="text-white/70 text-base sm:text-lg">PLAY. EARN. COMPETE.</p>
+                             <p className="text-white/70 text-base sm:text-lg font-headline">PLAY. EARN. COMPETE.</p>
                          </button>
                      </div>
                      <div className="flex items-center gap-1 sm:gap-2 mt-2">
