@@ -427,16 +427,10 @@ export default function HomePage() {
                      </div>
                      <div className="flex-grow flex justify-center">
                          <button onClick={() => handleNavigate('menu')}>
-                             <div className="font-headline text-4xl sm:text-5xl font-bold cursor-pointer bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 bg-clip-text text-transparent" style={{ WebkitTextStroke: '1px black' }}>
-                                 <div className="block sm:hidden leading-tight">
-                                     <div>Sonic</div>
-                                     <div>Arcade</div>
-                                 </div>
-                                 <div className="hidden sm:block">
-                                     Sonic <span className="text-primary">Arcade</span>
-                                 </div>
-                             </div>
-                             <p className="text-white/70 text-xs sm:text-sm">Play • Earn • Compete</p>
+                             <h1 className="text-4xl sm:text-6xl font-headline uppercase tracking-wider bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 bg-clip-text text-transparent" style={{ WebkitTextStroke: '2px black' }}>
+                                 SONIC ARCADE
+                             </h1>
+                             <p className="text-white/70 text-base sm:text-lg">PLAY. EARN. COMPETE.</p>
                          </button>
                      </div>
                      <div className="flex items-center gap-1 sm:gap-2 mt-2">
