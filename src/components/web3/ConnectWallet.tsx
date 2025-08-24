@@ -35,7 +35,7 @@ export const ConnectWallet = () => {
               <div className="flex items-center justify-center w-10 h-10 bg-black/50 rounded-full">
                 <Wallet className="h-5 w-5 text-primary/70" />
               </div>
-            <div className="flex flex-col text-right">
+            <div className="flex flex-col text-left">
               <span className="text-white font-bold text-sm leading-tight">{username}</span>
               <span className="text-accent font-bold text-md leading-tight">{sBalance} S</span>
               <span className="text-accent font-bold text-md leading-tight">{arcBalance} ARC</span>
