@@ -136,12 +136,14 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
         </CardHeader>
         <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 overflow-auto pb-4 sm:pb-6">
           {!isConnected && (
-            <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 sm:p-4">
-              <p className="text-red-300 text-xs sm:text-sm text-center">
-                Connecting to multiplayer server...
-              </p>
-            </div>
-          )}
+          <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 sm:p-4">
+            <p className="text-red-300 text-xs sm:text-sm text-center">
+              {process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SOCKET_URL 
+                ? 'Multiplayer features are not available in this deployment. Please play locally for full multiplayer support.' 
+                : 'Connecting to multiplayer server...'}
+            </p>
+          </div>
+        )}
 
           <div className="space-y-3 sm:space-y-4">
             {username && account ? (

@@ -34,6 +34,16 @@ export const useSocket = (): UseSocketReturn => {
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
 
   useEffect(() => {
+    // Check if we're in a production environment without Socket.IO support
+    const isProduction = process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SOCKET_URL;
+    
+    if (isProduction) {
+      // In production without Socket.IO server, set connected to false
+      setIsConnected(false);
+      console.warn('Socket.IO server not available in this deployment');
+      return;
+    }
+    
     const serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
     socketRef.current = io(serverUrl);
     const socket = socketRef.current;

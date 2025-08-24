@@ -110,7 +110,11 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
       <div className="text-center space-y-2 sm:space-y-4">
         {!isConnected && (
           <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 sm:p-4">
-            <p className="text-red-300 text-sm sm:text-base">Connecting to multiplayer server...</p>
+            <p className="text-red-300 text-sm sm:text-base">
+              {process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SOCKET_URL 
+                ? 'Multiplayer features are not available in this deployment. Please play locally for full multiplayer support.' 
+                : 'Connecting to multiplayer server...'}
+            </p>
           </div>
         )}
       </div>
