@@ -174,6 +174,75 @@ async function handleGameStorage(gameData: GameCompleteRequest) {
 }
 
 /**
+ * Handles direct minting for Snake game (bypasses game log storage and verification)
+ */
+async function handleSnakeMinting(gameData: GameCompleteRequest) {
+  // Validate required fields for Snake game minting
+  console.log('handleSnakeMinting: Received gameData:', gameData);
+  if (!gameData.playerAddress || typeof gameData.score !== 'number') {
+    console.error('handleSnakeMinting: Missing required game data fields for Snake game.');
+    return NextResponse.json({ error: 'Missing required game data: playerAddress, score' }, { status: 400 });
+  }
+
+  // Validate player address
+  if (!ethers.isAddress(gameData.playerAddress)) {
+    return NextResponse.json({ error: 'Invalid player address' }, { status: 400 });
+  }
+
+  // Calculate tokens to mint for Snake game: 1 ARC per 10 points
+  const tokensToMint = Math.floor(gameData.score / 10);
+  console.log(`Snake game - Calculated tokensToMint: ${tokensToMint} for score: ${gameData.score}`);
+
+  if (tokensToMint <= 0) {
+    return NextResponse.json({ success: true, message: 'No tokens to mint for this score.' }, { status: 200 });
+  }
+
+  // Initialize provider and signer
+  let provider, signer, tokenContract;
+  try {
+    console.log('Initializing blockchain connection for Snake minting...');
+    provider = new ethers.JsonRpcProvider(RPC_URL);
+    signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
+    tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
+    
+    // Test connection
+    await provider.getNetwork();
+    console.log('Blockchain connection successful for Snake minting');
+  } catch (error: any) {
+    console.error('Failed to initialize blockchain connection for Snake minting:', error);
+    return NextResponse.json({ 
+      error: 'Blockchain connection failed for Snake minting', 
+      details: error.message,
+      rpcUrl: RPC_URL
+    }, { status: 500 });
+  }
+
+  try {
+    console.log(`Attempting to mint ${tokensToMint} tokens to ${gameData.playerAddress}...`);
+    const amount = ethers.parseUnits(tokensToMint.toString(), 18); // Assuming 18 decimals for ARC token
+    const tx = await tokenContract.mintTo(gameData.playerAddress, amount);
+    await tx.wait();
+    console.log(`Minting successful! Transaction hash: ${tx.hash}`);
+
+    return NextResponse.json({
+      success: true,
+      message: `Successfully minted ${tokensToMint} ARC to ${gameData.playerAddress}`,
+      transactionHash: tx.hash,
+      mintedAmount: tokensToMint
+    }, { status: 200 });
+
+  } catch (error: any) {
+    console.error('Minting failed for Snake game:', error);
+    return NextResponse.json({
+      error: 'Failed to mint tokens for Snake game',
+      details: error.message,
+      playerAddress: gameData.playerAddress,
+      tokensToMint: tokensToMint
+    }, { status: 500 });
+  }
+}
+
+/**
  * Handles verifying stored game log against blockchain and minting tokens (Step 2)
  */
 async function handleGameVerification(gameData: GameCompleteRequest) {
@@ -243,79 +312,6 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   } else {
     console.log(`Other game (lost) - Calculated tokensToMint: ${tokensToMint}`);
   }
-
-  // ... existing code ...
-
-}
-
-/**
- * Handles direct minting for Snake game (bypasses game log storage and verification)
- */
-async function handleSnakeMinting(gameData: GameCompleteRequest) {
-  // Validate required fields for Snake game minting
-  console.log('handleSnakeMinting: Received gameData:', gameData);
-  if (!gameData.playerAddress || typeof gameData.score !== 'number') {
-    console.error('handleSnakeMinting: Missing required game data fields for Snake game.');
-    return NextResponse.json({ error: 'Missing required game data: playerAddress, score' }, { status: 400 });
-  }
-
-  // Validate player address
-  if (!ethers.isAddress(gameData.playerAddress)) {
-    return NextResponse.json({ error: 'Invalid player address' }, { status: 400 });
-  }
-
-  // Calculate tokens to mint for Snake game: 1 ARC per 10 points
-  const tokensToMint = Math.floor(gameData.score / 10);
-  console.log(`Snake game - Calculated tokensToMint: ${tokensToMint} for score: ${gameData.score}`);
-
-  if (tokensToMint <= 0) {
-    return NextResponse.json({ success: true, message: 'No tokens to mint for this score.' }, { status: 200 });
-  }
-
-  // Initialize provider and signer
-  let provider, signer, tokenContract;
-  try {
-    console.log('Initializing blockchain connection for Snake minting...');
-    provider = new ethers.JsonRpcProvider(RPC_URL);
-    signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
-    tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
-    
-    // Test connection
-    await provider.getNetwork();
-    console.log('Blockchain connection successful for Snake minting');
-  } catch (error: any) {
-    console.error('Failed to initialize blockchain connection for Snake minting:', error);
-    return NextResponse.json({ 
-      error: 'Blockchain connection failed for Snake minting', 
-      details: error.message,
-      rpcUrl: RPC_URL
-    }, { status: 500 });
-  }
-
-  try {
-    console.log(`Attempting to mint ${tokensToMint} tokens to ${gameData.playerAddress}...`);
-    const amount = ethers.parseUnits(tokensToMint.toString(), 18); // Assuming 18 decimals for ARC token
-    const tx = await tokenContract.mint(gameData.playerAddress, amount);
-    await tx.wait();
-    console.log(`Minting successful! Transaction hash: ${tx.hash}`);
-
-    return NextResponse.json({
-      success: true,
-      message: `Successfully minted ${tokensToMint} ARC to ${gameData.playerAddress}`,
-      transactionHash: tx.hash,
-      mintedAmount: tokensToMint
-    }, { status: 200 });
-
-  } catch (error: any) {
-    console.error('Minting failed for Snake game:', error);
-    return NextResponse.json({
-      error: 'Failed to mint tokens for Snake game',
-      details: error.message,
-      playerAddress: gameData.playerAddress,
-      tokensToMint: tokensToMint
-    }, { status: 500 });
-  }
-}
 
   // Create blockchain log from stored data
   const blockchainLog = {
