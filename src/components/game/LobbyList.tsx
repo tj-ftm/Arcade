@@ -11,10 +11,10 @@ import { useWeb3 } from '@/components/web3/Web3Provider';
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno';
-  hostId: string;
-  hostName: string;
-  playerId?: string;
-  playerName?: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: Date;
 }
@@ -51,7 +51,7 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
 
     setJoiningLobby(lobby.id);
     try {
-      joinLobby(lobby.id, effectivePlayerName.trim());
+      joinLobby(lobby.id, effectivePlayerName.trim(), account || 'mock-user');
       onJoinLobby?.(lobby);
     } catch (error) {
       console.error('Failed to join lobby:', error);
@@ -83,7 +83,7 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
     const fullLobbyId = `${gameType.toUpperCase()}-${lobbyIdToJoin}`;
     setJoiningLobby(fullLobbyId);
     try {
-      joinLobby(fullLobbyId, effectivePlayerName.trim());
+      joinLobby(fullLobbyId, effectivePlayerName.trim(), account || 'mock-user');
       // Assuming successful join will be handled by socket context, no direct onJoinLobby call here
     } catch (error) {
       console.error('Failed to join lobby by ID:', error);
@@ -180,7 +180,7 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
                   <CardHeader className="pb-2 sm:pb-3">
                     <CardTitle className="text-white text-base sm:text-lg flex items-center gap-2">
                       <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                      <span className="truncate">{lobby.hostName}'s Game</span>
+                      <span className="truncate">{lobby.player1Name}'s Game</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 sm:space-y-3">

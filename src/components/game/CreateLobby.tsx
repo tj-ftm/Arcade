@@ -11,10 +11,10 @@ import { useWeb3 } from '@/components/web3/Web3Provider';
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno';
-  hostId: string;
-  hostName: string;
-  playerId?: string;
-  playerName?: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: Date;
 }
@@ -47,7 +47,7 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
 
     setIsCreating(true);
     try {
-      createLobby(gameType, effectiveHostName.trim());
+      createLobby(gameType, effectiveHostName.trim(), account || 'mock-user');
       setIsWaiting(true);
     } catch (error) {
       console.error('Failed to create lobby:', error);
@@ -100,7 +100,7 @@ export function CreateLobby({ gameType, onLobbyCreated, onBackToMenu }: CreateLo
             <div className="space-y-1 sm:space-y-2">
               <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
                 <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span>Host: {currentLobby.hostName}</span>
+                <span>Host: {currentLobby.player1Name}</span>
               </div>
               <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>

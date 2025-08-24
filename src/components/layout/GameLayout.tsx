@@ -279,23 +279,23 @@ export default function MainApp() {
         return <MultiplayerContent onBack={() => handleNavigate('menu')} />;
       default:
         return (
-          <div className="w-full max-w-4xl z-10 text-center animate-fade-in">
+          <div className="w-full max-w-4xl z-10 animate-fade-in">
             <div className="bg-black/50 p-8 rounded-xl">
-              <h1 className="text-8xl font-headline text-accent uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '4px black' }}>Sonic Arcade</h1>
+              <h1 className="text-8xl font-headline text-accent uppercase tracking-wider mb-4 text-left" style={{ WebkitTextStroke: '4px black' }}>Sonic Arcade</h1>
               <p className="text-white/70 mb-12 text-xl">Choose your game and start playing!</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <Button size="lg" onClick={handleUnoPlay} className="h-24 text-2xl font-headline rounded-lg bg-red-600 hover:bg-red-700">
-                  <Swords className="mr-4 h-8 w-8" /> UNO
+                <Button size="lg" onClick={handleUnoPlay} className="h-32 text-3xl font-headline rounded-lg bg-red-600 hover:bg-red-700">
+                  <Swords className="h-10 w-10" /> UNO
                 </Button>
-                <Button size="lg" onClick={() => handleNavigate('snake')} className="h-24 text-2xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
-                  <Mountain className="mr-4 h-8 w-8" /> Snake
+                <Button size="lg" onClick={() => handleNavigate('snake')} className="h-32 text-3xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
+                  <Mountain className="h-10 w-10" /> Snake
                 </Button>
-                <Button size="lg" onClick={handleChessPlay} className="h-24 text-2xl font-headline rounded-lg bg-purple-600 hover:bg-purple-700">
-                  <BrainCircuit className="mr-4 h-8 w-8" /> Chess
+                <Button size="lg" onClick={handleChessPlay} className="h-32 text-3xl font-headline rounded-lg bg-purple-600 hover:bg-purple-700">
+                  <BrainCircuit className="h-10 w-10" /> Chess
                 </Button>
-                <Button size="lg" onClick={() => handleNavigate('platformer')} className="h-24 text-2xl font-headline rounded-lg bg-blue-600 hover:bg-blue-700">
-                  <Gamepad2 className="mr-4 h-8 w-8" /> Platformer
+                <Button size="lg" onClick={() => handleNavigate('platformer')} className="h-32 text-3xl font-headline rounded-lg bg-blue-600 hover:bg-blue-700">
+                  <Gamepad2 className="h-10 w-10" /> Platformer
                 </Button>
               </div>
               
