@@ -35,7 +35,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
   const [lobbyJoinedCallbacks, setLobbyJoinedCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
   const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
   const [lobbyClosedCallbacks, setLobbyClosedCallbacks] = useState<(() => void)[]>([]);
-  const currentUserIdRef = useRef<string>('');
 
   useEffect(() => {
     // Check if Firebase is configured
@@ -49,9 +48,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
 
     try {
-      // Generate a unique user ID for this session
-      currentUserIdRef.current = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
       // Listen to lobbies
       const lobbiesRef = ref(database, 'lobbies');
       const unsubscribeLobbies = onValue(lobbiesRef, (snapshot) => {
@@ -94,7 +90,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       
       const newLobby: Omit<Lobby, 'id'> = {
         gameType,
-        player1Id: currentUserIdRef.current,
+        player1Id,
         player1Name,
         status: 'waiting',
         createdAt: serverTimestamp()
@@ -147,7 +143,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       // Update lobby with player 2
       await set(lobbyRef, {
         ...lobbyData,
-        player2Id: currentUserIdRef.current,
+        player2Id,
         player2Name,
         status: 'playing'
       });
@@ -155,7 +151,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const updatedLobby = {
         ...lobbyData,
         id: lobbyId,
-        player2Id: currentUserIdRef.current,
+        player2Id,
         player2Name,
         status: 'playing' as const
       };

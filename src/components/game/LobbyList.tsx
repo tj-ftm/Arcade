@@ -49,6 +49,14 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
       return;
     }
 
+    console.log('Attempting to join lobby:', lobby.id);
+    console.log('Effective Player Name:', effectivePlayerName.trim());
+    console.log('Is Connected:', isConnected);
+    if (!effectivePlayerName.trim() || !isConnected) {
+      console.warn('Join attempt aborted: Player name missing or not connected.');
+      setJoiningLobby(null);
+      return;
+    }
     setJoiningLobby(lobby.id);
     try {
       joinLobby(lobby.id, effectivePlayerName.trim(), account || 'mock-user');
@@ -81,6 +89,14 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
 
     // Automatically add game prefix to the 4-digit PIN
     const fullLobbyId = `${gameType.toUpperCase()}-${lobbyIdToJoin}`;
+    console.log('Attempting to join lobby by ID:', fullLobbyId);
+    console.log('Effective Player Name:', effectivePlayerName.trim());
+    console.log('Is Connected:', isConnected);
+    if (!effectivePlayerName.trim() || !isConnected) {
+      console.warn('Join by ID attempt aborted: Player name missing or not connected.');
+      setJoiningLobby(null);
+      return;
+    }
     setJoiningLobby(fullLobbyId);
     try {
       joinLobby(fullLobbyId, effectivePlayerName.trim(), account || 'mock-user');
