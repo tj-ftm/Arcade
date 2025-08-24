@@ -8,7 +8,8 @@ import { RefreshCw, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '../web3/Web3Provider';
-import { MintSuccessModal } from './MintSuccessModal';
+
+import { UnoEndGameScreen } from './UnoEndGameScreen';
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
 const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two'];
@@ -37,6 +38,22 @@ const shuffleDeck = (deck: UnoCard[]): UnoCard[] => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+};
+
+const calculateUnoScore = (hand: UnoCard[]): number => {
+  return hand.reduce((score, card) => {
+    switch (card.value) {
+      case 'Draw Two':
+      case 'Skip':
+      case 'Reverse':
+        return score + 20;
+      case 'Wild':
+      case 'Draw Four':
+        return score + 50;
+      default:
+        return score + parseInt(card.value);
+    }
+  }, 0);
 };
 
 const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick: () => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
@@ -133,8 +150,9 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     const [flyingCard, setFlyingCard] = useState<FlyingCard | null>(null);
     const [turnMessage, setTurnMessage] = useState<string | null>(null);
     const [isLogVisible, setIsLogVisible] = useState(false);
-    const [showMintSuccess, setShowMintSuccess] = useState(false);
+
     const [mintTxHash, setMintTxHash] = useState<string>('');
+    const [showEndGameScreen, setShowEndGameScreen] = useState(false);
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -155,14 +173,15 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     }, [turnMessage]);
     
     useEffect(() => {
-      if(gameState?.winner && onGameEnd) {
-        onGameEnd();
-        // Simulate a transaction hash for now
-        const simulatedTxHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
-        setMintTxHash(simulatedTxHash);
-        setShowMintSuccess(true);
+      if(gameState?.winner) {
+        setShowEndGameScreen(true);
+        if (gameState.winner === 'player') {
+          // Simulate a transaction hash for now
+          const simulatedTxHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+          setMintTxHash(simulatedTxHash);
+        }
       }
-    }, [gameState?.winner, onGameEnd]);
+    }, [gameState?.winner]);
 
     const addGameLog = (message: string) => {
         setGameState(prev => {
@@ -578,7 +597,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
             )}
 
             {/* Winner Overlay */}
-            {winner && (
+            {winner && !showEndGameScreen && (
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-30">
                     <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO!</h2>
                     <p className="text-2xl md:text-4xl text-white -mt-4">{winner} Wins!</p>
@@ -586,6 +605,18 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                         <Button size="lg" onClick={handleNewGame} className="font-headline text-2xl"><RefreshCw className="mr-2"/> New Game</Button>
                     </div>
                 </div>
+            )}
+
+            {/* End Game Screen */}
+            {showEndGameScreen && gameState && (
+                <UnoEndGameScreen
+                    winner={gameState.winner}
+                    playerScore={calculateUnoScore(gameState.players[0].hand)}
+                    botScore={calculateUnoScore(gameState.players[1].hand)}
+                    onPlayAgain={handleNewGame}
+                    onGoToMenu={onGameEnd}
+                    mintTxHash={mintTxHash}
+                />
             )}
             
             {/* Color Picker Modal */}
