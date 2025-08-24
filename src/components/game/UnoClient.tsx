@@ -49,8 +49,8 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
   };
 
   const sizeClasses = {
-      normal: 'w-[12vw] min-w-[60px] max-w-[80px] h-auto aspect-[5/7]',
-      large: 'w-[18vw] min-w-[96px] max-w-[128px] h-auto aspect-[5/7]',
+      normal: 'w-full max-w-[70px] md:max-w-[90px] min-w-[50px] md:min-w-[70px] h-auto aspect-[5/7]',
+      large: 'w-full max-w-[90px] md:max-w-[138px] min-w-[70px] md:min-w-[106px] h-auto aspect-[5/7]',
   }
 
   const cardStyle = {
@@ -72,14 +72,14 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
       );
     }
     const text = card.value === 'Draw Two' ? '+2' : card.value === 'Skip' ? '⊘' : card.value === 'Reverse' ? '⟷' : card.value;
-    const textSize = size === 'large' ? 'text-4xl md:text-6xl lg:text-8xl' : 'text-3xl md:text-5xl lg:text-6xl';
-    const cornerTextSize = size === 'large' ? 'text-xl md:text-2xl lg:text-3xl' : 'text-lg md:text-xl lg:text-2xl';
+    const textSize = size === 'large' ? 'text-3xl md:text-5xl lg:text-6xl' : 'text-2xl md:text-4xl lg:text-5xl';
+    const cornerTextSize = size === 'large' ? 'text-lg md:text-xl lg:text-2xl' : 'text-base md:text-lg lg:text-xl';
 
     return (
       <>
-        <div className={cn("absolute top-1 left-1.5 md:top-2 md:left-3 font-bold", cornerTextSize)}>{text}</div>
+        <div className={cn("absolute top-0.5 left-1 md:top-1 md:left-2 font-bold", cornerTextSize)}>{text}</div>
         <div className={cn("font-bold drop-shadow-md", textSize)}>{text}</div>
-        <div className={cn("absolute bottom-1 right-1.5 md:bottom-2 md:right-3 font-bold transform rotate-180", cornerTextSize)}>{text}</div>
+        <div className={cn("absolute bottom-0.5 right-1 md:bottom-1 md:right-2 font-bold transform rotate-180", cornerTextSize)}>{text}</div>
       </>
     )
   }
@@ -109,10 +109,10 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
 
 const CardBack = ({ style, size = 'normal' }: { style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
     const sizeClasses = {
-      normal: 'w-[12vw] min-w-[60px] max-w-[80px] h-auto aspect-[5/7]',
-      large: 'w-[18vw] min-w-[96px] max-w-[128px] h-auto aspect-[5/7]',
+      normal: 'w-full max-w-[60px] md:max-w-[80px] min-w-[40px] md:min-w-[60px] h-auto aspect-[5/7]',
+      large: 'w-full max-w-[80px] md:max-w-[128px] min-w-[60px] md:min-w-[96px] h-auto aspect-[5/7]',
     }
-    const logoSize = size === 'large' ? 'text-3xl md:text-5xl lg:text-6xl' : 'text-2xl md:text-4xl lg:text-5xl';
+    const logoSize = size === 'large' ? 'text-lg md:text-3xl lg:text-6xl' : 'text-sm md:text-2xl lg:text-5xl';
     return (
         <div className={cn("rounded-lg flex items-center justify-center text-white relative border-2 md:border-4 border-white/80 bg-neutral-800", sizeClasses[size])} style={style}>
              <div className="absolute inset-0 w-full h-full bg-black/20 rounded-md"></div>
@@ -437,7 +437,10 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
     
     const handStyle = (index: number, total: number) => {
-        const spread = window.innerWidth < 768 ? 25 : 40; // max spread in pixels
+        const maxWidth = window.innerWidth * (window.innerWidth < 768 ? 0.9 : 0.8); // More space on mobile
+        const baseSpread = window.innerWidth < 768 ? 15 : 30; // Adjusted desktop spacing
+        const maxSpread = Math.min(baseSpread, maxWidth / Math.max(total, 1));
+        const spread = Math.max(window.innerWidth < 768 ? 8 : 10, maxSpread); // Adjusted minimums
         const totalWidth = total * spread;
         const startOffset = -totalWidth / 2;
         const translateX = startOffset + index * spread;
@@ -449,30 +452,19 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     return (
         <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
             
-            <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
-                <Button variant="secondary" onClick={() => setIsLogVisible(v => !v)}>
+            {/* Game Log Button - positioned under connect wallet */}
+            <div className={cn("absolute top-16 right-2 z-20", winner && "hidden")}>
+                <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
                     Log
                 </Button>
             </div>
 
-            {/* Draw Pile moved below main menu button */}
-            <div className="absolute top-1/2 left-2 z-20 flex flex-col items-start gap-2 transform -translate-y-1/2" >
-                <h3 className="text-md md:text-xl font-bold uppercase tracking-wider">Draw</h3>
-                <div onClick={activePlayerIndex === 0 ? handleDrawCard : undefined} className={cn("transition-transform hover:scale-105 relative", activePlayerIndex === 0 && !playerHasPlayableCard ? "cursor-pointer" : "cursor-not-allowed")}>
-                   {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="absolute" style={{ top: `${i * 2}px`, left: `${i * 2}px` }}>
-                            <CardBack size="large" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-            
+            {/* Game Log Panel */}
             <div className={cn(
-                "fixed md:static top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
-                isLogVisible ? "translate-x-0" : "translate-x-full",
-                "md:translate-x-full md:h-full"
+                "fixed top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
+                isLogVisible ? "translate-x-0" : "translate-x-full"
             )}>
-                 <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={() => setIsLogVisible(false)}>
+                 <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => setIsLogVisible(false)}>
                     X
                  </Button>
                 <h3 className="text-2xl text-accent text-center font-bold uppercase tracking-wider mb-4">Game Log</h3>
@@ -490,11 +482,11 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                 </div>
             </div>
 
-             <div className="flex-1 h-full flex flex-col justify-between items-start py-2">
+             <div className="flex-1 h-full flex flex-col justify-between items-center py-0 px-2 md:px-4">
                 {/* Bot Area */}
-                <div className="flex flex-col items-center gap-2 h-32 md:h-48 w-full">
-                     <div className={cn("text-lg md:text-2xl uppercase tracking-wider bg-black/50 px-4 py-1 rounded-full transition-all duration-300", activePlayerIndex === 1 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{bot.name} ({bot.hand.length} cards)</div>
-                    <div className="relative flex justify-center items-center h-24 md:h-40 w-full">
+                <div className="flex flex-col items-center gap-1 md:gap-2 h-12 md:h-16 lg:h-24 w-full">
+                     <div className={cn("text-xs md:text-lg lg:text-xl uppercase tracking-wider bg-black/50 px-2 md:px-4 py-0.5 md:py-1 rounded-full transition-all duration-300", activePlayerIndex === 1 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{bot.name} ({bot.hand.length} cards)</div>
+                    <div className="relative flex justify-center items-center h-12 md:h-20 lg:h-24 w-full">
                         {bot.hand.map((_, i) => (
                             <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, bot.hand.length), top: 0 }}>
                                 <CardBack />
@@ -503,15 +495,35 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                     </div>
                 </div>
 
-
-                <div className="flex flex-col items-start gap-2 ml-4">
-                    <h3 className="text-md md:text-xl font-bold uppercase tracking-wider">Played</h3>
-                    <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
+                {/* Center Area with Played and Draw Cards */}
+                <div className="flex flex-col items-center gap-2 md:gap-4">
+                    {/* Labels Row */}
+                    <div className="flex items-center justify-center gap-6 md:gap-12">
+                        <h3 className="text-xs md:text-lg lg:text-xl font-bold uppercase tracking-wider text-center w-16 md:w-24">Played</h3>
+                        <h3 className="text-xs md:text-lg lg:text-xl font-bold uppercase tracking-wider text-center w-16 md:w-24">Draw</h3>
+                    </div>
+                    
+                    {/* Cards Row */}
+                    <div className="flex items-start justify-center gap-6 md:gap-12">
+                        <div className="flex justify-center items-start w-16 md:w-24">
+                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
+                        </div>
+                        
+                        <div className="flex justify-center items-start w-16 md:w-24">
+                            <div onClick={activePlayerIndex === 0 ? handleDrawCard : undefined} className={cn("transition-transform hover:scale-105 relative", activePlayerIndex === 0 && !playerHasPlayableCard ? "cursor-pointer" : "cursor-not-allowed")} style={{transform: 'translateX(-32px)'}}>
+                               {Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={i} className="absolute" style={{ top: `${i * 2}px`, left: `${i * 2}px` }}>
+                                        <CardBack size="large" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 {/* Player Area */}
-                <div className="flex flex-col items-center gap-2 w-full h-32 md:h-48 pb-0 mb-8">
-                    <div ref={playerHandRef} className="relative flex justify-center items-center h-24 md:h-40 w-full">
+                <div className="flex flex-col items-center gap-1 md:gap-2 w-full h-16 md:h-24 lg:h-32 pb-0 mb-2 md:mb-4">
+                    <div ref={playerHandRef} className="relative flex justify-center items-center h-12 md:h-20 lg:h-24 w-full">
                         {player.hand.map((card, i) => (
                             <div
                               key={`${card.color}-${card.value}-${i}`}
@@ -532,7 +544,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                             </div>)
                         )}
                     </div>
-                     <div className={cn("text-lg md:text-2xl uppercase tracking-wider bg-black/50 px-4 py-1 rounded-full transition-all duration-300", activePlayerIndex === 0 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
+                     <div className={cn("text-xs md:text-lg lg:text-xl uppercase tracking-wider bg-black/50 px-4 py-1 rounded-full transition-all duration-300", activePlayerIndex === 0 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
                 </div>
             </div>
 

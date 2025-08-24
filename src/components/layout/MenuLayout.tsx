@@ -365,7 +365,7 @@ export default function Home() {
   const showGenericHeader = !showHeader && activeView !== 'platformer'; // Platformer has no top header
 
   return (
-      <main className={`flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 md:p-8 overflow-hidden relative ${getBackgroundClass()}`}>
+      <main className={`flex h-screen flex-col items-center overflow-hidden relative ${getBackgroundClass()}`}>
         {activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer' ? (
              <>
               <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
@@ -391,7 +391,7 @@ export default function Home() {
 
         
         {showHeader && (
-             <header className="w-full z-10 animate-fade-in self-start">
+             <header className="w-full z-10 animate-fade-in flex-shrink-0 p-2 sm:p-4">
                 <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
                     <button onClick={() => handleNavigate('menu')}>
                         <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
@@ -399,8 +399,8 @@ export default function Home() {
                         </div>
                     </button>
                     <div className="flex items-center gap-1 sm:gap-2">
-                        <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
-                            <Settings />
+                        <Button onClick={() => handleNavigate('settings')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                            <Settings className="mr-2 h-5 w-5" /> Settings
                         </Button>
                         <ConnectWallet />
                     </div>
@@ -409,9 +409,9 @@ export default function Home() {
         )}
 
         {showGenericHeader && (
-             <header className="absolute top-0 left-0 w-full z-20 p-2 sm:p-4">
+             <header className="absolute top-0 left-0 w-full z-20 p-1 sm:p-2">
                 <div className="flex justify-between items-center w-full">
-                    <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-lg">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                         <Home className="mr-2 h-5 w-5"/> Main Menu
                     </Button>
                     <ConnectWallet />
@@ -419,7 +419,7 @@ export default function Home() {
             </header>
         )}
         
-        <div className="flex-1 w-full flex items-center justify-center">
+        <div className="flex-1 w-full flex items-center justify-center overflow-auto" style={{paddingTop: showGenericHeader ? '60px' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>

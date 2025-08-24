@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useInterval from 'use-interval';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play } from 'lucide-react';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 import { MintSuccessModal } from './MintSuccessModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const GRID_SIZE = 20;
 const INITIAL_SNAKE = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
@@ -27,6 +28,9 @@ const SnakeCell = ({ type }: { type: 'snake' | 'food' | 'empty' }) => {
 
 export const SnakeClient = () => {
     const { account } = useWeb3();
+    const isMobile = useIsMobile();
+    const gameAreaRef = useRef<HTMLDivElement>(null);
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
     const [gameState, setGameState] = useState<'idle' | 'running' | 'gameOver'>('idle');
     const [snake, setSnake] = useState(INITIAL_SNAKE);
     const [food, setFood] = useState(INITIAL_FOOD);
@@ -120,6 +124,44 @@ export const SnakeClient = () => {
         }
     }, [direction]);
 
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        if (gameState !== 'running') return;
+        const touch = e.touches[0];
+        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    }, [gameState]);
+
+    const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+        if (gameState !== 'running' || !touchStartRef.current) return;
+        
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - touchStartRef.current.x;
+        const deltaY = touch.clientY - touchStartRef.current.y;
+        const minSwipeDistance = 30;
+        
+        if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) {
+            touchStartRef.current = null;
+            return;
+        }
+        
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // Horizontal swipe
+            if (deltaX > 0 && direction.x === 0) {
+                setDirection({ x: 1, y: 0 }); // Right
+            } else if (deltaX < 0 && direction.x === 0) {
+                setDirection({ x: -1, y: 0 }); // Left
+            }
+        } else {
+            // Vertical swipe
+            if (deltaY > 0 && direction.y === 0) {
+                setDirection({ x: 0, y: 1 }); // Down
+            } else if (deltaY < 0 && direction.y === 0) {
+                setDirection({ x: 0, y: -1 }); // Up
+            }
+        }
+        
+        touchStartRef.current = null;
+    }, [gameState, direction]);
+
     useEffect(() => {
         if(gameState === 'running') {
             window.addEventListener('keydown', handleKeyDown);
@@ -167,24 +209,29 @@ export const SnakeClient = () => {
     useInterval(gameLoop, gameState === 'running' ? GAME_SPEED : null);
 
     return (
-        <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in">
-            <h1 className="text-6xl text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Snake</h1>
-            <div className="bg-black/50 p-4 rounded-xl shadow-2xl border-2 border-green-500/50 relative">
+        <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in h-full w-full max-w-4xl mx-auto p-4">
+            <h1 className="text-4xl md:text-6xl text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Snake</h1>
+            <div className="bg-black/50 p-4 rounded-xl shadow-2xl border-2 border-green-500/50 relative w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh]">
                 <div className="flex justify-between items-center mb-4 px-2">
-                    <div className="text-2xl">Score: <span className="text-accent font-bold">{score}</span></div>
+                    <div className="text-xl md:text-2xl">Score: <span className="text-accent font-bold">{score}</span></div>
                     <div className="flex gap-2">
                        <Button size="icon" variant="secondary" onClick={handleStartGame}><RefreshCw/></Button>
                     </div>
                 </div>
 
                 <div
-                    className="grid bg-gray-800/50 border-2 border-gray-700 rounded-md relative"
-                    style={{
-                        gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                        width: 'clamp(300px, 80vw, 600px)',
-                        height: 'clamp(300px, 80vw, 600px)'
-                    }}
-                >
+                ref={gameAreaRef}
+                className="grid bg-gray-800 rounded-lg shadow-lg relative overflow-hidden focus:outline-none mx-auto aspect-square"
+                style={{
+                    width: '100%',
+                    maxWidth: '80vh',
+                    gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+                    gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
+                }}
+                tabIndex={0}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+            >
                     {gameState !== 'running' && (
                         <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 rounded-md animate-fade-in">
                              <h2 className={cn("font-bold", gameState === 'idle' ? "text-5xl text-green-400" : "text-6xl text-red-500")}>
@@ -233,15 +280,10 @@ export const SnakeClient = () => {
                         </>
                     )}
                 </div>
-                 <div className="mt-4 flex justify-center items-center gap-4 md:hidden">
-                    <Button size="icon" onClick={() => handleKeyDown({ key: 'a' } as KeyboardEvent)}><ArrowLeft/></Button>
-                    <div className="flex flex-col gap-2">
-                     <Button size="icon" onClick={() => handleKeyDown({ key: 'w' } as KeyboardEvent)}><ArrowUp/></Button>
-                     <Button size="icon" onClick={() => handleKeyDown({ key: 's' } as KeyboardEvent)}><ArrowDown/></Button>
-                    </div>
-                    <Button size="icon" onClick={() => handleKeyDown({ key: 'd' } as KeyboardEvent)}><ArrowRight/></Button>
-                </div>
-                <p className="text-center text-sm text-muted-foreground mt-4 hidden md:block">Use arrow keys or WASD to move</p>
+
+                <p className="text-center text-sm text-muted-foreground mt-4">
+                    {isMobile ? 'Swipe on the game area to move' : 'Use arrow keys or WASD to move'}
+                </p>
             </div>
             
             <MintSuccessModal

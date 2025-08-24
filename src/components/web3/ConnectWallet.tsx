@@ -59,9 +59,9 @@ export const ConnectWallet = () => {
   }
 
   return (
-    <Button onClick={connect} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-      <Wallet className="mr-2 h-5 w-5" />
-      Connect Wallet
+    <Button onClick={connect} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+      <Wallet className="mr-2 h-5 w-5 sm:mr-0" />
+      <span className="hidden sm:inline">Connect Wallet</span>
     </Button>
 
   );

@@ -11,6 +11,7 @@ import { MobileSidebar } from '@/components/layout/MobileSidebar';
 import { UnoClient } from '@/components/game/UnoClient';
 import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
+import ShopContent from '@/components/ShopContent';
 
 
 // Page-like components
@@ -26,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop';
 
 // --- Replicated Page Components ---
 
@@ -300,6 +301,8 @@ export default function HomePage() {
         return <UnoClient key={gameKey} onGameEnd={handleGameEnd} />;
       case 'pay-uno':
         return <PayToPlayModal onPaymentSuccess={() => handleNavigate('uno')} onCancel={() => handleNavigate('menu')} />;
+      case 'shop':
+         return <ShopContent onBack={() => handleNavigate('menu')} />;
       case 'snake':
         return <SnakeClient key={gameKey} />;
       case 'chess':
@@ -315,44 +318,50 @@ export default function HomePage() {
       default:
         return (
           <>
-             <div className="w-full flex-1 flex flex-col items-center justify-center z-10">
+             <div className="w-full flex-1 flex flex-col items-center justify-center">
                 <div className="flex flex-row flex-wrap items-center justify-center gap-2">
                   <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start">
+                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
                       <h1 className="text-3xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                       <p className="text-white/70 mt-1 mb-4 text-sm">The classic card game!</p>
                       <div className="flex flex-col gap-2">
-                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full text-lg h-12 bg-primary hover:bg-primary/90 rounded-lg font-headline group">
-                           <Swords className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Single Player
-                        </Button>
-                        <Button onClick={() => handleNavigate('multiplayer')} variant="default" size="lg" className="w-full text-lg h-12 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group">
-                           <Users className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Multiplayer
+                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full text-lg h-16 bg-primary hover:bg-primary/90 rounded-lg font-headline group whitespace-normal leading-tight">
+                           <Play className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play Uno
                         </Button>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start">
+                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
                        <h1 className="text-3xl font-headline text-green-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
                        <p className="text-white/70 mt-1 mb-4 text-sm">The retro classic!</p>
-                         <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full text-lg h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group mx-auto">
+                         <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full text-lg h-16 bg-green-600 hover:bg-green-500 rounded-lg font-headline group mx-auto whitespace-normal leading-tight">
                            <Gamepad2 className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play Snake
                          </Button>
                     </div>
                   </div>
                   
                   <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start">
+                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
                        <h1 className="text-3xl font-headline text-purple-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
                        <p className="text-white/70 mt-1 mb-4 text-sm">The classic strategy game!</p>
                         <div className="flex flex-col gap-2">
-                         <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full text-lg h-12 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group">
-                           <BrainCircuit className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Single Player
+                         <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full text-lg h-16 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                           <BrainCircuit className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play Chess
                          </Button>
-                        <Button onClick={() => handleNavigate('multiplayer')} variant="default" size="lg" className="w-full text-lg h-12 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group">
-                           <Users className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Multiplayer
-                        </Button>
+                       </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 min-w-[200px] max-w-[280px] animate-fade-in text-center">
+                    <div className="bg-black/50 py-4 px-3 rounded-xl h-[240px] flex flex-col justify-start border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
+                       <h1 className="text-3xl font-headline text-yellow-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>SHOP</h1>
+                       <p className="text-white/70 mt-1 mb-4 text-sm">Browse and purchase items!</p>
+                        <div className="flex flex-col gap-2">
+                         <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full text-lg h-16 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-headline group whitespace-normal leading-tight">
+                           <Ticket className="mr-3 text-primary-foreground/70 group-hover:text-white transition-colors" /> Visit Shop
+                         </Button>
                        </div>
                     </div>
                   </div>
@@ -376,6 +385,8 @@ export default function HomePage() {
           case 'chess':
               return 'bg-purple-900/50';
 
+          case 'shop':
+              return 'bg-transparent';
           case 'menu':
           case 'leaderboard':
           case 'settings':
@@ -389,7 +400,7 @@ export default function HomePage() {
   const isGameActive = !showMainMenuHeader;
 
   return (
-      <main className={`flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 md:p-8 overflow-hidden relative ${getBackgroundClass()}`}>
+      <main className={`flex h-screen flex-col items-center overflow-hidden relative ${getBackgroundClass()}`}>
         {showMainMenuHeader ? (
              <>
               <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
@@ -415,7 +426,7 @@ export default function HomePage() {
 
         
         {showMainMenuHeader && (
-             <header className="w-full z-10 animate-fade-in self-start">
+             <header className="w-full z-10 animate-fade-in flex-shrink-0 p-2 sm:p-4">
                 <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
                     <button onClick={() => handleNavigate('menu')}>
                         <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
@@ -430,15 +441,16 @@ export default function HomePage() {
                             />
                         ) : (
                             <>
-                                <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                                     Leaderboard
                                 </Button>
-                                <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
-                                    <Settings />
+                                <Button onClick={() => handleNavigate('settings')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                    <Settings className="mr-2 h-5 w-5" /> Settings
                                 </Button>
-                                <Button onClick={handleMintArc} variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                <Button onClick={handleMintArc} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                                     <Ticket className="mr-2 h-5 w-5" /> Mint 1 ARC
                                 </Button>
+
                                 <ConnectWallet />
                             </>
                         )}
@@ -448,9 +460,9 @@ export default function HomePage() {
         )}
 
         {isGameActive && activeView !== 'platformer' && (
-             <header className="absolute top-0 left-0 w-full z-20 p-2 sm:p-4">
+             <header className="absolute top-0 left-0 w-full z-20 p-1 sm:p-2">
                 <div className="flex justify-between items-center w-full">
-                    <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-lg">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                         <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
                     </Button>
                     <ConnectWallet />
@@ -458,7 +470,7 @@ export default function HomePage() {
             </header>
         )}
         
-        <div className="flex-1 w-full flex items-center justify-center">
+        <div className="flex-1 w-full flex items-center justify-center overflow-auto" style={{paddingTop: isGameActive && activeView !== 'platformer' ? '60px' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>
