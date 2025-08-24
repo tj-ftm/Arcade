@@ -120,7 +120,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [pendingWildCard, setPendingWildCard] = useState<UnoCard | null>(null);
   const [opponentName, setOpponentName] = useState('');
   const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
-  const [isLoadingGame, setIsLoadingGame] = useState(false); // Start with false, will be set based on lobby status
+  const [isLoadingGame, setIsLoadingGame] = useState(true); // Start with true, will be set based on lobby status
+  const [gameInitialized, setGameInitialized] = useState(false);
   
   const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
   const { account, username } = useWeb3();
@@ -131,7 +132,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   }, []);
 
   const initializeGame = useCallback(() => {
-    if (!isHost) return; // Only host initializes the game
+    if (!isHost || gameInitialized) return; // Only host initializes the game once
     
     const newDeck = shuffleDeck(createDeck());
     const playerCards = newDeck.splice(0, 7);
@@ -154,21 +155,32 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     }, currentUserId);
     
     addGameLog('Game initialized!');
-  }, [isHost, lobby.id, sendGameMove, addGameLog]);
+    setGameInitialized(true);
+  }, [isHost, gameInitialized, lobby.id, sendGameMove, addGameLog]);
 
   useEffect(() => {
-    if (lobby.status === 'waiting') {
-      setIsLoadingGame(true);
-    } else if ((lobby.status === 'playing' || lobby.player2Id) && lobby.player1Id && lobby.player2Id) {
+    if (lobby.status === 'playing' && lobby.player1Id && lobby.player2Id) {
       setIsLoadingGame(false);
-      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
-      
-      if (isHost) {
+      setOpponentName(isHost ? (lobby.player2Name || 'Player') : (lobby.player1Name || 'Player'));
+      if (isHost && !gameInitialized) {
         initializeGame();
       }
+    } else {
+      setIsLoadingGame(true);
     }
-    
-    // Listen for opponent moves
+  }, [lobby, isHost, initializeGame, gameInitialized]);
+
+  useEffect(() => {
+    if (lobby.player2Id && lobby.status === 'playing' && !gameInitialized && !isHost) {
+      // For the non-host player, if lobby is already playing and player2Id is set on mount
+      // This handles cases where the non-host joins an already started lobby
+      setIsLoadingGame(false);
+      setOpponentName(isHost ? (lobby.player2Name || 'Player') : (lobby.player1Name || 'Player'));
+    }
+  }, [lobby, isHost, gameInitialized]);
+
+  // Listen for opponent moves
+  useEffect(() => {
     onGameMove((moveData: any) => {
       if (moveData.type === 'uno-init' && !isHost) {
         setDeck(moveData.deck);
@@ -382,7 +394,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                   className={cn(
                     "w-20 h-20 rounded-lg text-white font-bold",
                     getCardColor({ color } as UnoCard)
-                  )}
+        )}
                 >
                   {color.toUpperCase()}
                 </Button>
@@ -475,8 +487,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
           ))}
         </div>
       </div>
-        </>
-      )}
+    </>
+  )}
     </div>
   );
 };
