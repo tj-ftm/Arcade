@@ -307,7 +307,7 @@ export default function HomePage() {
                             <h1 className="text-2xl sm:text-5xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>UNO</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
-                        <p className="text-white/70 mb-4 text-sm sm:text-lg">The classic card game!</p>
+
                         <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider">
                            Play
                          </Button>
@@ -320,7 +320,7 @@ export default function HomePage() {
                             <h1 className="text-2xl sm:text-5xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>SNAKE</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
-                        <p className="text-white/70 mb-4 text-sm sm:text-lg">The retro classic!</p>
+
                         <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider">
                             Play
                           </Button>
@@ -333,7 +333,7 @@ export default function HomePage() {
                             <h1 className="text-2xl sm:text-5xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>CHESS</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="CHESS Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
-                        <p className="text-white/70 mb-4 text-sm sm:text-lg">The classic strategy game!</p>
+
                         <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                             Play
                           </Button>
@@ -346,7 +346,7 @@ export default function HomePage() {
                              <h1 className="text-2xl sm:text-5xl font-headline text-yellow-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>SHOP</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="SHOP" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
-                        <p className="text-white/70 mb-4 text-sm sm:text-lg">Browse and purchase items!</p>
+
                         <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                             Visit
                           </Button>
