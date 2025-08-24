@@ -215,7 +215,7 @@ const MultiplayerContent = ({ onBack }: { onBack: () => void }) => {
 
 const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, onPaidPlay: () => void }) => (
      <div className="w-full max-w-md z-10 text-center my-auto animate-fade-in">
-        <div className="bg-black/50 p-8 rounded-xl flex flex-col items-center">
+        <div className="bg-gradient-to-br from-green-900 via-green-700 to-lime-900 p-8 rounded-xl flex flex-col items-center">
             <h1 className="text-8xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO</h1>
             <p className="text-white/70 mt-1 mb-8 text-lg">The classic card game!</p>
             <div className="flex flex-col gap-4 w-full">
@@ -357,7 +357,7 @@ export default function SnakeHome() {
   const showGenericHeader = !showHeader && activeView !== 'platformer'; // Platformer has no top header
 
   return (
-      <main className={`flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 md:p-8 overflow-hidden relative ${getBackgroundClass()}`}>
+      <main className="flex flex-col items-center justify-center min-h-screen py-2 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative overflow-hidden">
         {activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer' ? (
              <>
               <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>

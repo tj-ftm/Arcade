@@ -251,7 +251,7 @@ export const ChessClient = () => {
 
 
     return (
-        <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden">
+        <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8">
             {showStartScreen && (
                 <ChessStartScreen onStartGame={() => setShowStartScreen(false)} />
             )}
@@ -287,7 +287,7 @@ export const ChessClient = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative">
+                    <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative mt-4 md:mt-0">
                         <div className="w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
                             {board.map((row, rowIndex) =>
                                 row.map((piece, colIndex) => {

@@ -128,7 +128,19 @@ export const ChessGame = () => {
 
     useEffect(() => {
         const handleResize = () => {
-            const newScale = Math.min(window.innerWidth / 1024, 1);
+            const aspectRatio = 1; // Assuming a square board
+            const availableWidth = window.innerWidth;
+            const availableHeight = window.innerHeight;
+
+            let newScale = 1;
+            if (availableWidth / availableHeight > aspectRatio) {
+                // Window is wider than the board aspect ratio, constrained by height
+                newScale = availableHeight / (1024 / aspectRatio); // Adjust 1024 based on your desired base height for scaling
+            } else {
+                // Window is taller or same aspect ratio, constrained by width
+                newScale = availableWidth / 1024; // Adjust 1024 based on your desired base width for scaling
+            }
+            newScale = Math.min(newScale, 1); // Ensure it doesn't scale up beyond 1
             setBoardScale(newScale);
         };
 
@@ -210,7 +222,7 @@ export const ChessGame = () => {
 
     return (
         <div key={gameKey} className="w-full h-full relative">
-            <Canvas shadows camera={{ position: [0, 6, 7], fov: 45 }}>
+            <Canvas shadows camera={{ position: [0, 6 / boardScale, 7 / boardScale], fov: 45 }} style={{ zIndex: 10 }}>
                 <ambientLight intensity={1.5} />
                 <directionalLight 
                     position={[10, 10, 5]} 
@@ -228,8 +240,8 @@ export const ChessGame = () => {
 
                 <OrbitControls 
                     enablePan={false} 
-                    minDistance={5} 
-                    maxDistance={12}
+                    minDistance={5 / boardScale} 
+                    maxDistance={12 / boardScale}
                     minPolarAngle={Math.PI / 4}
                     maxPolarAngle={Math.PI / 2.2}
                 />
