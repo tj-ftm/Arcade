@@ -300,8 +300,8 @@ export default function HomePage() {
           <>
              
              <div className="w-full flex-1 flex flex-col items-center justify-center pt-2 px-2 pb-2">
-                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-2 w-full max-w-sm sm:max-w-none mx-auto h-full">
-                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-2 w-full max-w-sm sm:max-w-6xl mx-auto h-full">
+                  <div className="animate-fade-in text-center">
                     <div className="bg-gradient-to-br from-red-900 via-red-700 to-rose-900 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-full flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
                       <div className="pt-2 sm:pt-3">
                            <h1 className="text-2xl sm:text-3xl font-headline text-accent uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
@@ -313,7 +313,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                  <div className="animate-fade-in text-center">
                     <div className="bg-gradient-to-br from-green-900 via-green-700 to-lime-900 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-full flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
                        <div className="pt-2 sm:pt-3">
                            <h1 className="text-2xl sm:text-3xl font-headline text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
@@ -325,7 +325,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                  <div className="animate-fade-in text-center">
                     <div className="bg-gradient-to-br from-purple-900 via-purple-700 to-fuchsia-900 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-full flex flex-col justify-between border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
                        <div className="pt-2 sm:pt-3">
                            <h1 className="text-2xl sm:text-3xl font-headline text-purple-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
@@ -337,7 +337,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
+                  <div className="animate-fade-in text-center">
                     <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-full flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
                        <div className="pt-2 sm:pt-3">
                             <h1 className="text-2xl sm:text-3xl font-headline text-yellow-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>SHOP</h1>
