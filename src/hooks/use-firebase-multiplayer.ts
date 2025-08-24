@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { database } from '@/lib/firebase';
 import { ref, push, onValue, off, remove, set, serverTimestamp } from 'firebase/database';
 
@@ -229,24 +229,24 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
   };
 
-  const onGameMove = (callback: (moveData: any) => void) => {
+  const onGameMove = useCallback((callback: (moveData: any) => void) => {
     setGameMovesCallbacks(prev => [...prev, callback]);
-  };
+  }, []);
 
-  const onLobbyJoined = (callback: (lobby: Lobby) => void) => {
+  const onLobbyJoined = useCallback((callback: (lobby: Lobby) => void) => {
     setLobbyJoinedCallbacks(prev => [...prev, callback]);
     return () => {
       setLobbyJoinedCallbacks(prev => prev.filter(cb => cb !== callback));
     };
-  };
+  }, []);
 
-  const onLobbyLeft = (callback: (lobby: Lobby) => void) => {
+  const onLobbyLeft = useCallback((callback: (lobby: Lobby) => void) => {
     setLobbyLeftCallbacks(prev => [...prev, callback]);
-  };
+  }, []);
 
-  const onLobbyClosed = (callback: () => void) => {
+  const onLobbyClosed = useCallback((callback: () => void) => {
     setLobbyClosedCallbacks(prev => [...prev, callback]);
-  };
+  }, []);
 
   return {
     isConnected,
