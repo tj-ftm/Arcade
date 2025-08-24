@@ -165,9 +165,8 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const joinedLobby = { ...updatedLobbyData, id: lobbyId };
       setCurrentLobby(joinedLobby);
       
-      // Immediately trigger callback for joining player
-      console.log('Joined lobby, triggering game start for joining player');
-      lobbyJoinedCallbacks.forEach(callback => callback(joinedLobby));
+      // Note: Loading screen is now handled by MultiplayerLobby component
+      console.log('Joined lobby successfully, lobby state updated');
 
       // Listen for lobby updates for the joining player
       const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
