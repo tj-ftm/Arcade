@@ -54,7 +54,9 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     setGameStarting(true);
     const timeout = setTimeout(() => {
       console.log('Timeout completed, calling onStartGame with lobby:', lobby, 'isHost:', isHost);
-      onStartGame?.(lobby, isHost);
+      // Ensure lobby status is set to 'playing' before calling onStartGame
+      const updatedLobby = { ...lobby, status: 'playing' as const };
+      onStartGame?.(updatedLobby, isHost);
       setGameStartTimeout(null);
     }, 2000); // Increased delay to ensure both players see loading screen
     

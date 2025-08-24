@@ -88,7 +88,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const [playerColor, setPlayerColor] = useState<Color>('w');
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [opponentName, setOpponentName] = useState('');
-  const [isLoadingGame, setIsLoadingGame] = useState(true); // New state for loading screen
+  const [isLoadingGame, setIsLoadingGame] = useState(false); // Start with false, will be set based on lobby status
   
   const { account, username } = useWeb3();
   const currentUserId = account || `guest-${Date.now()}`;
@@ -103,7 +103,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   useEffect(() => {
     if (lobby.status === 'waiting') {
       setIsLoadingGame(true);
-    } else if (lobby.status === 'playing' && lobby.player1Color && lobby.player2Color) {
+    } else if ((lobby.status === 'playing' || lobby.player2Id) && lobby.player1Color && lobby.player2Color) {
       setIsLoadingGame(false);
       // Determine player color and starting turn
       const myColor = isHost ? lobby.player1Color : lobby.player2Color;
@@ -141,6 +141,16 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       });
     }
   }, [game, lobby, isHost, opponentName, onGameMove]);
+
+  // Initialize game state when component mounts with a complete lobby
+  useEffect(() => {
+    if (lobby.player1Id && lobby.player2Id && lobby.player1Color && lobby.player2Color && !isLoadingGame) {
+      const myColor = isHost ? lobby.player1Color : lobby.player2Color;
+      setPlayerColor(myColor === 'white' ? 'w' : 'b');
+      setIsMyTurn(myColor === 'white');
+      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
+    }
+  }, [lobby.player1Id, lobby.player2Id, lobby.player1Color, lobby.player2Color, isHost, lobby.player1Name, lobby.player2Name, isLoadingGame]);
 
   useEffect(() => {
     const unsubscribe = onLobbyJoined((joinedLobby) => {

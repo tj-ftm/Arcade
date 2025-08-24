@@ -120,7 +120,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [pendingWildCard, setPendingWildCard] = useState<UnoCard | null>(null);
   const [opponentName, setOpponentName] = useState('');
   const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
-  const [isLoadingGame, setIsLoadingGame] = useState(true); // New state for loading screen
+  const [isLoadingGame, setIsLoadingGame] = useState(false); // Start with false, will be set based on lobby status
   
   const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
   const { account, username } = useWeb3();
@@ -159,7 +159,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   useEffect(() => {
     if (lobby.status === 'waiting') {
       setIsLoadingGame(true);
-    } else if (lobby.status === 'playing' && lobby.player1Id && lobby.player2Id) {
+    } else if ((lobby.status === 'playing' || lobby.player2Id) && lobby.player1Id && lobby.player2Id) {
       setIsLoadingGame(false);
       setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
       
@@ -216,6 +216,16 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
       }
     });
   }, [lobby, isHost, opponentName, onGameMove, initializeGame, addGameLog]);
+
+  // Initialize game state when component mounts with a complete lobby
+  useEffect(() => {
+    if (lobby.player1Id && lobby.player2Id && !isLoadingGame) {
+      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
+      if (isHost) {
+        initializeGame();
+      }
+    }
+  }, [lobby.player1Id, lobby.player2Id, isHost, lobby.player1Name, lobby.player2Name, isLoadingGame, initializeGame]);
 
   const drawCards = useCallback((count: number) => {
     const newCards = deck.splice(0, count);
