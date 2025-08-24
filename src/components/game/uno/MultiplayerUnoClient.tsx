@@ -103,8 +103,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [deck, setDeck] = useState<UnoCard[]>([]);
   const [playerHand, setPlayerHand] = useState<UnoCard[]>([]);
   const [opponentHandSize, setOpponentHandSize] = useState(7);
-  const [discardPile, setDiscardPile] = useState<UnoCard[]>([]);
-  const [currentColor, setCurrentColor] = useState<UnoColor>('red');
+  const initialDiscardCard: UnoCard = {
+    id: 'initial-card',
+    color: 'red',
+    value: '0',
+    type: 'number',
+  };
+  const [discardPile, setDiscardPile] = useState<UnoCard[]>([initialDiscardCard]);
+  const [currentColor, setCurrentColor] = useState<UnoColor>(initialDiscardCard.color);
   const [isMyTurn, setIsMyTurn] = useState(isHost);
   const [gameDirection, setGameDirection] = useState(1); // 1 for normal, -1 for reverse
   const [winner, setWinner] = useState<string | null>(null);
