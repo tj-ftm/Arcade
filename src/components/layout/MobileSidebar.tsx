@@ -48,7 +48,8 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       <div
         className={cn(
           "fixed inset-0 z-[9999] md:hidden transition-transform duration-300 ease-in-out transform-gpu",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          !isOpen && "pointer-events-none"
         )}
         style={{
           background: 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)',
@@ -56,7 +57,8 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
           width: '100vw',
           height: '100vh',
           left: 0,
-          top: 0
+          top: 0,
+          visibility: isOpen ? 'visible' : 'hidden'
         }}
       >
         <div className="flex flex-col h-full p-6">
