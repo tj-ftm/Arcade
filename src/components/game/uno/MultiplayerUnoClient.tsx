@@ -120,8 +120,9 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [pendingWildCard, setPendingWildCard] = useState<UnoCard | null>(null);
   const [opponentName, setOpponentName] = useState('');
   const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
+  const [isLoadingGame, setIsLoadingGame] = useState(true); // New state for loading screen
   
-  const { sendGameMove, onGameMove, leaveLobby } = useFirebaseMultiplayer();
+  const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
   const { account } = useWeb3();
   const currentUserId = account || 'mock-user';
 
@@ -156,8 +157,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   }, [isHost, lobby.id, sendGameMove, addGameLog]);
 
   useEffect(() => {
-    // Only initialize when lobby is in playing status and both players are present
-    if (lobby.status === 'playing' && lobby.player1Id && lobby.player2Id) {
+    if (lobby.status === 'waiting') {
+      setIsLoadingGame(true);
+    } else if (lobby.status === 'playing' && lobby.player1Id && lobby.player2Id) {
+      setIsLoadingGame(false);
       setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
       
       if (isHost) {
@@ -349,6 +352,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
 
   return (
     <div className="w-full h-screen bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {isLoadingGame ? (
+        <div className="flex flex-col items-center justify-center w-full h-full">
+          <h2 className="text-4xl font-bold mb-4 text-white">Waiting for opponent...</h2>
+          <p className="text-lg text-white">Lobby ID: {lobby.id}</p>
+        </div>
+      ) : (
       {/* Color Picker Modal */}
       {showColorPicker && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -455,6 +464,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 };

@@ -88,11 +88,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const [playerColor, setPlayerColor] = useState<Color>('w');
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [opponentName, setOpponentName] = useState('');
+  const [isLoadingGame, setIsLoadingGame] = useState(true); // New state for loading screen
   
   const { account } = useWeb3();
   const currentUserId = account || 'mock-user';
   
-  const { sendGameMove, onGameMove, leaveLobby } = useFirebaseMultiplayer();
+  const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
 
   // Initialize board from game instance
   useEffect(() => {
@@ -100,7 +101,10 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   }, [game]);
 
   useEffect(() => {
-    if (lobby.status === 'playing' && lobby.player1Color && lobby.player2Color) {
+    if (lobby.status === 'waiting') {
+      setIsLoadingGame(true);
+    } else if (lobby.status === 'playing' && lobby.player1Color && lobby.player2Color) {
+      setIsLoadingGame(false);
       // Determine player color and starting turn
       const myColor = isHost ? lobby.player1Color : lobby.player2Color;
 
@@ -137,6 +141,15 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       });
     }
   }, [game, lobby, isHost, opponentName, onGameMove]);
+
+  useEffect(() => {
+    const unsubscribe = onLobbyJoined((joinedLobby) => {
+      if (joinedLobby.id === lobby.id && joinedLobby.status === 'playing') {
+        setIsLoadingGame(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [lobby.id, onLobbyJoined]);
 
   const addGameLog = useCallback((message: string) => {
     setGameLog(prev => [...prev, message]);
@@ -258,9 +271,15 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
 
   return (
     <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8">
-      {!showEndGameScreen && (
-        <>
-          <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
+      {isLoadingGame ? (
+        <div className="flex flex-col items-center justify-center w-full h-full">
+          <h2 className="text-4xl font-bold mb-4">Waiting for opponent...</h2>
+          <p className="text-lg">Lobby ID: {lobby.id}</p>
+        </div>
+      ) : (
+        !showEndGameScreen && (
+          <>
+            <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
             <Button variant="secondary" size="icon" onClick={() => setIsLogVisible(v => !v)}>
               Log
             </Button>
