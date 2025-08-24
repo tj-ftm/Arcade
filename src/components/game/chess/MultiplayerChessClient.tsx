@@ -8,6 +8,7 @@ import { RefreshCw, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
+import { useWeb3 } from '@/components/web3/Web3Provider';
 import { ChessEndGameScreen } from './ChessEndGameScreen';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
@@ -87,6 +88,9 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const [playerColor, setPlayerColor] = useState<Color>('w');
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [opponentName, setOpponentName] = useState('');
+  
+  const { account } = useWeb3();
+  const currentUserId = account || 'mock-user';
   
   const { sendGameMove, onGameMove, leaveLobby } = useFirebaseMultiplayer();
 
@@ -248,7 +252,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   };
 
   const handleLeaveGame = () => {
-    leaveLobby(lobby.id);
+    leaveLobby(lobby.id, currentUserId);
     onGameEnd();
   };
 

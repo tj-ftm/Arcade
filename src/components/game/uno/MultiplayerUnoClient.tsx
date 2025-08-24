@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
+import { useWeb3 } from '@/components/web3/Web3Provider';
 import { UnoEndGameScreen } from '../UnoEndGameScreen';
 
 type UnoColor = 'red' | 'blue' | 'green' | 'yellow';
@@ -121,6 +122,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
   
   const { sendGameMove, onGameMove, leaveLobby } = useFirebaseMultiplayer();
+  const { account } = useWeb3();
+  const currentUserId = account || 'mock-user';
 
   const addGameLog = useCallback((message: string) => {
     setGameLog(prev => [...prev, message]);
@@ -299,7 +302,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   };
 
   const handleLeaveGame = () => {
-    leaveLobby(lobby.id);
+    leaveLobby(lobby.id, currentUserId);
     onGameEnd();
   };
 

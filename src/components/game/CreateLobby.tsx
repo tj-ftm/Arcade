@@ -29,7 +29,7 @@ interface CreateLobbyProps {
 }
 
 export function CreateLobby({ gameType, onLobbyCreated, onGameStart, onBackToMenu }: CreateLobbyProps) {
-  const { createLobby, currentLobby, isConnected } = useFirebaseMultiplayer();
+  const { createLobby, leaveLobby, currentLobby, isConnected } = useFirebaseMultiplayer();
   const { username, account } = useWeb3();
   const [hostName, setHostName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -54,9 +54,10 @@ export function CreateLobby({ gameType, onLobbyCreated, onGameStart, onBackToMen
     // setIsWaiting will be triggered when currentLobby is set
   };
 
-  const handleCancelLobby = () => {
+  const handleCancelLobby = async () => {
     if (currentLobby) {
-      // Leave the lobby
+      // Leave the lobby - this will delete it since we're the host
+      await leaveLobby(currentLobby.id, currentLobby.player1Id);
       setIsWaiting(false);
       onBackToMenu?.();
     }
