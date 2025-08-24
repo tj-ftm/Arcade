@@ -410,7 +410,7 @@ export default function HomePage() {
         
         {showMainMenuHeader && (
              <header className="w-full z-10 animate-fade-in flex-shrink-0 p-4 sm:p-4">
-                <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-4 sm:p-3 border-b-2 border-primary/50 rounded-lg">
+                <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-3 sm:p-2 border-b-2 border-primary/50 rounded-lg">
                     <div className="flex items-center gap-1 sm:gap-2">
 
                          {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
