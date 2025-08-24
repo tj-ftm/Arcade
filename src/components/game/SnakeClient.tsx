@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 import { MintSuccessModal } from './MintSuccessModal';
+import { SnakeStartScreen } from './snake/SnakeStartScreen';
+import { SnakeEndGameScreen } from './snake/SnakeEndGameScreen';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const GRID_SIZE = 20;
@@ -38,9 +40,11 @@ export const SnakeClient = () => {
     const [score, setScore] = useState(0);
     const [gameStartTime, setGameStartTime] = useState<number>(0);
     const [isLoggingGame, setIsLoggingGame] = useState(false);
-    const [showMintSuccess, setShowMintSuccess] = useState(false);
+    const [isMinting, setIsMinting] = useState(false);
     const [mintTxHash, setMintTxHash] = useState<string>('');
     const [tokensEarned, setTokensEarned] = useState<number>(0);
+    const [showStartScreen, setShowStartScreen] = useState(true);
+    const [showEndGameScreen, setShowEndGameScreen] = useState(false);
 
     const generateFood = useCallback(() => {
         let newFoodPosition;
@@ -55,15 +59,18 @@ export const SnakeClient = () => {
 
     const handleGameOver = async () => {
         setGameState('gameOver');
+        setShowEndGameScreen(true);
         
 
         
         // Only log game if wallet is connected
         if (!isValidWalletAddress(account) || isLoggingGame) {
+            setIsMinting(false);
             return;
         }
 
         setIsLoggingGame(true);
+        setIsMinting(true);
         
         try {
             const gameDuration = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
@@ -79,22 +86,22 @@ export const SnakeClient = () => {
             
             const logResponse = await logGameCompletion(gameResult);
 
-        // Update tokensToMint based on actual reward from backend
-        let tokensToMint = 0;
-        if (logResponse?.reward) {
-            tokensToMint = parseFloat(logResponse.reward);
-        }
-        setTokensEarned(tokensToMint);
-            
-        // Show mint success modal if tokens were earned
-        if (tokensToMint > 0 && logResponse?.mintTransaction) {
-            setMintTxHash(logResponse.mintTransaction);
-            setShowMintSuccess(true);
-        }
+            // Update tokensToMint based on actual reward from backend
+            let tokensToMint = 0;
+            if (logResponse?.reward) {
+                tokensToMint = parseFloat(logResponse.reward);
+            }
+            setTokensEarned(tokensToMint);
+                
+            // Show mint success modal if tokens were earned
+            if (tokensToMint > 0 && logResponse?.mintTransaction) {
+                setMintTxHash(logResponse.mintTransaction);
+            }
         } catch (error) {
             console.error('Failed to log game completion:', error);
         } finally {
             setIsLoggingGame(false);
+            setIsMinting(false);
         }
     };
 
@@ -105,6 +112,18 @@ export const SnakeClient = () => {
         setScore(0);
         setGameStartTime(Date.now());
         setGameState('running');
+        setShowStartScreen(false);
+        setShowEndGameScreen(false);
+    };
+
+    const handleNewGame = () => {
+        handleStartGame();
+    };
+
+    const handleShowStartScreen = () => {
+        setShowStartScreen(true);
+        setShowEndGameScreen(false);
+        setGameState('idle');
     };
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -210,89 +229,73 @@ export const SnakeClient = () => {
 
     return (
         <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in h-full w-full max-w-4xl mx-auto p-4">
-            <h1 className="text-4xl md:text-6xl text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Snake</h1>
-            <div className="bg-black/50 p-4 rounded-xl shadow-2xl border-2 border-green-500/50 relative w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh]">
-                <div className="flex justify-between items-center mb-4 px-2">
-                    <div className="text-xl md:text-2xl">Score: <span className="text-accent font-bold">{score}</span></div>
-                    <div className="flex gap-2">
-                       <Button size="icon" variant="secondary" onClick={handleStartGame}><RefreshCw/></Button>
-                    </div>
-                </div>
+            {showStartScreen && (
+                <SnakeStartScreen onStartGame={handleStartGame} />
+            )}
 
-                <div
-                ref={gameAreaRef}
-                className="grid bg-gray-800 rounded-lg shadow-lg relative overflow-hidden focus:outline-none mx-auto aspect-square"
-                style={{
-                    width: '100%',
-                    maxWidth: '80vh',
-                    gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                    gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
-                }}
-                tabIndex={0}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-            >
-                    {gameState !== 'running' && (
-                        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 rounded-md animate-fade-in">
-                             <h2 className={cn("font-bold", gameState === 'idle' ? "text-5xl text-green-400" : "text-6xl text-red-500")}>
-                                {gameState === 'idle' ? 'Ready to Play?' : 'Game Over'}
-                            </h2>
-                            {gameState === 'gameOver' && (
-                                <div className="text-center">
-                                    <p className="text-xl mt-2">Your final score: {score}</p>
-                                    {tokensEarned > 0 && (
-                                        <p className="text-green-400 text-lg mt-1">🎉 You earned {tokensEarned} ARC token{tokensEarned > 1 ? 's' : ''}!</p>
-                                    )}
-                                    {tokensEarned === 0 && score > 0 && (
-                                        <p className="text-yellow-400 text-sm mt-1">Score 10+ points to earn ARC tokens!</p>
-                                    )}
-                                    {!isValidWalletAddress(account) && (
-                                        <p className="text-yellow-400 text-sm mt-2">Connect wallet to earn rewards</p>
-                                    )}
-                                    {isLoggingGame && (
-                                        <p className="text-blue-400 text-sm mt-2">Logging game result...</p>
-                                    )}
-                                </div>
-                            )}
-                            <Button 
-                                onClick={handleStartGame} 
-                                className="mt-4 text-xl h-12"
-                                disabled={isLoggingGame}
-                            >
-                                {gameState === 'idle' ? <><Play className="mr-2"/>Start Game</> : <><RefreshCw className="mr-2" /> Play Again</>}
-                            </Button>
+            {showEndGameScreen && (
+                <SnakeEndGameScreen
+                    winner={score >= 100 ? 'player' : 'bot'}
+                    playerScore={score}
+                    botScore={0}
+                    onPlayAgain={handleNewGame}
+                    onGoToMenu={handleShowStartScreen}
+                    mintTxHash={mintTxHash}
+                    account={account}
+                    isMinting={isMinting}
+                    tokensEarned={tokensEarned}
+                />
+            )}
+
+            {!showStartScreen && !showEndGameScreen && (
+                <>
+                    <h1 className="text-4xl md:text-6xl text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>Snake</h1>
+                    <div className="bg-black/50 p-4 rounded-xl shadow-2xl border-2 border-green-500/50 relative w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh]">
+                        <div className="flex justify-between items-center mb-4 px-2">
+                            <div className="text-xl md:text-2xl">Score: <span className="text-accent font-bold">{score}</span></div>
+                            <div className="flex gap-2">
+                               <Button size="icon" variant="secondary" onClick={handleStartGame}><RefreshCw/></Button>
+                            </div>
                         </div>
-                    )}
-                    
-                    {gameState === 'running' && (
-                        <>
-                            {[...Array(GRID_SIZE * GRID_SIZE)].map((_, i) => {
-                                const x = i % GRID_SIZE;
-                                const y = Math.floor(i / GRID_SIZE);
-                                const isSnake = snake.some(seg => seg.x === x && seg.y === y);
-                                const isFood = food.x === x && food.y === y;
-                                let type: 'snake' | 'food' | 'empty' = 'empty';
-                                if (isSnake) type = 'snake';
-                                if (isFood) type = 'food';
 
-                                return <SnakeCell key={i} type={type} />;
-                            })}
-                        </>
-                    )}
-                </div>
+                        <div
+                            ref={gameAreaRef}
+                            className="grid bg-gray-800 rounded-lg shadow-lg relative overflow-hidden focus:outline-none mx-auto aspect-square"
+                            style={{
+                                width: '100%',
+                                maxWidth: '80vh',
+                                gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+                                gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
+                            }}
+                            tabIndex={0}
+                            onTouchStart={handleTouchStart}
+                            onTouchEnd={handleTouchEnd}
+                        >
+                            {gameState === 'running' && (
+                                <>
+                                    {[...Array(GRID_SIZE * GRID_SIZE)].map((_, i) => {
+                                        const x = i % GRID_SIZE;
+                                        const y = Math.floor(i / GRID_SIZE);
+                                        const isSnake = snake.some(seg => seg.x === x && seg.y === y);
+                                        const isFood = food.x === x && food.y === y;
+                                        let type: 'snake' | 'food' | 'empty' = 'empty';
+                                        if (isSnake) type = 'snake';
+                                        if (isFood) type = 'food';
 
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                    {isMobile ? 'Swipe on the game area to move' : 'Use arrow keys or WASD to move'}
-                </p>
-            </div>
+                                        return <SnakeCell key={i} type={type} />;
+                                    })}
+                                </>
+                            )}
+                        </div>
+
+                        <p className="text-center text-sm text-muted-foreground mt-4">
+                            {isMobile ? 'Swipe on the game area to move' : 'Use arrow keys or WASD to move'}
+                        </p>
+                    </div>
+                </>
+            )}
             
-            <MintSuccessModal
-                isOpen={showMintSuccess}
-                onClose={() => setShowMintSuccess(false)}
-                txHash={mintTxHash}
-                gameName="Snake"
-                tokensEarned={tokensEarned}
-            />
+
         </div>
     );
 };

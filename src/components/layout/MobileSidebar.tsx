@@ -31,7 +31,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
         onClick={toggleSidebar}
         variant="ghost"
         size="icon"
-        className="md:hidden text-white/70 hover:text-white hover:bg-red-700/50 z-[9999]"
+        className="md:hidden text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 z-[9999] transition-all duration-200"
       >
         <Menu className="h-6 w-6" />
       </Button>
@@ -39,7 +39,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/90 backdrop-blur-md z-[9998] md:hidden"
+          className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9998] md:hidden"
           onClick={closeSidebar}
         />
       )}
@@ -47,11 +47,16 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed top-0 right-0 h-full w-80 border-l border-primary/50 z-[9999] transform transition-transform duration-300 ease-in-out md:hidden",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          "fixed inset-0 z-[9999] md:hidden transition-transform duration-300 ease-in-out transform-gpu",
+          isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{
-          background: 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)'
+          background: 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)',
+          backdropFilter: 'blur(10px)',
+          width: '100vw',
+          height: '100vh',
+          left: 0,
+          top: 0
         }}
       >
         <div className="flex flex-col h-full p-6">
@@ -62,14 +67,14 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
               onClick={closeSidebar}
               variant="ghost"
               size="icon"
-              className="text-white/70 hover:text-white hover:bg-red-700/50"
+              className="text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 transition-all duration-200"
             >
               <X className="h-6 w-6" />
             </Button>
           </div>
 
           {/* Menu Items */}
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-4 bg-red-800 p-4 rounded-lg">
             {/* Wallet Connect */}
             <div className="mb-4">
               <ConnectWallet />
@@ -81,7 +86,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
             <Button
               onClick={() => handleNavigation('leaderboard')}
               variant="ghost"
-              className="w-full justify-start text-lg h-12 text-white hover:bg-red-700/50 font-headline border border-white/20"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200"
             >
               <BarChart className="mr-3 h-5 w-5" />
               Leaderboard
@@ -91,20 +96,14 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
             <Button
               onClick={() => handleNavigation('settings')}
               variant="ghost"
-              className="w-full justify-start text-lg h-12 text-white hover:bg-red-700/50 font-headline border border-white/20"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200"
             >
               <Settings className="mr-3 h-5 w-5" />
               Settings
             </Button>
           </div>
 
-          {/* Footer */}
-          <div className="mt-auto pt-8">
-            <div className="text-center text-white/50 text-sm">
-              <p className="font-headline">Sonic Arcade</p>
-              <p className="text-xs">Play • Earn • Compete</p>
-            </div>
-          </div>
+
         </div>
       </div>
     </>

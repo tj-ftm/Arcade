@@ -1,10 +1,8 @@
-"use client";
-
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { useWeb3 } from '../web3/Web3Provider';
+import { useWeb3 } from '../../web3/Web3Provider';
 
-interface UnoEndGameScreenProps {
+interface ChessEndGameScreenProps {
   score: number;
   onNewGame: () => void;
   onBackToMenu: () => void;
@@ -13,7 +11,7 @@ interface UnoEndGameScreenProps {
   tokensEarned: number;
 }
 
-export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
+export const ChessEndGameScreen: React.FC<ChessEndGameScreenProps> = ({
   score,
   onNewGame,
   onBackToMenu,
@@ -24,7 +22,7 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
   const { isValidWallet } = useWeb3();
 
   return (
-    <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8">
+    <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8">
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg text-center max-w-md w-full">
         <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-white">
           Game Over
@@ -57,7 +55,7 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
         <div className="flex flex-col space-y-4">
           <Button
             onClick={onNewGame}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-lg py-2 sm:py-3 rounded-lg"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white text-base sm:text-lg py-2 sm:py-3 rounded-lg"
           >
             Play Again
           </Button>
@@ -70,5 +68,6 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
         </div>
       </div>
     </div>
+
   );
 };

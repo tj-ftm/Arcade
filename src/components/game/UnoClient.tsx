@@ -156,6 +156,8 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     const [mintTxHash, setMintTxHash] = useState<string>('');
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
     const [showStartScreen, setShowStartScreen] = useState(true);
+    const [isMinting, setIsMinting] = useState(false);
+    const tokensEarned = 50; // Uno game mints 50 ARC
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -176,12 +178,17 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     }, [turnMessage]);
     
     useEffect(() => {
-      if(gameState?.winner) {
+      if (gameState?.winner) {
         setShowEndGameScreen(true);
         if (gameState.winner === 'player') {
+          setIsMinting(true);
           // Simulate a transaction hash for now
           const simulatedTxHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
           setMintTxHash(simulatedTxHash);
+          // Simulate transaction completion
+          setTimeout(() => {
+            setIsMinting(false);
+          }, 3000); // Simulate 3 seconds for transaction
         }
       }
     }, [gameState?.winner]);
@@ -419,28 +426,28 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
                 }
                 // Use a timeout to simulate the bot "thinking"
                 setTimeout(() => playCard(cardToPlay, cardToPlay.color === 'Wild' ? chosenColor : cardToPlay.color), 500);
-            } else {
-                if(newState.deck.length > 0) {
+            } else { // Bot has no playable cards
+                if(newState.deck.length > 0) { // If deck is not empty, draw a card
                     const card = newState.deck.pop()!;
                     bot.hand.push(card);
                     addGameLog("Bot drew a card.");
                     setTurnMessage("Bot drew a card");
                     
-                    if (isCardPlayable(card, topCard, newState.activeColor)) {
+                    if (isCardPlayable(card, topCard, newState.activeColor)) { // If drawn card is playable, play it
                         let chosenColor = card.color;
                          if (card.color === 'Wild') {
                             chosenColor = colors[Math.floor(Math.random() * 4)];
                          }
                         setTimeout(() => playCard(card, chosenColor), 1000);
-                    } else {
-                         newState.activePlayerIndex = nextPlayer(newState);
-                         addGameLog("Your turn.");
-                         setTimeout(() => setTurnMessage("Your Turn"), 1600);
+                    } else { // If drawn card is not playable, skip bot's turn
+                        newState.activePlayerIndex = (newState.activePlayerIndex + newState.direction + newState.players.length) % newState.players.length;
+                        addGameLog("Bot could not play a card and skipped its turn.");
+                        setTurnMessage("Bot skipped turn");
                     }
-                } else {
-                     newState.activePlayerIndex = nextPlayer(newState);
-                     addGameLog("Your turn.");
-                     setTurnMessage("Your Turn");
+                } else { // If deck is empty, bot cannot draw, so skip turn
+                    newState.activePlayerIndex = (newState.activePlayerIndex + newState.direction + newState.players.length) % newState.players.length;
+                    addGameLog("Bot could not draw a card and skipped its turn.");
+                    setTurnMessage("Bot skipped turn");
                 }
             }
             return newState;
@@ -630,12 +637,12 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
             {/* End Game Screen */}
             {showEndGameScreen && gameState && (
                 <UnoEndGameScreen
-                    winner={gameState.winner}
-                    playerScore={calculateUnoScore(gameState.players[0].hand)}
-                    botScore={calculateUnoScore(gameState.players[1].hand)}
-                    onPlayAgain={handleShowStartScreen}
-                    onGoToMenu={onGameEnd}
+                    score={calculateUnoScore(gameState.players[0].hand)}
+                    onNewGame={handleNewGame}
+                    onBackToMenu={onGameEnd}
+                    isMinting={isMinting}
                     mintTxHash={mintTxHash}
+                    tokensEarned={tokensEarned}
                 />
             )}
             

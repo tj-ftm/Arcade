@@ -171,34 +171,14 @@ const MultiplayerContent = ({ onBack }: { onBack: () => void }) => {
     return (
         <div className="w-full h-full max-w-md z-10 text-center my-auto animate-fade-in overflow-y-auto">
             <div className="bg-black/50 p-8 rounded-xl">
-            <h1 className="text-6xl font-headline uppercase tracking-wider mb-2 text-accent">Multiplayer</h1>
-            <p className="text-white/70 mb-8 text-lg">Challenge players from around the world!</p>
-
-            <div className="space-y-6">
-                {isSearching ? (
-                <div className="flex flex-col items-center space-y-4">
-                    <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                    <p className="text-xl font-semibold">Searching for opponent...</p>
-                    <p className="text-md text-muted-foreground">Pairing you with a worthy adversary.</p>
-                    <Progress value={33} className="w-full animate-pulse" />
-                </div>
-                ) : (
-                <div className="flex flex-col items-center space-y-4">
-                    <Users className="h-24 w-24 text-primary" />
-                    <p className="text-xl">Ready to play?</p>
-                    <Button size="lg" onClick={handleFindMatch} className="w-full h-16 text-2xl font-headline rounded-lg">
-                    Find Match
-                    </Button>
-                     <Button onClick={onBack} variant="secondary" className="w-full font-headline text-lg">
-                        <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
-                    </Button>
-                </div>
-                )}
-            </div>
+                <h1 className="text-6xl font-headline uppercase tracking-wider mb-2 text-accent">Multiplayer Content Placeholder</h1>
+                <Button onClick={onBack} variant="secondary" className="w-full font-headline text-lg">
+                    <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
+                </Button>
             </div>
         </div>
     );
-}
+};
 
 const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, onPaidPlay: () => void }) => (
      <div className="w-full h-full max-w-md z-10 text-center my-auto animate-fade-in overflow-y-auto">
@@ -318,40 +298,41 @@ export default function HomePage() {
       default:
         return (
           <>
-             <div className="w-full flex-1 flex flex-col items-center justify-center pt-4 sm:pt-2 px-2">
+             
+             <div className="w-full flex-1 flex flex-col items-center justify-center pt-4 sm:pt-8 px-2 pb-8">
                 <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-2 w-full max-w-sm sm:max-w-none mx-auto">
                   <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
+                    <div className="bg-gradient-to-br from-red-900 via-red-700 to-rose-900 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
                       <div className="pt-2 sm:pt-3">
                            <h1 className="text-2xl sm:text-3xl font-headline text-accent uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                            <p className="text-white/70 mb-3 text-xs sm:text-sm">The classic card game!</p>
                          </div>
-                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-primary hover:bg-primary/90 rounded-lg font-headline group whitespace-normal leading-tight">
-                           Play
+                       <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-500 to-red-700 rounded-xl shadow-lg hover:from-red-600 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                           <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-yellow-600">Play</span>
                          </Button>
                     </div>
                   </div>
 
                   <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
+                    <div className="bg-gradient-to-br from-green-900 via-green-700 to-lime-900 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
                        <div className="pt-2 sm:pt-3">
                            <h1 className="text-2xl sm:text-3xl font-headline text-green-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
                            <p className="text-white/70 mb-3 text-xs sm:text-sm">The retro classic!</p>
                          </div>
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group mx-auto whitespace-normal leading-tight">
-                            Play
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-500 to-red-700 rounded-xl shadow-lg hover:from-red-600 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-yellow-600">Play</span>
                           </Button>
                     </div>
                   </div>
                   
                   <div className="sm:flex-1 sm:min-w-[200px] sm:max-w-[280px] animate-fade-in text-center">
-                    <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
+                    <div className="bg-gradient-to-br from-purple-900 via-purple-700 to-fuchsia-900 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-auto min-h-[160px] sm:min-h-[280px] lg:min-h-[320px] xl:min-h-[360px] flex flex-col justify-between border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
                        <div className="pt-2 sm:pt-3">
                            <h1 className="text-2xl sm:text-3xl font-headline text-purple-500 uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
                            <p className="text-white/70 mb-3 text-xs sm:text-sm">The classic strategy game!</p>
                          </div>
-                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group whitespace-normal leading-tight">
-                            Play
+                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-6 text-2xl font-bold bg-gradient-to-br from-red-500 to-red-700 rounded-xl shadow-lg hover:from-red-600 hover:to-red-800 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-yellow-600">Play</span>
                           </Button>
                     </div>
                   </div>
@@ -430,54 +411,55 @@ export default function HomePage() {
         {showMainMenuHeader && (
              <header className="w-full z-10 animate-fade-in flex-shrink-0 p-2 sm:p-4">
                 <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
-                    {isMobile ? (
-                        <MobileSidebar onNavigate={handleNavigate} />
-                    ) : (
-                        <>
-                            {/* Left section for desktop */}
-                            <div className="flex items-center gap-1 sm:gap-2">
-                                <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                                    Leaderboard
-                                </Button>
-                                <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                                    <Settings className="h-5 w-5" />
-                                </Button>
-                            </div>
-                            {/* Center section for desktop */}
-                            <div className="flex-grow flex justify-center">
-                                <button onClick={() => handleNavigate('menu')}>
-                                    <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
-                                    Sonic <span className="text-primary">Arcade</span>
-                                    </div>
-                                </button>
-                            </div>
-                            {/* Right section for desktop */}
-                            <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
 
-                                <ConnectWallet />
-                            </div>
-                        </>
-                    )}
-                </div>
-            </header>
-        )}
+                         {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
+                         {!isMobile && (
+                             <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                 Leaderboard
+                             </Button>
+                         )}
+                         {!isMobile && (
+                             <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                 <Settings className="h-5 w-5" />
+                             </Button>
+                         )}
+                     </div>
+                     <div className="flex-grow flex justify-center">
+                         <button onClick={() => handleNavigate('menu')}>
+                             <div className="font-headline text-2xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
+                                 Sonic <span className="text-primary">Arcade</span>
+                             </div>
+                             <p className="text-white/70 text-xs sm:text-sm">Play • Earn • Compete</p>
+                         </button>
+                     </div>
+                     <div className="flex items-center gap-1 sm:gap-2 mt-2">
+                         <div className="hidden md:block">
+                             <ConnectWallet />
+                         </div>
+                     </div>
+                 </div>
+             </header>
+         )}
 
-        {isGameActive && activeView !== 'platformer' && (
+         {isGameActive && activeView !== 'platformer' && (
              <header className="absolute top-0 left-0 w-full z-20 p-1 sm:p-2">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                         <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
                     </Button>
-                    <ConnectWallet />
+                    <div className="hidden md:block">
+                        <ConnectWallet />
+                    </div>
+                    {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
                 </div>
             </header>
         )}
         
-        <div className="flex-1 w-full flex items-center justify-center overflow-auto" style={{paddingTop: isGameActive && activeView !== 'platformer' ? '60px' : '0', minHeight: 0}}>
+        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto" style={{paddingTop: isGameActive && activeView !== 'platformer' ? '80px' : showMainMenuHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>
   );
-}
 
     

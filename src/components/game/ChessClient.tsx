@@ -10,6 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 import { MintSuccessModal } from './MintSuccessModal';
+import { ChessStartScreen } from './chess/ChessStartScreen';
+import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -63,6 +65,9 @@ export const ChessClient = () => {
     const [moveCount, setMoveCount] = useState(0);
     const [showMintSuccess, setShowMintSuccess] = useState(false);
     const [mintTxHash, setMintTxHash] = useState<string>('');
+    const [showStartScreen, setShowStartScreen] = useState(true);
+    const [showEndGameScreen, setShowEndGameScreen] = useState(false);
+    const [isMinting, setIsMinting] = useState(false);
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -90,7 +95,24 @@ export const ChessClient = () => {
         }
     }, [game]);
 
+    const handleNewGame = useCallback(() => {
+      setGame(new Chess());
+      setBoard(new Chess().board());
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+      setGameLog(['Game started. Your turn.']);
+      setWinner(null);
+      setIsBotThinking(false);
+      setGameStartTime(Date.now());
+      setIsLoggingGame(false);
+      setMoveCount(0);
+      setShowMintSuccess(false);
+      setMintTxHash('');
+      setShowEndGameScreen(false);
+    }, []);
+
     const handleGameEnd = async (playerWon: boolean, endReason: string) => {
+        setShowEndGameScreen(true);
         // Only log game if wallet is connected
         if (!isValidWalletAddress(account) || isLoggingGame) {
             return;
@@ -117,8 +139,11 @@ export const ChessClient = () => {
             
             const logResponse = await logGameCompletion(gameResult);
             if (playerWon && logResponse?.mintTransaction) {
-                setMintTxHash(logResponse.mintTransaction);
-                setShowMintSuccess(true);
+                setIsMinting(true);
+                setTimeout(() => {
+                    setMintTxHash(logResponse.mintTransaction);
+                    setIsMinting(false);
+                }, 3000); // Simulate 3-second minting process
             }
         } catch (error) {
             console.error('Failed to log chess game completion:', error);
@@ -171,6 +196,18 @@ export const ChessClient = () => {
         }
     }, [game, game.turn(), winner, handleBotMove]);
 
+    useEffect(() => {
+      if (!showStartScreen) {
+        handleNewGame();
+      }
+    }, [showStartScreen, handleNewGame]);
+
+    const handleShowStartScreen = useCallback(() => {
+      setShowStartScreen(true);
+      setShowEndGameScreen(false);
+      handleNewGame();
+    }, [handleNewGame]);
+
     const handleSquareClick = (square: Square) => {
         if (winner || game.turn() !== 'w' || isBotThinking) return;
 
@@ -211,111 +248,92 @@ export const ChessClient = () => {
         }
     };
     
-    const handleNewGame = () => {
-        const newGame = new Chess();
-        setGame(newGame);
-        setBoard(newGame.board());
-        setSelectedSquare(null);
-        setPossibleMoves([]);
-        setWinner(null);
-        setGameLog(['Game started. Your turn.']);
-        setIsBotThinking(false);
-        setGameStartTime(Date.now());
-        setMoveCount(0);
-        setIsLoggingGame(false);
-    };
+
 
     return (
         <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden">
-            
-            <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
-                <Button variant="secondary" size="icon" onClick={() => setIsLogVisible(v => !v)}>
-                    Log
-                </Button>
-            </div>
-            
-            <div className={cn(
-                "fixed md:static top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
-                isLogVisible ? "translate-x-0" : "translate-x-full",
-                "md:translate-x-0 md:h-full"
-            )}>
-                 <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={() => setIsLogVisible(false)}>
-                    X
-                 </Button>
-                <h3 className="text-2xl text-accent text-center font-bold uppercase tracking-wider mb-4">Game Log</h3>
-                <ScrollArea className="flex-1">
-                    <div className="flex flex-col gap-2">
-                       {gameLog.slice().reverse().map((msg, i) => (
-                           <p key={i} className={cn("text-sm text-white/80 border-b border-white/10 pb-1", i === 0 && "text-white font-bold")}>
-                               {msg}
-                           </p>
-                       ))}
-                    </div>
-                </ScrollArea>
-                <div className="mt-4">
-                    <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleNewGame}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
-                </div>
-            </div>
+            {showStartScreen && (
+                <ChessStartScreen onStartGame={() => setShowStartScreen(false)} />
+            )}
 
-             <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative">
-                <div className="w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
-                    {board.map((row, rowIndex) =>
-                        row.map((piece, colIndex) => {
-                            const square: Square = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}` as Square;
-                            const isLight = (rowIndex + colIndex) % 2 !== 0;
-                            return (
-                                <ChessSquare
-                                    key={square}
-                                    piece={piece}
-                                    square={square}
-                                    isLight={isLight}
-                                    onSquareClick={handleSquareClick}
-                                    isSelected={selectedSquare === square}
-                                    isPossibleMove={possibleMoves.includes(square)}
-                                />
-                            );
-                        })
-                    )}
-                </div>
-                <div className="mt-4 bg-black/50 px-6 py-2 rounded-full">
-                    <h2 className="text-2xl font-bold uppercase tracking-wider">
-                        {winner ? "Game Over" : isBotThinking ? "Bot is thinking..." : `${game.turn() === 'w' ? 'Your' : 'Bot\'s'} Turn`}
-                    </h2>
-                </div>
-                 {game.isCheck() && !winner && <div className="mt-2 text-2xl text-red-500 font-bold animate-pulse">CHECK!</div>}
-            </div>
-
-            {winner && (
-                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-30">
-                    <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>Game Over</h2>
-                    <p className="text-2xl md:text-4xl text-white -mt-4">{winner}</p>
-                    {winner.includes('You win') && (
-                        <p className="text-green-400 text-lg mt-1">🎉 Victory! You earned 1 ARC token!</p>
-                    )}
-                    {!isValidWalletAddress(account) && (
-                        <p className="text-yellow-400 text-sm mt-2">Connect wallet to earn rewards</p>
-                    )}
-                    {isLoggingGame && (
-                        <p className="text-blue-400 text-sm mt-2">Logging game result...</p>
-                    )}
-                    <div className="flex gap-4">
-                        <Button 
-                            size="lg" 
-                            onClick={handleNewGame} 
-                            className="font-headline text-2xl"
-                            disabled={isLoggingGame}
-                        >
-                            <RefreshCw className="mr-2"/> New Game
+            {!showStartScreen && !showEndGameScreen && (
+                <>
+                    <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
+                        <Button variant="secondary" size="icon" onClick={() => setIsLogVisible(v => !v)}>
+                            Log
                         </Button>
                     </div>
-                </div>
+                    
+                    <div className={cn(
+                        "fixed md:static top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
+                        isLogVisible ? "translate-x-0" : "translate-x-full",
+                        "md:translate-x-0 md:h-full"
+                    )}>
+                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 md:hidden" onClick={() => setIsLogVisible(false)}>
+                            X
+                        </Button>
+                        <h3 className="text-2xl text-accent text-center font-bold uppercase tracking-wider mb-4">Game Log</h3>
+                        <ScrollArea className="flex-1">
+                            <div className="flex flex-col gap-2">
+                            {gameLog.slice().reverse().map((msg, i) => (
+                                <p key={i} className={cn("text-sm text-white/80 border-b border-white/10 pb-1", i === 0 && "text-white font-bold")}>
+                                    {msg}
+                                </p>
+                            ))}
+                            </div>
+                        </ScrollArea>
+                        <div className="mt-4">
+                            <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleShowStartScreen}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative">
+                        <div className="w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
+                            {board.map((row, rowIndex) =>
+                                row.map((piece, colIndex) => {
+                                    const square: Square = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}` as Square;
+                                    const isLight = (rowIndex + colIndex) % 2 !== 0;
+                                    return (
+                                        <ChessSquare
+                                            key={square}
+                                            piece={piece}
+                                            square={square}
+                                            isLight={isLight}
+                                            onSquareClick={handleSquareClick}
+                                            isSelected={selectedSquare === square}
+                                            isPossibleMove={possibleMoves.includes(square)}
+                                        />
+                                    );
+                                })
+                            )}
+                        </div>
+                        <div className="mt-4 bg-black/50 px-6 py-2 rounded-full">
+                            <h2 className="text-2xl font-bold uppercase tracking-wider">
+                                {winner ? "Game Over" : isBotThinking ? "Bot is thinking..." : `${game.turn() === 'w' ? 'Your' : 'Bot\'s'} Turn`}
+                            </h2>
+                        </div>
+                        {game.isCheck() && !winner && <div className="mt-2 text-2xl text-red-500 font-bold animate-pulse">CHECK!</div>}
+                    </div>
+                </>
             )}
-         <MintSuccessModal
-             isOpen={showMintSuccess}
-             onClose={() => setShowMintSuccess(false)}
-             txHash={mintTxHash}
-             gameName="Chess"
-         />
-         </div>
-     );
+
+            {showEndGameScreen && (
+                <ChessEndGameScreen
+                    score={score}
+                    onNewGame={handleNewGame}
+                    onBackToMenu={handleShowStartScreen}
+                    isMinting={isMinting}
+                    mintTxHash={mintTxHash}
+                    tokensEarned={100}
+                />
+            )}
+
+            <MintSuccessModal
+                isOpen={showMintSuccess}
+                onClose={() => setShowMintSuccess(false)}
+                txHash={mintTxHash}
+                gameName="Chess"
+            />
+        </div>
+    );
 }

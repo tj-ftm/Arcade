@@ -1,20 +1,17 @@
-"use client";
-
 import { Button } from '@/components/ui/button';
-import { Play, ArrowLeft } from 'lucide-react';
+import { Play } from 'lucide-react';
 
-interface UnoStartScreenProps {
+interface ChessStartScreenProps {
   onStartGame: () => void;
-  onGoToMenu: () => void;
 }
 
-export const UnoStartScreen = ({ onStartGame, onGoToMenu }: UnoStartScreenProps) => {
+export const ChessStartScreen = ({ onStartGame }: ChessStartScreenProps) => {
   return (
-    <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
+    <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
       <div className="text-center">
-        <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-headline text-red-600 uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '4px black', textShadow: '0 0 20px rgba(220, 38, 38, 0.5)' }}>
-          UNO
+        <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-headline text-purple-600 uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '4px black', textShadow: '0 0 20px rgba(128, 0, 128, 0.5)' }}>
+          CHESS
         </h1>
       </div>
 
@@ -23,7 +20,7 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu }: UnoStartScreenProps)
         <Button 
           size="lg" 
           onClick={onStartGame}
-          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-red-600 hover:bg-red-700 text-white border-2 border-white/20"
+          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-purple-600 hover:bg-purple-700 text-white border-2 border-white/20"
         >
           <Play className="mr-4 h-8 w-8" />
           Start Game
