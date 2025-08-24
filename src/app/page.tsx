@@ -341,7 +341,7 @@ export default function HomePage() {
                     </div>
                   
                   <div className="animate-fade-in text-center">
-                    <div className="bg-black/50 py-0 px-0 sm:py-0 sm:px-0 pb-0 sm:pb-0 rounded-xl h-full flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
+                    <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
                        <div className="pt-0 sm:pt-1">
                              <h1 className="text-2xl sm:text-5xl font-headline text-yellow-500 uppercase tracking-wider mb-0 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '1px black' }}>SHOP</h1>
                         </div>
