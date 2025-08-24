@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,13 +39,13 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   
   const currentUserId = account || 'mock-user';
   
-  const handleGameStart = (lobby: Lobby, isHost: boolean) => {
+  const handleGameStart = useCallback((lobby: Lobby, isHost: boolean) => {
     console.log('Game starting:', lobby, 'isHost:', isHost);
     setGameStarting(true);
     setTimeout(() => {
       onStartGame?.(lobby, isHost);
     }, 1000);
-  };
+  }, [onStartGame]);
 
   // Set up lobby joined callback to automatically start game
   useEffect(() => {
