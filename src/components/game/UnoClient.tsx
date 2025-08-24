@@ -5,9 +5,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { UnoGameState, Player, UnoCard, UnoColor, UnoValue } from '@/types';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, PanelLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isValidWalletAddress } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '../web3/Web3Provider';
+import { logGameCompletion } from '@/lib/game-logger';
 
 
 import { UnoEndGameScreen } from './UnoEndGameScreen';
@@ -157,7 +158,7 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
     const [showStartScreen, setShowStartScreen] = useState(true);
     const [isMinting, setIsMinting] = useState(false);
-    const tokensEarned = 50; // Uno game mints 50 ARC
+    const [tokensEarned, setTokensEarned] = useState(0);
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -178,20 +179,38 @@ export const UnoClient = ({ onGameEnd }: { onGameEnd?: () => void }) => {
     }, [turnMessage]);
     
     useEffect(() => {
-      if (gameState?.winner) {
-        setShowEndGameScreen(true);
-        if (gameState.winner === 'player') {
+      const handleGameWin = async () => {
+        if (gameState?.winner === 'player') {
+          setShowEndGameScreen(true);
           setIsMinting(true);
-          // Simulate a transaction hash for now
-          const simulatedTxHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
-          setMintTxHash(simulatedTxHash);
-          // Simulate transaction completion
-          setTimeout(() => {
+          try {
+            const gameResult = {
+              playerAddress: username || '', // Assuming 'username' is the player's address
+              gameType: 'uno',
+              score: calculateUnoScore(gameState.playerHand), // Calculate score based on remaining cards
+              won: true,
+            };
+            const logResponse = await logGameCompletion(gameResult);
+            if (logResponse?.mintTransaction) {
+              setMintTxHash(logResponse.mintTransaction);
+            }
+            if (logResponse?.reward) {
+              setTokensEarned(parseFloat(logResponse.reward));
+            }
+          } catch (error) {
+            console.error('Failed to log game completion or mint tokens:', error);
+          } finally {
             setIsMinting(false);
-          }, 3000); // Simulate 3 seconds for transaction
+          }
+        } else if (gameState?.winner) {
+          // Handle bot win or other end conditions
+          setShowEndGameScreen(true);
         }
+      };
+      if (gameState?.winner) {
+        handleGameWin();
       }
-    }, [gameState?.winner]);
+    }, [gameState?.winner, username, gameState?.playerHand]);
 
     const addGameLog = (message: string) => {
         setGameState(prev => {
