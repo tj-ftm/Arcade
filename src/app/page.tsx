@@ -383,27 +383,11 @@ export default function HomePage() {
   const isGameActive = !showMainMenuHeader;
 
   return (
-      <main className={`flex h-screen flex-col items-center overflow-hidden relative ${getBackgroundClass()}`}>
+      <main className="flex h-screen flex-col items-center overflow-hidden relative animated-gradient-bg">
+        <div className="absolute inset-0 z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent z-0"></div>
         {showMainMenuHeader ? (
              <>
-              <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
-              
-              <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent"></div>
-            </>
-        ) : activeView === 'uno' || activeView === 'pay-uno' ? (
-             <>
-                <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
-                
-            </>
-        ) : activeView === 'snake' ? (
-            <>
-                <div className="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-900 via-gray-700 to-black z-0"></div>
-                
-            </>
-        ) : activeView === 'chess' ? (
-             <>
-                <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 z-0"></div>
-                
             </>
         ) : null}
 
