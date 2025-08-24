@@ -304,7 +304,7 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-primary/30 hover:border-primary/60 transition-all duration-300">
                       <img src="/arcade_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4" />
-                       <div className="pt-1 sm:pt-2">
+                       <div className="pt-0 sm:pt-1">
                            <h1 className="text-2xl sm:text-5xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>UNO</h1>
                            <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">The classic card game!</p>
                          </div>
@@ -317,7 +317,7 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
                        <img src="/arcade_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4" />
-                       <div className="pt-1 sm:pt-2">
+                       <div className="pt-0 sm:pt-1">
                            <h1 className="text-2xl sm:text-5xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>SNAKE</h1>
                            <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">The retro classic!</p>
                          </div>
@@ -330,7 +330,7 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-green-500/30 hover:border-green-500/60 transition-all duration-300">
                        <img src="/arcade_icon.png" alt="CHESS Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4" />
-                       <div className="pt-1 sm:pt-2">
+                       <div className="pt-0 sm:pt-1">
                            <h1 className="text-2xl sm:text-5xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>CHESS</h1>
                            <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">The classic strategy game!</p>
                          </div>
@@ -343,7 +343,7 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="bg-black/50 py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
                        <img src="/arcade_icon.png" alt="SHOP" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4" />
-                       <div className="pt-1 sm:pt-2">
+                       <div className="pt-0 sm:pt-1">
                             <h1 className="text-2xl sm:text-5xl font-headline text-yellow-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '1px black' }}>SHOP</h1>
                             <p className="text-white/70 mb-2 sm:mb-6 text-sm sm:text-lg">Browse and purchase items!</p>
                           </div>
