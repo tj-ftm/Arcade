@@ -39,6 +39,14 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   
   const currentUserId = account || 'mock-user';
   
+  const handleGameStart = (lobby: Lobby, isHost: boolean) => {
+    console.log('Game starting:', lobby, 'isHost:', isHost);
+    setGameStarting(true);
+    setTimeout(() => {
+      onStartGame?.(lobby, isHost);
+    }, 1000);
+  };
+
   // Set up lobby joined callback to automatically start game
   useEffect(() => {
     onLobbyJoined((lobby: Lobby) => {
@@ -50,14 +58,6 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const handleLobbyCreated = (lobby: Lobby) => {
     console.log('Lobby created:', lobby);
     // The CreateLobby component will handle the waiting state
-  };
-
-  const handleGameStart = (lobby: Lobby, isHost: boolean) => {
-    console.log('Game starting:', lobby, 'isHost:', isHost);
-    setGameStarting(true);
-    setTimeout(() => {
-      onStartGame?.(lobby, isHost);
-    }, 1000);
   };
 
   const handleJoinLobby = (lobby: Lobby) => {
