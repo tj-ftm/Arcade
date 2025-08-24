@@ -44,18 +44,22 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     console.log('Game starting:', lobby, 'isHost:', isHost);
     
     // Clear any existing timeout
-    if (gameStartTimeout) {
-      clearTimeout(gameStartTimeout);
-    }
+    setGameStartTimeout(prev => {
+      if (prev) {
+        clearTimeout(prev);
+      }
+      return null;
+    });
     
     setGameStarting(true);
     const timeout = setTimeout(() => {
+      console.log('Timeout completed, calling onStartGame');
       onStartGame?.(lobby, isHost);
       setGameStartTimeout(null);
     }, 2000); // Increased delay to ensure both players see loading screen
     
     setGameStartTimeout(timeout);
-  }, [onStartGame, gameStartTimeout]);
+  }, [onStartGame]);
 
   // Set up lobby joined callback for host when player joins
   useEffect(() => {
