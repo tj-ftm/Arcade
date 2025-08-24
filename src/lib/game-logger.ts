@@ -12,25 +12,20 @@ interface GameResult {
 interface GameLogResponse {
   success: boolean;
   message: string;
-  gameLog: any;
-  transactions: {
-    logTransaction: string;
-    mintTransaction?: string;
-  };
-  reward: string;
+  mintTransaction?: string;
+  reward?: string;
 }
 
 /**
- * Logs game completion with two-step verification and mints tokens for winners
+ * Logs game completion and mints tokens for winners
  * @param gameResult - The game result data
  * @returns Promise with the API response
  */
 export async function logGameCompletion(gameResult: GameResult): Promise<GameLogResponse | null> {
   try {
-    console.log('Starting two-step game logging process:', gameResult);
+    console.log('Logging game completion:', gameResult);
     
-    // Step 1: Store game log in database
-    const storeResponse = await fetch('/api/game-complete', {
+    const response = await fetch('/api/game-complete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -38,36 +33,13 @@ export async function logGameCompletion(gameResult: GameResult): Promise<GameLog
       body: JSON.stringify({
         ...gameResult,
         timestamp: new Date().toISOString(),
-        verificationMode: 'store'
       }),
     });
 
-    const storeData = await storeResponse.json();
+    const data = await response.json();
 
-    if (!storeResponse.ok) {
-      throw new Error(storeData.error || 'Failed to store game log');
-    }
-
-    console.log('Game stored successfully, proceeding to verification:', storeData.storedGameId);
-
-    // Step 2: Verify and mint tokens
-    const verifyResponse = await fetch('/api/game-complete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...gameResult,
-        timestamp: new Date().toISOString(),
-        verificationMode: 'verify',
-        storedGameId: storeData.storedGameId
-      }),
-    });
-
-    const verifyData = await verifyResponse.json();
-
-    if (!verifyResponse.ok) {
-      throw new Error(verifyData.error || 'Failed to verify game log');
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to log game completion');
     }
 
     // Show success toast based on verification result
@@ -92,7 +64,7 @@ export async function logGameCompletion(gameResult: GameResult): Promise<GameLog
       });
     }
 
-    return verifyData;
+    return data;
 
   } catch (error: any) {
     console.error('Error in game logging process:', error);

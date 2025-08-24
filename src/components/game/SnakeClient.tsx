@@ -78,8 +78,8 @@ export const SnakeClient = () => {
             const logResponse = await logGameCompletion(gameResult);
             
             // Show mint success modal if tokens were earned
-            if (tokensToMint > 0 && logResponse?.transactions?.mintTransaction) {
-                setMintTxHash(logResponse.transactions.mintTransaction);
+            if (tokensToMint > 0 && logResponse?.mintTransaction) {
+                setMintTxHash(logResponse.mintTransaction);
                 setShowMintSuccess(true);
             }
         } catch (error) {

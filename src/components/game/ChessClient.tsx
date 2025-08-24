@@ -115,10 +115,9 @@ export const ChessClient = () => {
                 gameDuration
             );
             
-            await logGameCompletion(gameResult);
-            if (playerWon) {
-                const simulatedTxHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
-                setMintTxHash(simulatedTxHash);
+            const logResponse = await logGameCompletion(gameResult);
+            if (playerWon && logResponse?.mintTransaction) {
+                setMintTxHash(logResponse.mintTransaction);
                 setShowMintSuccess(true);
             }
         } catch (error) {
