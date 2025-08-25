@@ -48,6 +48,15 @@ export default function ChessMultiplayerPage() {
   
   if (currentView === 'game' && currentLobby) {
     console.log('✅ [CHESS MULTIPLAYER PAGE] Conditions met, rendering MultiplayerChessClient');
+    console.log('🔍 [CHESS MULTIPLAYER PAGE] Lobby data being passed:', {
+      id: currentLobby.id,
+      status: currentLobby.status,
+      player1Id: currentLobby.player1Id,
+      player1Name: currentLobby.player1Name,
+      player2Id: currentLobby.player2Id,
+      player2Name: currentLobby.player2Name,
+      hasPlayer2: !!currentLobby.player2Id
+    });
     return (
       <div className="w-full h-screen">
         <MultiplayerChessClient

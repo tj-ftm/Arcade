@@ -71,9 +71,19 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 
 export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: MultiplayerChessClientProps) => {
   console.log('🏁 [MULTIPLAYER CHESS CLIENT] Component initialized with:', {
-    lobby: lobby,
+    lobbyId: lobby.id,
+    lobbyStatus: lobby.status,
+    player1Id: lobby.player1Id,
+    player1Name: lobby.player1Name,
+    player2Id: lobby.player2Id,
+    player2Name: lobby.player2Name,
     isHost: isHost,
     hasPlayer2: !!lobby.player2Id
+  });
+  console.log('🔍 [MULTIPLAYER CHESS CLIENT] Loading condition check:', {
+    hasNoPlayer2: !lobby.player2Id,
+    statusNotPlaying: lobby.status !== 'playing',
+    shouldShowLoading: !lobby.player2Id && lobby.status !== 'playing'
   });
   const [game] = useState(() => new Chess());
   const [board, setBoard] = useState(() => {
@@ -104,13 +114,23 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   }, [game]);
 
   useEffect(() => {
+    console.log('🔄 [MULTIPLAYER CHESS CLIENT] useEffect triggered - checking loading state:', {
+      player2Id: lobby.player2Id,
+      status: lobby.status,
+      hasNoPlayer2: !lobby.player2Id,
+      statusNotPlaying: lobby.status !== 'playing',
+      shouldShowLoading: !lobby.player2Id && lobby.status !== 'playing'
+    });
+    
     // Show loading if we don't have both players AND lobby is not in playing status
     if (!lobby.player2Id && lobby.status !== 'playing') {
+      console.log('⏳ [MULTIPLAYER CHESS CLIENT] Setting loading to TRUE');
       setIsLoadingGame(true);
       return;
     }
     
     // Both players are present OR lobby is in playing status - initialize game
+    console.log('🎮 [MULTIPLAYER CHESS CLIENT] Setting loading to FALSE - game should start');
     setIsLoadingGame(false);
     
     // Randomly assign colors - host gets random color, guest gets opposite

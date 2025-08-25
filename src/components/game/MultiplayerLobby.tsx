@@ -77,8 +77,8 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
         isHost: isHost
       });
       // Ensure lobby status is set to 'playing' before calling onStartGame
-      const updatedLobby = { ...lobby, status: 'playing' as const };
-      onStartGame?.(updatedLobby, isHost);
+      // Pass the complete lobby object from the callback which has the latest data
+      onStartGame?.(lobby, isHost);
       console.log('🎮 [MULTIPLAYER LOBBY] onStartGame callback completed');
       setGameStartTimeout(null);
       gameStartingRef.current = false; // Reset the ref when done
