@@ -170,15 +170,27 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   if (storedLog.gameType === 'snake') {
     tokensToMint = Math.floor(storedLog.score / 10);
     console.log(`Snake game - Calculated tokensToMint: ${tokensToMint}`);
-  } else if (storedLog.gameType === 'uno' && storedLog.playerWon) {
+  } else if (storedLog.gameType === 'snake-bonus') {
+    tokensToMint = Math.floor(storedLog.score / 10) * 2; // 2x bonus
+    console.log(`Snake bonus game - Calculated tokensToMint: ${tokensToMint}`);
+  } else if (storedLog.gameType === 'uno' && storedLog.won) {
     tokensToMint = 50;
     console.log(`Uno game (won) - Calculated tokensToMint: ${tokensToMint}`);
-  } else if (storedLog.playerWon) {
+  } else if (storedLog.gameType === 'uno-bonus' && storedLog.won) {
+    tokensToMint = 100; // 2x bonus
+    console.log(`Uno bonus game (won) - Calculated tokensToMint: ${tokensToMint}`);
+  } else if (storedLog.gameType === 'chess' && storedLog.won) {
+    tokensToMint = 100;
+    console.log(`Chess game (won) - Calculated tokensToMint: ${tokensToMint}`);
+  } else if (storedLog.gameType === 'chess-bonus' && storedLog.won) {
+    tokensToMint = 200; // 2x bonus
+    console.log(`Chess bonus game (won) - Calculated tokensToMint: ${tokensToMint}`);
+  } else if (storedLog.won) {
     tokensToMint = 1;
     console.log(`Other game (won) - Calculated tokensToMint: ${tokensToMint}`);
   } else {
     tokensToMint = 0;
-    console.log(`Other game (lost) - Calculated tokensToMint: ${tokensToMint}`);
+    console.log(`Game lost or no reward - Calculated tokensToMint: ${tokensToMint}`);
   }
 
   let mintTxHash = null;

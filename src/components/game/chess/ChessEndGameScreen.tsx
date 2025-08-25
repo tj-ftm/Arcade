@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { useWeb3 } from '../../web3/Web3Provider';
 
 interface ChessEndGameScreenProps {
-  score: number;
+  hasWon: boolean;
   onNewGame: () => void;
   onBackToMenu: () => void;
   isMinting: boolean;
@@ -12,7 +12,7 @@ interface ChessEndGameScreenProps {
 }
 
 export const ChessEndGameScreen: React.FC<ChessEndGameScreenProps> = ({
-  score,
+  hasWon,
   onNewGame,
   onBackToMenu,
   isMinting,
@@ -24,29 +24,42 @@ export const ChessEndGameScreen: React.FC<ChessEndGameScreenProps> = ({
   return (
     <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8">
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg text-center max-w-md w-full">
+        {isMinting && hasWon && tokensEarned > 0 ? (
+          <Loader2 className="w-24 h-24 text-white mx-auto mb-4 animate-spin" />
+        ) : null}
         <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-white">
-          Game Over
+          {hasWon ? 'You Won!' : 'You Lost!'}
         </h2>
-        <p className="text-lg sm:text-xl text-white mb-6">
-          Score: {score}
-        </p>
+        
+        {hasWon && (
+          <p className="text-lg text-white mb-6">
+            {isMinting && tokensEarned > 0 ? 'Wait for the Tokens to be minted' : 
+             mintTxHash ? 'Tokens have been minted!' : 
+             'Wait for the Tokens to be minted'}
+          </p>
+        )}
 
-        {isMinting && tokensEarned > 0 && (
-          <div className="mb-6 flex flex-col items-center">
-            <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+        {isMinting && hasWon && tokensEarned > 0 && (
+          <div className="mb-6">
             <p className="text-base sm:text-lg text-white">Minting {tokensEarned} ARC tokens!</p>
             <p className="text-sm text-gray-300">Please wait for the transaction to complete.</p>
           </div>
         )}
 
-        {!isMinting && mintTxHash && (
+        {!isMinting && mintTxHash && hasWon && (
           <div className="mb-6">
             <p className="text-base sm:text-lg text-white">{tokensEarned} ARC Minted!</p>
             <p className="text-sm text-gray-300 break-all">Tx Hash: <a href={`https://sonicscan.org/tx/${mintTxHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">{mintTxHash}</a></p>
           </div>
         )}
 
-        {!isValidWallet && (
+        {hasWon && !isMinting && !mintTxHash && isValidWallet && (
+          <div className="mb-6">
+            <p className="text-base sm:text-lg font-bold text-white">Play to earn ARC tokens!</p>
+          </div>
+        )}
+
+        {!hasWon && !isValidWallet && (
           <div className="mb-6">
             <p className="text-base sm:text-lg font-bold text-white">Connect wallet and play to earn ARC tokens</p>
           </div>

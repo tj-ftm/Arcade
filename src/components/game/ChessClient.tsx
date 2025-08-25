@@ -10,7 +10,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
-import { MintSuccessModal } from './MintSuccessModal';
 import { ChessStartScreen } from './chess/ChessStartScreen';
 import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
 
@@ -79,6 +78,8 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
     const [isBonusMode, setIsBonusMode] = useState(false);
     const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
     const [paymentTxHash, setPaymentTxHash] = useState<string>('');
+    const [endReason, setEndReason] = useState<string>('');
+    const [hasWon, setHasWon] = useState<boolean>(false);
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -124,12 +125,21 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
       setIsBonusMode(bonusMode);
       setPaymentTxHash('');
       setIsVerifyingPayment(false);
+      setHasWon(false);
+      setEndReason('');
     }, []);
 
     const handleGameEnd = async (playerWon: boolean, endReason: string) => {
+        if (showEndGameScreen || isLoggingGame) {
+            return; // Prevent duplicate calls
+        }
+        
+        // Set win status immediately
+        setHasWon(playerWon);
+        setEndReason(endReason);
         setShowEndGameScreen(true);
         // Only log game if wallet is connected
-        if (!isValidWalletAddress(account || '') || isLoggingGame) {
+        if (!isValidWalletAddress(account || '')) {
             setIsMinting(false);
             return;
         }
@@ -281,16 +291,92 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
         handleBonusPayment();
     };
 
-    const handleTestWin = () => {
-        if (winner || showStartScreen) {
+    const handleTestWin = async () => {
+        if (winner || showStartScreen || showEndGameScreen || isLoggingGame) {
+            if (!winner && !showStartScreen) {
+                return; // Prevent duplicate calls
+            }
             alert('Please start a game first!');
             return;
         }
         
-        // Simulate player win by checkmate
-        setWinner('white');
+        // Simulate player win and trigger the actual win handling logic
+        setHasWon(true);
         setEndReason('checkmate');
         setShowEndGameScreen(true);
+        
+        // Only log game if wallet is connected
+        console.log('Test Win - Account:', account, 'isValidWallet:', isValidWalletAddress(account || ''), 'isLoggingGame:', isLoggingGame);
+        if (!isValidWalletAddress(account || '') || isLoggingGame) {
+            console.log('Test Win - Skipping token minting - wallet not connected or already logging');
+            setIsMinting(false);
+            // Still set winner for display purposes
+            setWinner('white');
+            setEndReason('checkmate');
+            return;
+        }
+        
+        console.log('Test Win - Starting token minting process...');
+        setIsLoggingGame(true);
+        setIsMinting(true);
+        
+        try {
+            const gameDuration = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
+            const playerWon = true;
+            // Calculate score based on game outcome and moves
+            let score = moveCount * 10; // Base score from moves
+            if (playerWon) {
+                score += 100; // Bonus for winning
+                score += 50; // Extra bonus for checkmate
+            }
+            
+            const gameResult = createGameResult(
+                account!,
+                isBonusMode ? 'chess-bonus' : 'chess',
+                score,
+                playerWon,
+                gameDuration
+            );
+            
+            setScore(score);
+            
+            const logResponse = await logGameCompletion(gameResult);
+
+            // Update tokensToMint based on actual reward from backend or calculate bonus
+            let tokensToMint = 0;
+            console.log('Test Win - logResponse:', logResponse, 'isBonusMode:', isBonusMode);
+            if (logResponse?.reward) {
+                tokensToMint = parseFloat(logResponse.reward);
+                console.log('Test Win - Using backend reward:', tokensToMint);
+            } else if (isBonusMode && playerWon) {
+                // Fallback for bonus mode: 200 ARC tokens (2x normal 100)
+                tokensToMint = getBonusReward('chess', 100);
+                console.log('Test Win - Using bonus mode reward:', tokensToMint);
+            } else if (playerWon) {
+                // Regular mode: 100 ARC tokens for winning
+                tokensToMint = 100;
+                console.log('Test Win - Using regular mode reward:', tokensToMint);
+            }
+            setTokensEarned(tokensToMint);
+            console.log('Test Win - Final tokensEarned set to:', tokensToMint);
+                
+            // Show mint success modal if tokens were earned
+            if (tokensToMint > 0 && logResponse?.mintTransaction) {
+                console.log('Test Win - Setting mint transaction hash:', logResponse.mintTransaction);
+                setMintTxHash(logResponse.mintTransaction);
+            } else {
+                console.log('Test Win - No mint transaction - tokensToMint:', tokensToMint, 'mintTransaction:', logResponse?.mintTransaction);
+            }
+        } catch (error) {
+            console.error('Test Win - Failed to log chess game completion:', error);
+        } finally {
+            setIsLoggingGame(false);
+            setIsMinting(false);
+        }
+        
+        // Set winner for display purposes
+        setWinner('white');
+        setEndReason('checkmate');
     };
 
     const handleSquareClick = (square: Square) => {
@@ -409,23 +495,16 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
 
             {showEndGameScreen && (
                 <ChessEndGameScreen
-                    score={score}
+                    hasWon={hasWon}
                     onNewGame={handleNewGame}
-                    onShowStartScreen={handleShowStartScreen}
-                    isBonusMode={isBonusMode}
+                    onBackToMenu={handleShowStartScreen}
+                    isMinting={isMinting}
                     tokensEarned={tokensEarned}
                     mintTxHash={mintTxHash}
                 />
             )}
 
-            {mintTxHash && !isMinting && (
-                <MintSuccessModal
-                    isOpen={!!mintTxHash}
-                    onClose={() => setMintTxHash('')}
-                    txHash={mintTxHash}
-                    tokensEarned={tokensEarned}
-                />
-            )}
+
         </div>
     );
 }

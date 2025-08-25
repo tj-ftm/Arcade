@@ -24,31 +24,34 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
   const { isValidWallet } = useWeb3();
 
   return (
-    <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8">
+    <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8 z-50">
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg text-center max-w-md w-full">
+        {isMinting && hasWon && tokensEarned > 0 ? (
+          <Loader2 className="w-24 h-24 text-white mx-auto mb-4 animate-spin" />
+        ) : null}
         <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-white">
           {hasWon ? 'You Won!' : 'You Lost!'}
         </h2>
         
+        {hasWon && (
+          <p className="text-lg text-white mb-6">
+            {isMinting && tokensEarned > 0 ? 'Wait for the Tokens to be minted' : 
+             mintTxHash ? 'Tokens have been minted!' : 
+             'Wait for the Tokens to be minted'}
+          </p>
+        )}
 
-        {isMinting && tokensEarned > 0 && (
-          <div className="mb-6 flex flex-col items-center">
-            <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+        {isMinting && hasWon && tokensEarned > 0 && (
+          <div className="mb-6">
             <p className="text-base sm:text-lg text-white">Minting {tokensEarned} ARC tokens!</p>
             <p className="text-sm text-gray-300">Please wait for the transaction to complete.</p>
           </div>
         )}
 
-        {!isMinting && mintTxHash && (
+        {!isMinting && mintTxHash && hasWon && (
           <div className="mb-6">
             <p className="text-base sm:text-lg text-white">{tokensEarned} ARC Minted!</p>
             <p className="text-sm text-gray-300 break-all">Tx Hash: <a href={`https://sonicscan.org/tx/${mintTxHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">{mintTxHash}</a></p>
-          </div>
-        )}
-
-        {!hasWon && !isValidWallet && (
-          <div className="mb-6">
-            <p className="text-base sm:text-lg font-bold text-white">Connect wallet and play to earn ARC tokens</p>
           </div>
         )}
 
@@ -58,10 +61,16 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
           </div>
         )}
 
+        {!hasWon && !isValidWallet && (
+          <div className="mb-6">
+            <p className="text-base sm:text-lg font-bold text-white">Connect wallet and play to earn ARC tokens</p>
+          </div>
+        )}
+
         <div className="flex flex-col space-y-4">
           <Button
             onClick={onNewGame}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-lg py-2 sm:py-3 rounded-lg"
+            className="w-full bg-red-600 hover:bg-red-700 text-white text-base sm:text-lg py-2 sm:py-3 rounded-lg"
           >
             Play Again
           </Button>

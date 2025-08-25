@@ -14,7 +14,6 @@ import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationRes
 
 import { UnoEndGameScreen } from './UnoEndGameScreen';
 import { UnoStartScreen } from './UnoStartScreen';
-import { MintSuccessModal } from './MintSuccessModal';
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
 const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two'];
@@ -171,6 +170,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
     const [isBonusMode, setIsBonusMode] = useState(false);
     const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
     const [paymentTxHash, setPaymentTxHash] = useState<string>('');
+    const [hasWon, setHasWon] = useState<boolean>(false);
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -192,14 +192,20 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
     
     useEffect(() => {
       const handleGameWin = async () => {
-        if (gameState?.winner === 'player') {
+        if (gameState?.winner === 'player' && !showEndGameScreen) {
+          // Set win status immediately
+          setHasWon(true);
           setShowEndGameScreen(true);
           
           // Only log game if wallet is connected
+          console.log('Player won! Account:', account, 'isValidWallet:', isValidWalletAddress(account || ''), 'isLoggingGame:', isLoggingGame);
           if (!isValidWalletAddress(account || '') || isLoggingGame) {
+            console.log('Skipping token minting - wallet not connected or already logging');
             setIsMinting(false);
             return;
           }
+          
+          console.log('Starting token minting process...');
 
           setIsLoggingGame(true);
           setIsMinting(true);
@@ -221,20 +227,28 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
 
             // Update tokensToMint based on actual reward from backend or calculate bonus
             let tokensToMint = 0;
+            console.log('logResponse:', logResponse, 'isBonusMode:', isBonusMode);
             if (logResponse?.reward) {
               tokensToMint = parseFloat(logResponse.reward);
+              console.log('Using backend reward:', tokensToMint);
             } else if (isBonusMode) {
               // Fallback for bonus mode: 100 ARC tokens (2x normal 50)
               tokensToMint = getBonusReward('uno', 50);
+              console.log('Using bonus mode reward:', tokensToMint);
             } else {
               // Regular mode: 50 ARC tokens for winning
               tokensToMint = 50;
+              console.log('Using regular mode reward:', tokensToMint);
             }
             setTokensEarned(tokensToMint);
+            console.log('Final tokensEarned set to:', tokensToMint);
                 
             // Show mint success modal if tokens were earned
             if (tokensToMint > 0 && logResponse?.mintTransaction) {
+              console.log('Setting mint transaction hash:', logResponse.mintTransaction);
               setMintTxHash(logResponse.mintTransaction);
+            } else {
+              console.log('No mint transaction - tokensToMint:', tokensToMint, 'mintTransaction:', logResponse?.mintTransaction);
             }
           } catch (error) {
             console.error('Failed to log game completion:', error);
@@ -242,15 +256,16 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
             setIsLoggingGame(false);
             setIsMinting(false);
           }
-        } else if (gameState?.winner) {
+        } else if (gameState?.winner && !showEndGameScreen) {
           // Handle bot win or other end conditions
+          setHasWon(false);
           setShowEndGameScreen(true);
         }
       };
       if (gameState?.winner) {
         handleGameWin();
       }
-    }, [gameState?.winner, account, gameState?.players, gameStartTime, isLoggingGame]);
+    }, [gameState?.winner, account, gameState?.players, gameStartTime, isLoggingGame, showEndGameScreen]);
 
     const addGameLog = (message: string) => {
         setGameState(prev => {
@@ -304,6 +319,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         setMintTxHash('');
         setPaymentTxHash('');
         setIsVerifyingPayment(false);
+        setHasWon(false);
     }, [username]);
 
     const handleBonusPayment = async () => {
@@ -339,17 +355,79 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         handleBonusPayment();
     };
 
-    const handleTestWin = () => {
+    const handleTestWin = async () => {
         if (!gameState) {
             alert('Please start a game first!');
             return;
         }
         
-        // Simulate player win by setting winner to 'player'
-        setGameState(prev => prev ? {
-            ...prev,
-            winner: 'player'
-        } : null);
+        // Simulate player win and trigger the actual win handling logic
+        setHasWon(true);
+        setShowEndGameScreen(true);
+        
+        // Only log game if wallet is connected
+        console.log('Test Win - Account:', account, 'isValidWallet:', isValidWalletAddress(account || ''), 'isLoggingGame:', isLoggingGame);
+        if (!isValidWalletAddress(account || '') || isLoggingGame) {
+            console.log('Test Win - Skipping token minting - wallet not connected or already logging');
+            setIsMinting(false);
+            // Still set winner for display purposes
+            setGameState(prev => prev ? { ...prev, winner: 'player' } : null);
+            return;
+        }
+        
+        console.log('Test Win - Starting token minting process...');
+        setIsLoggingGame(true);
+        setIsMinting(true);
+        
+        try {
+            const gameDuration = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
+            const playerScore = calculateUnoScore(gameState.players[0].hand);
+            const isWin = true; // Player won
+            
+            const gameResult = createGameResult(
+                account!,
+                isBonusMode ? 'uno-bonus' : 'uno',
+                playerScore,
+                isWin,
+                gameDuration
+            );
+            
+            const logResponse = await logGameCompletion(gameResult);
+
+            // Update tokensToMint based on actual reward from backend or calculate bonus
+            let tokensToMint = 0;
+            console.log('Test Win - logResponse:', logResponse, 'isBonusMode:', isBonusMode);
+            if (logResponse?.reward) {
+                tokensToMint = parseFloat(logResponse.reward);
+                console.log('Test Win - Using backend reward:', tokensToMint);
+            } else if (isBonusMode) {
+                // Fallback for bonus mode: 100 ARC tokens (2x normal 50)
+                tokensToMint = getBonusReward('uno', 50);
+                console.log('Test Win - Using bonus mode reward:', tokensToMint);
+            } else {
+                // Regular mode: 50 ARC tokens for winning
+                tokensToMint = 50;
+                console.log('Test Win - Using regular mode reward:', tokensToMint);
+            }
+            setTokensEarned(tokensToMint);
+            console.log('Test Win - Final tokensEarned set to:', tokensToMint);
+                
+            // Show mint success modal if tokens were earned
+            if (tokensToMint > 0 && logResponse?.mintTransaction) {
+                console.log('Test Win - Setting mint transaction hash:', logResponse.mintTransaction);
+                setMintTxHash(logResponse.mintTransaction);
+            } else {
+                console.log('Test Win - No mint transaction - tokensToMint:', tokensToMint, 'mintTransaction:', logResponse?.mintTransaction);
+            }
+        } catch (error) {
+            console.error('Test Win - Failed to log game completion:', error);
+        } finally {
+            setIsLoggingGame(false);
+            setIsMinting(false);
+        }
+        
+        // Set winner for display purposes
+        setGameState(prev => prev ? { ...prev, winner: 'player' } : null);
     };
 
     const handleStartMultiplayer = () => {
@@ -630,7 +708,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
             
             {/* Game Log Button - positioned under connect wallet */}
-            <div className={cn("absolute top-16 right-2 z-20", winner && "hidden")}>
+            <div className={cn("absolute top-24 right-2 z-20", winner && "hidden")}>
                 <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
                     Log
                 </Button>
@@ -770,7 +848,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
             {/* End Game Screen */}
             {showEndGameScreen && gameState && (
                 <UnoEndGameScreen
-                    score={calculateUnoScore(gameState.players[0].hand)}
+                    hasWon={hasWon}
                     onNewGame={handleNewGame}
                     onBackToMenu={onGameEnd || (() => {})}
                     isMinting={isMinting}
@@ -779,14 +857,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                 />
             )}
             
-            {mintTxHash && !isMinting && (
-                <MintSuccessModal
-                    isOpen={!!mintTxHash}
-                    onClose={() => setMintTxHash('')}
-                    txHash={mintTxHash}
-                    tokensEarned={tokensEarned}
-                />
-            )}
+
             
             {/* Color Picker Modal */}
             {showColorPicker && (
