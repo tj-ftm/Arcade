@@ -257,11 +257,25 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             }
         }
 
+        // Ensure proper player assignment: lobby creator = player1, joiner = player2
+        const player1 = {
+            id: lobby.player1Id,
+            name: lobby.player1Name,
+            hand: player1Hand,
+            handSize: player1Hand.length
+        };
+        
+        const player2 = {
+            id: lobby.player2Id || 'waiting-for-player2',
+            name: lobby.player2Name || 'Waiting for Player 2...',
+            hand: player2Hand,
+            handSize: player2Hand.length
+        };
+        
+        console.log('🎮 [UNO MULTIPLAYER] Player assignment - Player1 (creator):', player1.id, player1.name, '| Player2 (joiner):', player2.id, player2.name);
+
         const initialGameState: UnoGameState = {
-            players: [
-                { id: 'player', name: lobby.player1Name, hand: player1Hand },
-                { id: 'bot', name: lobby.player2Name || 'Player 2', hand: player2Hand }
-            ],
+            players: [player1, player2],
             playerHand: player1Hand,
             deck: deck,
             discardPile: [topCard],
