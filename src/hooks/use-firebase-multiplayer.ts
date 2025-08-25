@@ -11,8 +11,6 @@ interface Lobby {
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: any; // Firebase timestamp
-  player1Color?: 'white' | 'black';
-  player2Color?: 'white' | 'black';
 }
 
 interface UseFirebaseMultiplayerReturn {
@@ -95,15 +93,12 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const lobbyId = generateLobbyId(gameType);
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
-      const colors = Math.random() < 0.5 ? { player1: 'white' as const, player2: 'black' as const } : { player1: 'black' as const, player2: 'white' as const };
       const newLobby: Omit<Lobby, 'id'> = {
         gameType,
         player1Id,
         player1Name,
         status: 'waiting',
         createdAt: serverTimestamp(),
-        player1Color: colors.player1,
-        player2Color: colors.player2,
       };
 
       await set(lobbyRef, newLobby);
@@ -117,7 +112,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           setCurrentLobby(updatedLobby);
           
           // Check if someone joined and game is ready to start
-          if (data.player2Id && data.player1Color && data.player2Color) {
+          if (data.player2Id) {
             console.log('Player joined lobby, triggering game start for host');
             lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
           }
@@ -148,16 +143,11 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       }
 
       // Update lobby with player 2 - keep status as 'waiting' until game actually starts
-      const assignedPlayer1Color: 'white' | 'black' = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
-      const assignedPlayer2Color: 'white' | 'black' = lobbyData.player2Color || (assignedPlayer1Color === 'white' ? 'black' : 'white');
-
       const updatedLobbyData = {
         ...lobbyData,
         player2Id,
         player2Name,
         status: 'waiting', // Keep as waiting until both players are ready
-        player1Color: assignedPlayer1Color,
-        player2Color: assignedPlayer2Color
       };
 
       await set(lobbyRef, updatedLobbyData);

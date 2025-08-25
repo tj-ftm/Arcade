@@ -28,8 +28,6 @@ interface Lobby {
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: any; // Firebase timestamp
-  player1Color?: 'white' | 'black';
-  player2Color?: 'white' | 'black';
 }
 
 interface MultiplayerUnoClientProps {

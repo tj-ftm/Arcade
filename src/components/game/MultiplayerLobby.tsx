@@ -20,8 +20,6 @@ interface Lobby {
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: any; // Firebase timestamp
-  player1Color?: 'white' | 'black';
-  player2Color?: 'white' | 'black';
 }
 
 interface MultiplayerLobbyProps {
@@ -74,7 +72,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       const isJoiningPlayer = currentUserId === lobby.player2Id;
       
       // Trigger for both host and joining player when lobby has both players
-      if ((isHost || isJoiningPlayer) && lobby.player2Id && lobby.player1Color && lobby.player2Color && !gameStarting) {
+      if ((isHost || isJoiningPlayer) && lobby.player2Id && !gameStarting) {
         console.log('Lobby ready, starting game. IsHost:', isHost, 'IsJoiningPlayer:', isJoiningPlayer);
         handleGameStart(lobby, isHost);
       }

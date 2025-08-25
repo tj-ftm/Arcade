@@ -28,8 +28,6 @@ interface Lobby {
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: any; // Firebase timestamp
-  player1Color?: 'white' | 'black';
-  player2Color?: 'white' | 'black';
 }
 
 interface MultiplayerChessClientProps {
@@ -101,25 +99,21 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   }, [game]);
 
   useEffect(() => {
-    // Show loading if we don't have both players or colors assigned
-    if (!lobby.player2Id || !lobby.player1Color || !lobby.player2Color) {
+    // Show loading if we don't have both players
+    if (!lobby.player2Id) {
       setIsLoadingGame(true);
       return;
     }
     
-    // Both players are present and colors are assigned - initialize game
+    // Both players are present - initialize game
     setIsLoadingGame(false);
     
-    // Determine player color and starting turn
-    const myColor = isHost ? lobby.player1Color : lobby.player2Color;
+    // Randomly assign colors - host gets random color, guest gets opposite
+    const hostIsWhite = Math.random() < 0.5;
+    const myColor = isHost ? (hostIsWhite ? 'w' : 'b') : (hostIsWhite ? 'b' : 'w');
 
-    if (myColor === 'white') {
-      setPlayerColor('w');
-      setIsMyTurn(true); // White always starts
-    } else if (myColor === 'black') {
-      setPlayerColor('b');
-      setIsMyTurn(false); // Black waits for white's first move
-    }
+    setPlayerColor(myColor);
+    setIsMyTurn(myColor === 'w'); // White always starts
 
     // Set opponent name
     setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
