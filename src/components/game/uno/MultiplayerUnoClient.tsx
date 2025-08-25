@@ -84,8 +84,8 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
   };
 
   const sizeClasses = {
-      normal: 'w-[12vw] max-w-[70px] md:max-w-[90px] min-w-[40px] md:min-w-[60px] h-auto aspect-[5/7]',
-      large: 'w-[15vw] max-w-[90px] md:max-w-[120px] min-w-[50px] md:min-w-[80px] h-auto aspect-[5/7]',
+      normal: 'w-[18vw] max-w-[100px] md:max-w-[90px] min-w-[60px] md:min-w-[60px] h-auto aspect-[5/7]', // Increased mobile size
+      large: 'w-[22vw] max-w-[130px] md:max-w-[120px] min-w-[80px] md:min-w-[80px] h-auto aspect-[5/7]', // Increased mobile size
   }
 
   const cardStyle = {
@@ -530,8 +530,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         const isMobile = windowWidth < 768;
         
         // Use much larger spacing on mobile for touch-friendly interaction
-        const spacingMultiplier = isMobile ? 25 : 15; // Mobile gets 67% more spacing
-        const maxSpreadLimit = isMobile ? 250 : 150; // Mobile gets higher max spread
+        const spacingMultiplier = isMobile ? 40 : 15; // Mobile gets 167% more spacing
+        const maxSpreadLimit = isMobile ? 400 : 150; // Mobile gets much higher max spread
         
         const maxSpread = Math.min(handSize * spacingMultiplier, maxSpreadLimit);
         const finalSpread = maxSpread / handSize;
@@ -583,7 +583,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                     <div className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
                         {opponent.hand.map((_, i) => (
                             <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, opponent.hand.length), top: 0 }}>
-                                <CardBack />
+                                <CardBack size={windowWidth < 768 ? 'large' : 'normal'} />
                             </div>
                         ))}
                     </div>
@@ -634,6 +634,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                                     onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
                                     isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState.activeColor)}
                                     isLastCard={player.hand.length === 1}
+                                    size={windowWidth < 768 ? 'large' : 'normal'}
                                 />
                             </div>
                         )
