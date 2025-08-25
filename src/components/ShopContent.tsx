@@ -5,9 +5,9 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
   return (
       <div className="w-full h-full max-w-4xl animate-fade-in my-auto">
         <div className="w-full flex-1 flex flex-col items-center justify-center pt-8 sm:pt-8 px-2">
-        <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-2 w-full max-w-xs sm:max-w-none mx-auto">
+        <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-4 w-full max-w-xs sm:max-w-none mx-auto">
           <div className="sm:flex-1 animate-fade-in text-center">
-            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[360px] flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[300px] flex flex-col justify-between border-2 border-yellow-500/30 hover:border-yellow-500/60 transition-all duration-300">
               <div className="pt-2 sm:pt-3">
                 <div className="w-12 h-12 sm:w-24 sm:h-24 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
                   <span className="text-lg sm:text-2xl font-bold text-black">UNO</span>
