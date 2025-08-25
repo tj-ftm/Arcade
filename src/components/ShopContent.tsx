@@ -52,19 +52,32 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       
       const data = await response.json();
       console.log('API Response:', data);
+      console.log('API Response type:', typeof data);
+      console.log('API Response keys:', Object.keys(data));
+      if (Array.isArray(data) && data.length > 0) {
+        console.log('First NFT sample:', data[0]);
+        console.log('First NFT keys:', Object.keys(data[0]));
+      }
       
       // Handle different response formats
-      let nftArray = Array.isArray(data) ? data : (data.nfts || data.data || []);
+      let nftArray = Array.isArray(data) ? data : (data.nfts || data.data || data.result || []);
+      console.log('NFT Array length:', nftArray.length);
+      
+      // Use a data URI for placeholder instead of missing file
+      const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
       
       // Transform the API response to our NFT interface
-      const nfts: NFT[] = nftArray.map((nft: any) => ({
-        tokenId: nft.tokenId || nft.id || nft.token_id || 'unknown',
-        contractAddress: nft.contractAddress || nft.contract || nft.contract_address || 'unknown',
-        name: nft.name || nft.title || `NFT #${nft.tokenId || nft.id || 'unknown'}`,
-        description: nft.description || nft.desc || "No description available",
-        image: nft.image || nft.imageUrl || nft.image_url || nft.thumbnail || "/placeholder-nft.png",
-        metadata: nft
-      }));
+      const nfts: NFT[] = nftArray.map((nft: any, index: number) => {
+        console.log(`Processing NFT ${index}:`, nft);
+        return {
+          tokenId: nft.tokenId || nft.id || nft.token_id || nft.tokenID || 'unknown',
+          contractAddress: nft.contractAddress || nft.contract || nft.contract_address || nft.contractAddr || 'unknown',
+          name: nft.name || nft.title || nft.metadata?.name || `NFT #${nft.tokenId || nft.id || 'unknown'}`,
+          description: nft.description || nft.desc || nft.metadata?.description || "No description available",
+          image: nft.image || nft.imageUrl || nft.image_url || nft.thumbnail || nft.metadata?.image || placeholderImage,
+          metadata: nft
+        };
+      });
       
       setOwnedNFTs(nfts);
     } catch (err) {
@@ -223,7 +236,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
-                              target.src = '/placeholder-nft.png';
+                              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
                             }}
                           />
                         ) : (
