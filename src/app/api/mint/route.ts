@@ -32,7 +32,7 @@ const TOKEN_CONTRACT_ABI = [
 
 // This is a placeholder for your blockchain RPC URL.
 // Replace with your actual Sonic Network RPC URL.
-const RPC_URL = process.env.RPC_URL;
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
 
 export async function POST(req: NextRequest) {
   if (!MINTER_PRIVATE_KEY || !TOKEN_CONTRACT_ADDRESS || !RPC_URL) {
