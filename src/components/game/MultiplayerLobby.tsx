@@ -29,6 +29,7 @@ interface MultiplayerLobbyProps {
 }
 
 export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: MultiplayerLobbyProps) {
+  console.log('🎮 [MULTIPLAYER LOBBY] Component initialized with onStartGame:', typeof onStartGame, !!onStartGame);
   const [activeTab, setActiveTab] = useState('browse');
   const [gameStarting, setGameStarting] = useState(false);
   const [gameStartTimeout, setGameStartTimeout] = useState<NodeJS.Timeout | null>(null);

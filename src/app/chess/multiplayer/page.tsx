@@ -16,6 +16,7 @@ interface Lobby {
 }
 
 export default function ChessMultiplayerPage() {
+  console.log('🚀 [CHESS MULTIPLAYER PAGE] Component function called - START OF COMPONENT');
   const [currentView, setCurrentView] = useState<'lobby' | 'game'>('lobby');
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
   const [isHost, setIsHost] = useState(false);
@@ -32,6 +33,7 @@ export default function ChessMultiplayerPage() {
     console.log('🔄 [CHESS MULTIPLAYER PAGE] State changed:', { currentView, currentLobby: !!currentLobby, isHost });
   }, [currentView, currentLobby, isHost]);
 
+  console.log('🔧 [CHESS MULTIPLAYER PAGE] Creating handleStartGame function');
   const handleStartGame = useCallback((lobby: Lobby, isHostPlayer: boolean) => {
     console.log('🚨🚨🚨 [CHESS MULTIPLAYER PAGE] handleStartGame CALLED! 🚨🚨🚨');
     try {
@@ -87,6 +89,7 @@ export default function ChessMultiplayerPage() {
   }
   
   console.log('🏠 [CHESS MULTIPLAYER PAGE] Rendering lobby view');
+  console.log('🔗 [CHESS MULTIPLAYER PAGE] Passing handleStartGame to MultiplayerLobby:', typeof handleStartGame);
 
   return (
     <div key={`lobby-${renderKey}`} className="w-full h-screen bg-chess-background flex items-center justify-center overflow-hidden">

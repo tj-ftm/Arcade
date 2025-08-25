@@ -12,6 +12,7 @@ import { MobileSidebar } from '@/components/layout/MobileSidebar';
 import { UnoClient } from '@/components/game/UnoClient';
 import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
+import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
 import ShopContent from '@/components/ShopContent';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 
@@ -29,7 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer' | 'platformer' | 'tokenomics';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics';
 
 // --- Replicated Page Components ---
 
@@ -206,11 +207,24 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, on
 
 // --- Main App Component ---
 
+interface Lobby {
+  id: string;
+  gameType: 'chess' | 'uno';
+  player1Id: string;
+  player1Name: string;
+  player2Id?: string;
+  player2Name?: string;
+  status: 'waiting' | 'playing' | 'finished';
+  createdAt: any; // Firebase timestamp
+}
+
 export default function HomePage() {
   const { toast } = useToast();
   const { account } = useWeb3();
   const [activeView, setActiveView] = useState<View>('menu');
   const [gameKey, setGameKey] = useState(0); // Used to reset game state
+  const [chessLobby, setChessLobby] = useState<Lobby | null>(null);
+  const [isChessHost, setIsChessHost] = useState(false);
   const isMobile = useIsMobile();
 
   const handleMintArc = async () => {
@@ -281,10 +295,25 @@ export default function HomePage() {
     setActiveView('menu');
   }, []);
 
+  const handleChessMultiplayerStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] Chess multiplayer game starting:', { lobby, isHost });
+    setChessLobby(lobby);
+    setIsChessHost(isHost);
+    setActiveView('chess-multiplayer-game');
+  }, []);
+
+  const handleChessMultiplayerEnd = useCallback(() => {
+    console.log('🏁 [MAIN PAGE] Chess multiplayer game ended');
+    setChessLobby(null);
+    setIsChessHost(false);
+    setActiveView('menu');
+  }, []);
+
   const getSidebarTheme = () => {
     switch (activeView) {
       case 'chess':
       case 'chess-multiplayer':
+      case 'chess-multiplayer-game':
         return 'chess';
       case 'snake':
         return 'snake';
@@ -322,11 +351,21 @@ export default function HomePage() {
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
             <MultiplayerLobby
               gameType="chess"
-              onStartGame={() => {/* Handle game start */}}
+              onStartGame={handleChessMultiplayerStart}
               onBackToMenu={() => handleNavigate('menu')}
             />
           </div>
         );
+      case 'chess-multiplayer-game':
+        return chessLobby ? (
+          <div className="w-full h-full">
+            <MultiplayerChessClient
+              lobby={chessLobby}
+              isHost={isChessHost}
+              onGameEnd={handleChessMultiplayerEnd}
+            />
+          </div>
+        ) : null;
       case 'leaderboard':
         return <LeaderboardContent onBack={() => handleNavigate('menu')} />;
       case 'settings':
@@ -413,6 +452,7 @@ export default function HomePage() {
               return 'bg-gray-900';
           case 'chess':
           case 'chess-multiplayer':
+          case 'chess-multiplayer-game':
               return 'bg-purple-900/50';
           case 'tokenomics':
               return 'bg-orange-500';
