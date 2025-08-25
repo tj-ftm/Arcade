@@ -13,6 +13,7 @@ import { UnoClient } from '@/components/game/UnoClient';
 import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
 import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
+import { MultiplayerUnoClient } from '@/components/game/uno/MultiplayerUnoClient';
 import ShopContent from '@/components/ShopContent';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 
@@ -30,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics';
 
 // --- Replicated Page Components ---
 
@@ -225,6 +226,8 @@ export default function HomePage() {
   const [gameKey, setGameKey] = useState(0); // Used to reset game state
   const [chessLobby, setChessLobby] = useState<Lobby | null>(null);
   const [isChessHost, setIsChessHost] = useState(false);
+  const [unoLobby, setUnoLobby] = useState<Lobby | null>(null);
+  const [isUnoHost, setIsUnoHost] = useState(false);
   const isMobile = useIsMobile();
 
   const handleMintArc = async () => {
@@ -309,12 +312,30 @@ export default function HomePage() {
     setActiveView('menu');
   }, []);
 
+  const handleUnoMultiplayerStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] UNO multiplayer game starting:', { lobby, isHost });
+    setUnoLobby(lobby);
+    setIsUnoHost(isHost);
+    setActiveView('uno-multiplayer-game');
+  }, []);
+
+  const handleUnoMultiplayerEnd = useCallback(() => {
+    console.log('🏁 [MAIN PAGE] UNO multiplayer game ended');
+    setUnoLobby(null);
+    setIsUnoHost(false);
+    setActiveView('menu');
+  }, []);
+
   const getSidebarTheme = () => {
     switch (activeView) {
       case 'chess':
       case 'chess-multiplayer':
       case 'chess-multiplayer-game':
         return 'chess';
+      case 'uno':
+      case 'uno-multiplayer':
+      case 'uno-multiplayer-game':
+        return 'uno';
       case 'snake':
         return 'snake';
       case 'shop':
@@ -341,11 +362,21 @@ export default function HomePage() {
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
             <MultiplayerLobby
               gameType="uno"
-              onStartGame={() => {/* Handle game start */}}
+              onStartGame={handleUnoMultiplayerStart}
               onBackToMenu={() => handleNavigate('menu')}
             />
           </div>
         );
+      case 'uno-multiplayer-game':
+        return unoLobby ? (
+          <div className="w-full h-full">
+            <MultiplayerUnoClient
+              lobby={unoLobby}
+              isHost={isUnoHost}
+              onGameEnd={handleUnoMultiplayerEnd}
+            />
+          </div>
+        ) : null;
       case 'chess-multiplayer':
         return (
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
@@ -447,6 +478,7 @@ export default function HomePage() {
           case 'uno':
           case 'pay-uno':
           case 'uno-multiplayer':
+          case 'uno-multiplayer-game':
               return 'bg-red-900';
           case 'snake':
               return 'bg-gray-900';
