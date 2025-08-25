@@ -170,10 +170,14 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   if (storedLog.gameType === 'snake') {
     tokensToMint = Math.floor(storedLog.score / 10);
     console.log(`Snake game - Calculated tokensToMint: ${tokensToMint}`);
-  } else if (storedLog.won) {
+  } else if (storedLog.gameType === 'uno' && storedLog.playerWon) {
+    tokensToMint = 50;
+    console.log(`Uno game (won) - Calculated tokensToMint: ${tokensToMint}`);
+  } else if (storedLog.playerWon) {
     tokensToMint = 1;
     console.log(`Other game (won) - Calculated tokensToMint: ${tokensToMint}`);
   } else {
+    tokensToMint = 0;
     console.log(`Other game (lost) - Calculated tokensToMint: ${tokensToMint}`);
   }
 
