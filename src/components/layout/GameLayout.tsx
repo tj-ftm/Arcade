@@ -44,11 +44,7 @@ export const GameLayout = () => {
       });
       return;
     }
-    if (targetView === 'pay-uno') {
-  
-    } else {
-      setView(targetView);
-    }
+    setView(targetView);
   }, [web3IsConnected, account, toast]);
 
   const renderContent = useCallback(() => {
