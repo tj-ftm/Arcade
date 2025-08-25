@@ -277,8 +277,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         };
         
         const player2 = {
-            id: lobby.player2Id || 'waiting-for-player2',
-            name: lobby.player2Name || 'Waiting for Player 2...',
+            id: lobby.player2Id || 'player2',
+            name: lobby.player2Name || 'Player 2',
             hand: player2Hand,
             handSize: player2Hand.length
         };
@@ -524,23 +524,39 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
     const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
 
-    // Hand styling function - mobile-responsive spacing for better card selection
+    // Hand styling function - sophisticated spacing like singleplayer
     const handStyle = (index: number, handSize: number) => {
-        // Detect mobile screen size
         const isMobile = windowWidth < 768;
         
-        // Use much larger spacing on mobile for touch-friendly interaction
-        const spacingMultiplier = isMobile ? 40 : 15; // Mobile gets 167% more spacing
-        const maxSpreadLimit = isMobile ? 400 : 150; // Mobile gets much higher max spread
-        
-        const maxSpread = Math.min(handSize * spacingMultiplier, maxSpreadLimit);
-        const finalSpread = maxSpread / handSize;
-        const startOffset = -(maxSpread / 2) + (finalSpread / 2);
-        const translateX = startOffset + index * finalSpread;
-        return {
-            transform: `translateX(${translateX}%)`,
-            zIndex: index,
-        };
+        if (isMobile) {
+            // Mobile: Use much larger spacing for touch-friendly interaction
+            const spacingMultiplier = 40;
+            const maxSpreadLimit = 400;
+            const maxSpread = Math.min(handSize * spacingMultiplier, maxSpreadLimit);
+            const finalSpread = maxSpread / handSize;
+            const startOffset = -(maxSpread / 2) + (finalSpread / 2);
+            const translateX = startOffset + index * finalSpread;
+            return {
+                transform: `translateX(${translateX}%)`,
+                zIndex: index,
+            };
+        } else {
+            // Desktop: Use sophisticated spacing algorithm from singleplayer
+            const containerWidth = playerHandRef.current?.offsetWidth || window.innerWidth * 0.9;
+            const cardWidth = 70; // Estimated card width for desktop
+            const availableSpace = containerWidth - (cardWidth * 0.5);
+            const maxCards = Math.max(handSize, 1);
+            const spreadPercentage = Math.min(availableSpace / maxCards / containerWidth * 100, 120);
+            const minSpreadPercentage = 60; // Minimum spacing for desktop
+            const finalSpread = Math.max(spreadPercentage, minSpreadPercentage);
+            const totalSpread = (maxCards - 1) * finalSpread;
+            const startOffset = -totalSpread / 2;
+            const translateX = startOffset + index * finalSpread;
+            return {
+                transform: `translateX(${translateX}%)`,
+                zIndex: index,
+            };
+        }
     };
 
     return (
@@ -589,20 +605,16 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                     </div>
                 </div>
 
-                {/* Center Area with Played and Draw Cards */}
+                {/* Center Area with Draw and Played Cards */}
                 <div className="flex flex-col items-center gap-3 md:gap-6 my-4 md:my-6">
                     {/* Labels Row */}
                     <div className="flex items-center justify-center gap-12 md:gap-20">
-                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Played</h3>
                         <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Draw</h3>
+                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Played</h3>
                     </div>
                     
                     {/* Cards Row */}
                     <div className="flex items-start justify-center gap-12 md:gap-20">
-                        <div className="flex justify-center items-start w-20 md:w-32">
-                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
-                        </div>
-                        
                         <div className="flex justify-center items-start w-20 md:w-32">
                             <div onClick={isMyTurn ? handleDrawCard : undefined} className={cn("transition-transform hover:scale-105 relative", isMyTurn && !playerHasPlayableCard ? "cursor-pointer" : "cursor-not-allowed")} style={{transform: 'translateX(-32px)'}}>
                                {Array.from({ length: 3 }).map((_, i) => (
@@ -611,6 +623,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                        
+                        <div className="flex justify-center items-start w-20 md:w-32">
+                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
                         </div>
                     </div>
                 </div>

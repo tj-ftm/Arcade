@@ -751,20 +751,16 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                     </div>
                 </div>
 
-                {/* Center Area with Played and Draw Cards */}
+                {/* Center Area with Draw and Played Cards */}
                 <div className="flex flex-col items-center gap-3 md:gap-6 my-4 md:my-6">
                     {/* Labels Row */}
                     <div className="flex items-center justify-center gap-12 md:gap-20">
-                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Played</h3>
                         <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Draw</h3>
+                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Played</h3>
                     </div>
                     
                     {/* Cards Row */}
                     <div className="flex items-start justify-center gap-12 md:gap-20">
-                        <div className="flex justify-center items-start w-20 md:w-32">
-                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
-                        </div>
-                        
                         <div className="flex justify-center items-start w-20 md:w-32">
                             <div onClick={activePlayerIndex === 0 ? handleDrawCard : undefined} className={cn("transition-transform hover:scale-105 relative", activePlayerIndex === 0 && !playerHasPlayableCard ? "cursor-pointer" : "cursor-not-allowed")} style={{transform: 'translateX(-32px)'}}>
                                {Array.from({ length: 3 }).map((_, i) => (
@@ -773,6 +769,10 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                        
+                        <div className="flex justify-center items-start w-20 md:w-32">
+                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
                         </div>
                     </div>
                 </div>
