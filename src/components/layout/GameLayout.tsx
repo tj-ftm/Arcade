@@ -44,7 +44,11 @@ export const GameLayout = () => {
       });
       return;
     }
-    setView(targetView);
+    if (targetView === 'pay-uno') {
+  
+    } else {
+      setView(targetView);
+    }
   }, [web3IsConnected, account, toast]);
 
   const renderContent = useCallback(() => {
@@ -149,7 +153,7 @@ export const GameLayout = () => {
             "First player to empty their hand wins the round.",
             "Points are scored by cards left in opponents' hands.",
             "First player to 500 points wins the game."
-          ]
+          ]}
           onClose={() => setShowUnoRules(false)}
           onStartGame={() => {
             setShowUnoRules(false);
