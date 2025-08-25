@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
 
@@ -20,7 +20,8 @@ export default function ChessMultiplayerPage() {
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
   const [isHost, setIsHost] = useState(false);
 
-  const handleStartGame = (lobby: Lobby, isHostPlayer: boolean) => {
+  const handleStartGame = useCallback((lobby: Lobby, isHostPlayer: boolean) => {
+    console.log('🚨🚨🚨 [CHESS MULTIPLAYER PAGE] handleStartGame CALLED! 🚨🚨🚨');
     console.log('🎮 [CHESS MULTIPLAYER PAGE] handleStartGame called with:', {
       lobby: lobby,
       isHostPlayer: isHostPlayer,
@@ -32,7 +33,7 @@ export default function ChessMultiplayerPage() {
     setCurrentView('game');
     
     console.log('🔄 [CHESS MULTIPLAYER PAGE] State updated - should transition to game view');
-  };
+  }, [currentView]);
 
   const handleBackToLobby = () => {
     setCurrentView('lobby');
