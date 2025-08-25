@@ -208,13 +208,13 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   }, [account, currentUserId, isLoggingGame]);
 
   useEffect(() => {
-    // Show loading if we don't have both players
-    if (!lobby.player2Id) {
+    // Show loading if we don't have both players AND lobby is not in playing status
+    if (!lobby.player2Id && lobby.status !== 'playing') {
       setIsLoadingGame(true);
       return;
     }
     
-    // Both players are present - initialize game
+    // Both players are present OR lobby is in playing status - initialize game
     setIsLoadingGame(false);
     setOpponentName(isHost ? (lobby.player2Name || 'Player') : (lobby.player1Name || 'Player'));
     if (isHost && !gameInitialized) {
@@ -418,7 +418,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         <div className="flex flex-col items-center justify-center w-full h-full">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mb-4"></div>
           <h2 className="text-4xl font-bold mb-4 text-white">
-            {!lobby.player2Id ? 'Waiting for opponent...' : 'Starting game...'}
+            {(!lobby.player2Id && lobby.status !== 'playing') ? 'Waiting for opponent...' : 'Starting game...'}
           </h2>
           <p className="text-lg text-white">Lobby ID: {lobby.id}</p>
           {lobby.player2Id && (
