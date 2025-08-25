@@ -526,7 +526,7 @@ export default function MainApp() {
             </div>
           </div>
         </header>
-      )
+      )}
 
       {showGenericHeader &&
         <header className="absolute top-5 left-0 w-full z-20 p-1 sm:p-2">
