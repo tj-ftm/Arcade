@@ -70,6 +70,11 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 };
 
 export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: MultiplayerChessClientProps) => {
+  console.log('🏁 [MULTIPLAYER CHESS CLIENT] Component initialized with:', {
+    lobby: lobby,
+    isHost: isHost,
+    hasPlayer2: !!lobby.player2Id
+  });
   const [game] = useState(() => new Chess());
   const [board, setBoard] = useState(() => {
     const chessGame = new Chess();

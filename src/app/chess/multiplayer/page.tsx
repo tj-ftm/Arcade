@@ -21,9 +21,17 @@ export default function ChessMultiplayerPage() {
   const [isHost, setIsHost] = useState(false);
 
   const handleStartGame = (lobby: Lobby, isHostPlayer: boolean) => {
+    console.log('🎮 [CHESS MULTIPLAYER PAGE] handleStartGame called with:', {
+      lobby: lobby,
+      isHostPlayer: isHostPlayer,
+      currentView: currentView
+    });
+    
     setCurrentLobby(lobby);
     setIsHost(isHostPlayer);
     setCurrentView('game');
+    
+    console.log('🔄 [CHESS MULTIPLAYER PAGE] State updated - should transition to game view');
   };
 
   const handleBackToLobby = () => {
@@ -36,10 +44,10 @@ export default function ChessMultiplayerPage() {
     window.location.href = '/chess/singleplayer';
   };
 
-  console.log('Render - currentView:', currentView, 'currentLobby:', currentLobby);
+  console.log('🖥️ [CHESS MULTIPLAYER PAGE] Render - currentView:', currentView, 'currentLobby:', currentLobby, 'isHost:', isHost);
   
   if (currentView === 'game' && currentLobby) {
-    console.log('Rendering MultiplayerChessClient');
+    console.log('✅ [CHESS MULTIPLAYER PAGE] Conditions met, rendering MultiplayerChessClient');
     return (
       <div className="w-full h-screen">
         <MultiplayerChessClient
@@ -50,6 +58,8 @@ export default function ChessMultiplayerPage() {
       </div>
     );
   }
+  
+  console.log('🏠 [CHESS MULTIPLAYER PAGE] Rendering lobby view');
 
   return (
     <div className="w-full h-screen bg-chess-background flex items-center justify-center overflow-hidden">
