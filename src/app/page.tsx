@@ -460,7 +460,7 @@ export default function HomePage() {
                 <div className="flex justify-between items-center p-3 sm:p-2">
                     <div className="flex items-center gap-1 sm:gap-2 order-last">
 
-
+                         {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={activeView === 'snake' ? 'snake' : activeView === 'chess' ? 'chess' : undefined} />}
                          {!isMobile && (
                              <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                                  Leaderboard
@@ -536,8 +536,7 @@ export default function HomePage() {
         <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: showMainMenuHeader || showShopHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
-      {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />}
-    </main>
+      </main>
   );
 }
 
