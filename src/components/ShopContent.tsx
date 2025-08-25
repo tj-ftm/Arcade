@@ -25,7 +25,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
           </div>
 
           <div className="sm:flex-1 animate-fade-in text-center">
-            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[360px] flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[300px] flex flex-col justify-between border-2 border-purple-500/30 hover:border-purple-500/60 transition-all duration-300">
               <div className="pt-2 sm:pt-3">
                 <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
                   <span className="text-lg sm:text-2xl font-bold text-white">🐍</span>
@@ -43,7 +43,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
           </div>
           
           <div className="sm:flex-1 animate-fade-in text-center">
-            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[360px] flex flex-col justify-between border-2 border-blue-500/30 hover:border-blue-500/60 transition-all duration-300">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[300px] flex flex-col justify-between border-2 border-blue-500/30 hover:border-blue-500/60 transition-all duration-300">
               <div className="pt-2 sm:pt-3">
                 <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
                   <span className="text-lg sm:text-2xl font-bold text-white">♔</span>
@@ -61,7 +61,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
           </div>
           
           <div className="sm:flex-1 animate-fade-in text-center">
-            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[360px] flex flex-col justify-between border-2 border-red-500/30 hover:border-red-500/60 transition-all duration-300">
+            <div className="bg-black/50 py-2 px-2 sm:py-4 sm:px-3 rounded-xl h-[300px] flex flex-col justify-between border-2 border-red-500/30 hover:border-red-500/60 transition-all duration-300}>
               <div className="pt-2 sm:pt-3">
                 <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-lg mb-2 mx-auto flex items-center justify-center">
                   <span className="text-lg sm:text-2xl font-bold text-white">🎮</span>
