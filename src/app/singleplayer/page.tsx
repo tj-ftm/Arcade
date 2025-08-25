@@ -41,7 +41,11 @@ export default function SinglePlayerPage() {
           <UnoClient key={gameId} onGameEnd={handleGameEnd} />
         )}
         {gameState === 'paying' && (
-          
+          <div className="w-full max-w-md z-10 text-center my-auto animate-fade-in">
+            <div className="bg-black/50 p-8 rounded-xl flex flex-col items-center">
+              <p className="text-white text-lg">Processing payment...</p>
+            </div>
+          </div>
         )}
         {gameState === 'idle' && (
            <div className="w-full max-w-md z-10 text-center my-auto animate-fade-in">
