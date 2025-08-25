@@ -211,9 +211,11 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
              player2Id: lobby.player2Id,
              status: lobby.status,
              hasGameState: !!gameState,
-             isHost: isHost
+             isHost: isHost,
+             lobbyObject: lobby
          };
          console.log('🔍 [UNO MULTIPLAYER] Checking initialization conditions:', JSON.stringify(conditions, null, 2));
+         console.log('🔍 [UNO MULTIPLAYER] Full lobby object received:', lobby);
         
         if (lobby.player2Id && (lobby.status === 'playing' || lobby.status === 'waiting') && !gameState) {
             console.log('🎮 [UNO MULTIPLAYER] Both players present, checking if game needs initialization');
