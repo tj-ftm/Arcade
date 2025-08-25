@@ -101,68 +101,55 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   }, [game]);
 
   useEffect(() => {
-    if (lobby.status === 'waiting') {
+    // Show loading if we don't have both players or colors assigned
+    if (!lobby.player2Id || !lobby.player1Color || !lobby.player2Color) {
       setIsLoadingGame(true);
-    } else if ((lobby.status === 'playing' || lobby.player2Id) && lobby.player1Color && lobby.player2Color) {
-      setIsLoadingGame(false);
-      // Determine player color and starting turn
-      const myColor = isHost ? lobby.player1Color : lobby.player2Color;
+      return;
+    }
+    
+    // Both players are present and colors are assigned - initialize game
+    setIsLoadingGame(false);
+    
+    // Determine player color and starting turn
+    const myColor = isHost ? lobby.player1Color : lobby.player2Color;
 
-      if (myColor === 'white') {
-        setPlayerColor('w');
-        setIsMyTurn(true); // White always starts
-      } else if (myColor === 'black') {
-        setPlayerColor('b');
-        setIsMyTurn(false); // Black waits for white's first move
-      }
+    if (myColor === 'white') {
+      setPlayerColor('w');
+      setIsMyTurn(true); // White always starts
+    } else if (myColor === 'black') {
+      setPlayerColor('b');
+      setIsMyTurn(false); // Black waits for white's first move
+    }
 
-      // Set opponent name
-      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
-      
-      // Listen for opponent moves
-      const unsubscribeOnGameMove = onGameMove((moveData: any) => {
-        if (moveData.type === 'chess-move') {
-          try {
-            const move = game.move(moveData.move);
-            if (move) {
-              setBoard(game.board());
-              setMoveCount(prev => prev + 1);
-              addGameLog(`${opponentName}: ${move.san}`);
-              setIsMyTurn(true); // Now it's my turn
-              checkGameState();
-            }
-          } catch (error) {
-            console.error('Invalid move received:', error);
+    // Set opponent name
+    setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
+    
+    // Listen for opponent moves
+    const unsubscribeOnGameMove = onGameMove((moveData: any) => {
+      if (moveData.type === 'chess-move') {
+        try {
+          const move = game.move(moveData.move);
+          if (move) {
+            setBoard(game.board());
+            setMoveCount(prev => prev + 1);
+            addGameLog(`${opponentName}: ${move.san}`);
+            setIsMyTurn(true); // Now it's my turn
+            checkGameState();
           }
-        } else if (moveData.type === 'game-end') {
-          setWinner(moveData.winner);
-          setShowEndGameScreen(true);
+        } catch (error) {
+          console.error('Invalid move received:', error);
         }
-      });
-      return () => {
-        unsubscribeOnGameMove();
-      };
-    }
-  }, [game, lobby, isHost, opponentName, onGameMove]);
-
-  // Initialize game state when component mounts with a complete lobby
-  useEffect(() => {
-    if (lobby.player1Id && lobby.player2Id && lobby.player1Color && lobby.player2Color && !isLoadingGame) {
-      const myColor = isHost ? lobby.player1Color : lobby.player2Color;
-      setPlayerColor(myColor === 'white' ? 'w' : 'b');
-      setIsMyTurn(myColor === 'white');
-      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
-    }
-  }, [lobby.player1Id, lobby.player2Id, lobby.player1Color, lobby.player2Color, isHost, lobby.player1Name, lobby.player2Name, isLoadingGame]);
-
-  useEffect(() => {
-    const unsubscribe = onLobbyJoined((joinedLobby) => {
-      if (joinedLobby.id === lobby.id && joinedLobby.status === 'playing') {
-        setIsLoadingGame(false);
+      } else if (moveData.type === 'game-end') {
+        setWinner(moveData.winner);
+        setShowEndGameScreen(true);
       }
     });
-    return unsubscribe;
-  }, [lobby.id, onLobbyJoined]);
+    return () => {
+      unsubscribeOnGameMove();
+    };
+  }, [game, lobby, isHost, onGameMove]);
+
+
 
   const addGameLog = useCallback((message: string) => {
     setGameLog(prev => [...prev, message]);
@@ -282,8 +269,14 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
     <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8">
       {isLoadingGame ? (
         <div className="flex flex-col items-center justify-center w-full h-full">
-          <h2 className="text-4xl font-bold mb-4">Waiting for opponent...</h2>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4"></div>
+          <h2 className="text-4xl font-bold mb-4">
+            {!lobby.player2Id ? 'Waiting for opponent...' : 'Starting game...'}
+          </h2>
           <p className="text-lg">Lobby ID: {lobby.id}</p>
+          {lobby.player2Id && (
+            <p className="text-sm text-white/70 mt-2">Both players connected, initializing game...</p>
+          )}
         </div>
       ) : (
         !showEndGameScreen && (

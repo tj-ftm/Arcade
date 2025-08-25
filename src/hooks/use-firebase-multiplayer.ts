@@ -22,6 +22,7 @@ interface UseFirebaseMultiplayerReturn {
   createLobby: (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => Promise<void>;
   joinLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
   leaveLobby: (lobbyId: string, playerId?: string) => Promise<void>;
+  startGame: (lobbyId: string) => Promise<void>;
   sendGameMove: (lobbyId: string, moveData: any) => Promise<void>;
   onGameMove: (callback: (moveData: any) => void) => () => void;
   onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
@@ -116,8 +117,8 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           setCurrentLobby(updatedLobby);
           
           // Check if someone joined and game is ready to start
-          if (data.player2Id && data.status === 'playing' && data.player1Color && data.player2Color) {
-            console.log('Player joined lobby, starting game as host');
+          if (data.player2Id && data.player1Color && data.player2Color) {
+            console.log('Player joined lobby, triggering game start for host');
             lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
           }
         } else {
@@ -146,7 +147,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         throw new Error('Lobby not available');
       }
 
-      // Update lobby with player 2
+      // Update lobby with player 2 - keep status as 'waiting' until game actually starts
       const assignedPlayer1Color: 'white' | 'black' = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
       const assignedPlayer2Color: 'white' | 'black' = lobbyData.player2Color || (assignedPlayer1Color === 'white' ? 'black' : 'white');
 
@@ -154,7 +155,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         ...lobbyData,
         player2Id,
         player2Name,
-        status: 'playing',
+        status: 'waiting', // Keep as waiting until both players are ready
         player1Color: assignedPlayer1Color,
         player2Color: assignedPlayer2Color
       };
@@ -215,6 +216,26 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
   };
 
+  const startGame = async (lobbyId: string) => {
+    if (!isConnected) return;
+
+    try {
+      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      const snapshot = await get(lobbyRef);
+      const lobbyData = snapshot.val();
+      
+      if (lobbyData && lobbyData.player2Id) {
+        await set(lobbyRef, {
+          ...lobbyData,
+          status: 'playing'
+        });
+        console.log('Game started, lobby status updated to playing');
+      }
+    } catch (error) {
+      console.error('Error starting game:', error);
+    }
+  };
+
   const sendGameMove = async (lobbyId: string, moveData: any, playerId?: string) => {
     if (!isConnected) return;
 
@@ -264,6 +285,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     createLobby,
     joinLobby,
     leaveLobby,
+    startGame,
     sendGameMove,
     onGameMove,
     onLobbyJoined,

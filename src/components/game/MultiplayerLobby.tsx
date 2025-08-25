@@ -35,12 +35,12 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const [gameStarting, setGameStarting] = useState(false);
   const [gameStartTimeout, setGameStartTimeout] = useState<NodeJS.Timeout | null>(null);
   
-  const { onLobbyJoined } = useFirebaseMultiplayer();
+  const { onLobbyJoined, startGame } = useFirebaseMultiplayer();
   const { account } = useWeb3();
   
   const currentUserId = account || `guest-${Date.now()}`;
   
-  const handleGameStart = useCallback((lobby: Lobby, isHost: boolean) => {
+  const handleGameStart = useCallback(async (lobby: Lobby, isHost: boolean) => {
     console.log('Game starting:', lobby, 'isHost:', isHost);
     
     // Clear any existing timeout
@@ -52,16 +52,20 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     });
     
     setGameStarting(true);
+    
+    // Start the game in Firebase (update status to 'playing')
+    await startGame(lobby.id);
+    
     const timeout = setTimeout(() => {
       console.log('Timeout completed, calling onStartGame with lobby:', lobby, 'isHost:', isHost);
       // Ensure lobby status is set to 'playing' before calling onStartGame
       const updatedLobby = { ...lobby, status: 'playing' as const };
       onStartGame?.(updatedLobby, isHost);
       setGameStartTimeout(null);
-    }, 2000); // Increased delay to ensure both players see loading screen
+    }, 1500); // Reduced delay since we're now properly managing state
     
     setGameStartTimeout(timeout);
-  }, [onStartGame]);
+  }, [onStartGame, startGame]);
 
   // Set up lobby joined callback for both host and joining player
   useEffect(() => {
@@ -69,8 +73,8 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       const isHost = currentUserId === lobby.player1Id;
       const isJoiningPlayer = currentUserId === lobby.player2Id;
       
-      // Trigger for both host and joining player when lobby is ready
-      if ((isHost || isJoiningPlayer) && lobby.player2Id && lobby.status === 'playing' && !gameStarting) {
+      // Trigger for both host and joining player when lobby has both players
+      if ((isHost || isJoiningPlayer) && lobby.player2Id && lobby.player1Color && lobby.player2Color && !gameStarting) {
         console.log('Lobby ready, starting game. IsHost:', isHost, 'IsJoiningPlayer:', isJoiningPlayer);
         handleGameStart(lobby, isHost);
       }

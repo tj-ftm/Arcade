@@ -210,25 +210,21 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   }, [account, currentUserId, isLoggingGame]);
 
   useEffect(() => {
-    if (lobby.status === 'playing' && lobby.player1Id && lobby.player2Id) {
-      setIsLoadingGame(false);
-      setOpponentName(isHost ? (lobby.player2Name || 'Player') : (lobby.player1Name || 'Player'));
-      if (isHost && !gameInitialized) {
-        initializeGame();
-      }
-    } else {
+    // Show loading if we don't have both players
+    if (!lobby.player2Id) {
       setIsLoadingGame(true);
+      return;
+    }
+    
+    // Both players are present - initialize game
+    setIsLoadingGame(false);
+    setOpponentName(isHost ? (lobby.player2Name || 'Player') : (lobby.player1Name || 'Player'));
+    if (isHost && !gameInitialized) {
+      initializeGame();
     }
   }, [lobby, isHost, initializeGame, gameInitialized]);
 
-  useEffect(() => {
-    if (lobby.player2Id && lobby.status === 'playing' && !gameInitialized && !isHost) {
-      // For the non-host player, if lobby is already playing and player2Id is set on mount
-      // This handles cases where the non-host joins an already started lobby
-      setIsLoadingGame(false);
-      setOpponentName(isHost ? (lobby.player2Name || 'Player') : (lobby.player1Name || 'Player'));
-    }
-  }, [lobby, isHost, gameInitialized]);
+
 
   // Listen for opponent moves
   useEffect(() => {
@@ -422,8 +418,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     <div className="w-full h-screen bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {isLoadingGame ? (
         <div className="flex flex-col items-center justify-center w-full h-full">
-          <h2 className="text-4xl font-bold mb-4 text-white">Waiting for opponent...</h2>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mb-4"></div>
+          <h2 className="text-4xl font-bold mb-4 text-white">
+            {!lobby.player2Id ? 'Waiting for opponent...' : 'Starting game...'}
+          </h2>
           <p className="text-lg text-white">Lobby ID: {lobby.id}</p>
+          {lobby.player2Id && (
+            <p className="text-sm text-white/70 mt-2">Both players connected, initializing game...</p>
+          )}
         </div>
       ) : (
         <>
