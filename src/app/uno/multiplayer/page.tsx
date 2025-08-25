@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 import { MultiplayerUnoClient } from '@/components/game/uno/MultiplayerUnoClient';
+import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 
 interface Lobby {
   id: string;
@@ -19,6 +20,15 @@ export default function UnoMultiplayerPage() {
   const [currentView, setCurrentView] = useState<'lobby' | 'game'>('lobby');
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
   const [isHost, setIsHost] = useState(false);
+  const { currentLobby: firebaseLobby } = useFirebaseMultiplayer();
+
+  // Keep currentLobby synchronized with Firebase lobby updates
+  useEffect(() => {
+    if (currentView === 'game' && firebaseLobby && currentLobby && firebaseLobby.id === currentLobby.id) {
+      console.log('🔄 [UNO PAGE] Updating lobby state from Firebase:', firebaseLobby);
+      setCurrentLobby(firebaseLobby);
+    }
+  }, [firebaseLobby, currentView, currentLobby]);
 
   const handleStartGame = (lobby: Lobby, isHostPlayer: boolean) => {
     console.log('handleStartGame called with:', { lobby, isHostPlayer });
