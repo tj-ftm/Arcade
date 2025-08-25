@@ -178,6 +178,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const [tokensEarned, setTokensEarned] = useState(0);
     const [hasWon, setHasWon] = useState<boolean>(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+    const [gameStarted, setGameStarted] = useState(false); // Track if first card has been played
 
     // Handle window resize for responsive card spacing
     useEffect(() => {
@@ -188,6 +189,23 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // Auto-clear turn messages
+    useEffect(() => {
+        if (turnMessage) {
+            const timer = setTimeout(() => {
+                setTurnMessage(null);
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [turnMessage]);
+
+    // Track when game starts (first card played)
+    useEffect(() => {
+        if (gameState && gameState.discardPile.length > 1 && !gameStarted) {
+            setGameStarted(true);
+        }
+    }, [gameState, gameStarted]);
 
     const playerHandRef = useRef<HTMLDivElement>(null);
     
@@ -334,7 +352,15 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 }
                 setIsLoadingGame(false);
             } else if (moveData.type === 'uno-update' && moveData.gameState) {
-                setGameState(moveData.gameState);
+                const newGameState = moveData.gameState;
+                setGameState(newGameState);
+                
+                // Show turn message when receiving opponent's move
+                if (!newGameState.winner) {
+                    const currentPlayer = newGameState.players[newGameState.activePlayerIndex];
+                    const isMyTurn = (newGameState.activePlayerIndex === 0 && isHost) || (newGameState.activePlayerIndex === 1 && !isHost);
+                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                }
             }
         });
 
@@ -438,6 +464,18 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         // Move to next player
         if (!newGameState.winner) {
             newGameState.activePlayerIndex = (gameState.activePlayerIndex + 1) % 2;
+            
+            // Show turn message
+            const nextPlayer = newGameState.players[newGameState.activePlayerIndex];
+            const isMyNextTurn = (newGameState.activePlayerIndex === 0 && isHost) || (newGameState.activePlayerIndex === 1 && !isHost);
+            setTurnMessage(isMyNextTurn ? "Your Turn!" : `${nextPlayer.name}'s Turn`);
+        }
+        
+        // Show color change message for wild cards
+        if ((card.value === 'Wild' || card.value === 'Draw Four') && chosenColor) {
+            setTimeout(() => {
+                setTurnMessage(`Color changed to ${chosenColor}!`);
+            }, 1600); // Show after turn message
         }
         
         setGameState(newGameState);
@@ -562,17 +600,17 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     return (
         <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
             
-            {/* Game Log Button */}
-            <div className={cn("absolute top-24 right-2 z-20", gameState.winner && "hidden")}>
+            {/* Game Log Button - moved to left side */}
+            <div className={cn("absolute top-24 left-2 z-20", gameState.winner && "hidden")}>
                 <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
                     Log
                 </Button>
             </div>
 
-            {/* Game Log Panel */}
+            {/* Game Log Panel - opens from left side */}
             <div className={cn(
-                "fixed top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
-                isLogVisible ? "translate-x-0" : "translate-x-full"
+                "fixed top-0 left-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-r-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
+                isLogVisible ? "translate-x-0" : "-translate-x-full"
             )}>
                  <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => setIsLogVisible(false)}>
                     X
@@ -587,9 +625,6 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                        ))}
                     </div>
                 </ScrollArea>
-                <div className="mt-4 space-y-2">
-                    <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleNewGame}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
-                </div>
             </div>
 
              <div className="flex-1 h-full flex flex-col justify-between items-center py-2 md:py-4 px-2 md:px-4">
@@ -626,7 +661,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                         </div>
                         
                         <div className="flex justify-center items-start w-20 md:w-32">
-                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
+                            {/* Show card back for non-starting player until first card is played */}
+                            {!gameStarted && !isHost ? (
+                                <CardBack size="large" />
+                            ) : (
+                                <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
+                            )}
                         </div>
                     </div>
                 </div>
