@@ -476,7 +476,7 @@ export default function HomePage() {
          )}
 
          {showMultiplayerHeader && (
-             <header className="absolute top-5 left-0 w-full z-20 p-0">
+             <header className="absolute top-5 left-0 w-full z-[100000] p-0">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-left">
                         Main Menu
@@ -492,7 +492,7 @@ export default function HomePage() {
         )}
 
          {showShopHeader && (
-             <header className="absolute top-5 left-0 w-full z-20 px-1 pb-1 sm:px-2 sm:pb-2">
+             <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                         <span className="text-lg text-left">Main Menu</span>
@@ -506,7 +506,7 @@ export default function HomePage() {
         )}
 
          {isGameActive && activeView !== 'platformer' && !showMultiplayerHeader && (
-             <header className="absolute top-5 left-0 w-full z-20 px-1 pb-1 sm:px-2 sm:pb-2">
+             <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                         Main Menu
