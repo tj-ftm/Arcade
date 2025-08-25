@@ -403,10 +403,10 @@ export default function LeaderboardHome() {
         )}
 
         {showGenericHeader && (
-             <header className="absolute top-0 left-0 w-full z-20 p-2 sm:p-4">
+             <header className="absolute top-5 left-0 w-full z-20 p-2 sm:p-4">
                 <div className="flex justify-between items-center w-full">
-                    <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-lg">
-                        <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
+                    <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-2xl">
+                        Main Menu
                     </Button>
                     <ConnectWallet />
                 </div>

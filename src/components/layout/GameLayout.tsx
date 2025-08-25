@@ -14,6 +14,8 @@ import { ConnectWallet } from '@/components/web3/ConnectWallet';
 import { useWeb3 } from "@/components/web3/Web3Provider";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MobileSidebar } from '@/components/layout/MobileSidebar';
+import { useMobile } from '@/hooks/use-mobile';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,6 +26,7 @@ import { Progress } from "@/components/ui/progress";
 type View = 'menu' | 'uno' | 'snake' | 'chess' | 'platformer' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno';
 
 export const GameLayout = () => {
+  const { isMobile } = useMobile();
   const [view, setView] = useState<View>('menu');
 
   const [showUnoRules, setShowUnoRules] = useState(false);
@@ -102,7 +105,7 @@ export const GameLayout = () => {
 
       {/* Main Menu Header */}
       {view === 'menu' && (
-        <header className="absolute top-0 left-0 w-full z-20 p-1 sm:p-2">
+        <header className="absolute top-5 left-0 w-full z-20 pt-4 sm:pt-6">
           <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
             <button onClick={() => handleNavigate('menu')}>
               <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
@@ -121,12 +124,15 @@ export const GameLayout = () => {
       )}
 
       {showGenericHeader && (
-        <header className="absolute top-0 left-0 w-full z-20 p-1 sm:p-2">
+        <header className="absolute top-5 left-0 w-full z-20 pt-4 sm:pt-6">
           <div className="flex justify-between items-center w-full">
             <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-              <span className="text-xl">Main Menu</span>
+              <span className="text-2xl">Main Menu</span>
             </Button>
-            <ConnectWallet />
+            <div className="flex items-center gap-2">
+              <ConnectWallet />
+              {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={view === 'snake' ? 'snake' : view === 'chess' ? 'chess' : undefined} />}
+            </div>
           </div>
         </header>
       )}
@@ -523,10 +529,10 @@ export default function MainApp() {
       )
 
       {showGenericHeader &&
-        <header className="absolute top-0 left-0 w-full z-20 p-1 sm:p-2">
+        <header className="absolute top-5 left-0 w-full z-20 p-1 sm:p-2">
           <div className="flex justify-between items-center w-full">
             <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-              <Home className="mr-2 h-5 w-5 sm:mr-0"/> <span className="hidden sm:inline">Main Menu</span>
+              <span className="text-xl">Main Menu</span>
             </Button>
             <ConnectWallet />
           </div>

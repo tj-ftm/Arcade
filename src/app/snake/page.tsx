@@ -401,9 +401,9 @@ export default function SnakeHome() {
         )}
 
         {showGenericHeader && (
-             <header className="absolute top-0 left-0 w-full z-20 p-2 sm:p-4">
+             <header className="absolute top-5 left-0 w-full z-20 p-2 sm:p-4">
                 <div className="flex justify-between items-center w-full">
-                    <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-lg">
+                    <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-2xl">
                         Main Menu
                     </Button>
                     <ConnectWallet />
