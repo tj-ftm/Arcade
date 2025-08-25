@@ -12,9 +12,17 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app: any = null;
+let database: any = null;
+
+try {
+  app = initializeApp(firebaseConfig);
+  database = getDatabase(app);
+} catch (error) {
+  console.warn('Firebase initialization failed:', error);
+}
 
 // Initialize Realtime Database and get a reference to the service
-export const database = getDatabase(app);
+export { database };
 
 export default app;

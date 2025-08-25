@@ -39,15 +39,13 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
   const [lobbyClosedCallbacks, setLobbyClosedCallbacks] = useState<(() => void)[]>([]);
 
   useEffect(() => {
-    // Check if Firebase is configured
-    const isFirebaseConfigured = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
-                                 process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
-    
-    if (!isFirebaseConfigured) {
-      console.warn('Firebase not configured. Multiplayer features disabled.');
-      setIsConnected(false);
-      return;
-    }
+    // Try to connect to Firebase
+    try {
+      if (!database) {
+        console.warn('Firebase not configured. Multiplayer features disabled.');
+        setIsConnected(false);
+        return;
+      }
 
 
     try {

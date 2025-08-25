@@ -150,9 +150,7 @@ export function CreateLobby({ gameType, onLobbyCreated, onGameStart, onBackToMen
           {!isConnected && (
           <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 sm:p-4">
             <p className="text-red-300 text-xs sm:text-sm text-center">
-              {!process.env.NEXT_PUBLIC_FIREBASE_API_KEY 
-                ? 'Multiplayer features require Firebase configuration. Please set up Firebase to enable multiplayer.' 
-                : 'Connecting to multiplayer service...'}
+              Connecting to multiplayer service...
             </p>
           </div>
         )}
