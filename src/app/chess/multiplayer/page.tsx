@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
 
@@ -19,20 +19,37 @@ export default function ChessMultiplayerPage() {
   const [currentView, setCurrentView] = useState<'lobby' | 'game'>('lobby');
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
   const [isHost, setIsHost] = useState(false);
+  const [renderKey, setRenderKey] = useState(0);
+
+  useEffect(() => {
+    console.log('🏗️ [CHESS MULTIPLAYER PAGE] Component mounted');
+    return () => {
+      console.log('🗑️ [CHESS MULTIPLAYER PAGE] Component unmounting');
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('🔄 [CHESS MULTIPLAYER PAGE] State changed:', { currentView, currentLobby: !!currentLobby, isHost });
+  }, [currentView, currentLobby, isHost]);
 
   const handleStartGame = useCallback((lobby: Lobby, isHostPlayer: boolean) => {
     console.log('🚨🚨🚨 [CHESS MULTIPLAYER PAGE] handleStartGame CALLED! 🚨🚨🚨');
-    console.log('🎮 [CHESS MULTIPLAYER PAGE] handleStartGame called with:', {
-      lobby: lobby,
-      isHostPlayer: isHostPlayer,
-      currentView: currentView
-    });
-    
-    setCurrentLobby(lobby);
-    setIsHost(isHostPlayer);
-    setCurrentView('game');
-    
-    console.log('🔄 [CHESS MULTIPLAYER PAGE] State updated - should transition to game view');
+    try {
+      console.log('🎮 [CHESS MULTIPLAYER PAGE] handleStartGame called with:', {
+        lobby: lobby,
+        isHostPlayer: isHostPlayer,
+        currentView: currentView
+      });
+      
+      setCurrentLobby(lobby);
+       setIsHost(isHostPlayer);
+       setCurrentView('game');
+       setRenderKey(prev => prev + 1);
+       
+       console.log('✅ [CHESS MULTIPLAYER PAGE] State updated successfully - should transition to game view', { renderKey: renderKey + 1 });
+    } catch (error) {
+      console.error('❌ [CHESS MULTIPLAYER PAGE] Error in handleStartGame:', error);
+    }
   }, [currentView]);
 
   const handleBackToLobby = () => {
@@ -45,7 +62,7 @@ export default function ChessMultiplayerPage() {
     window.location.href = '/chess/singleplayer';
   };
 
-  console.log('🖥️ [CHESS MULTIPLAYER PAGE] Render - currentView:', currentView, 'currentLobby:', currentLobby, 'isHost:', isHost);
+  console.log('🖥️ [CHESS MULTIPLAYER PAGE] Render - currentView:', currentView, 'currentLobby:', currentLobby, 'isHost:', isHost, 'renderKey:', renderKey);
   
   if (currentView === 'game' && currentLobby) {
     console.log('✅ [CHESS MULTIPLAYER PAGE] Conditions met, rendering MultiplayerChessClient');
@@ -59,7 +76,7 @@ export default function ChessMultiplayerPage() {
       hasPlayer2: !!currentLobby.player2Id
     });
     return (
-      <div className="w-full h-screen">
+      <div key={`game-${renderKey}`} className="w-full h-screen">
         <MultiplayerChessClient
           lobby={currentLobby}
           isHost={isHost}
@@ -72,7 +89,7 @@ export default function ChessMultiplayerPage() {
   console.log('🏠 [CHESS MULTIPLAYER PAGE] Rendering lobby view');
 
   return (
-    <div className="w-full h-screen bg-chess-background flex items-center justify-center overflow-hidden">
+    <div key={`lobby-${renderKey}`} className="w-full h-screen bg-chess-background flex items-center justify-center overflow-hidden">
       <MultiplayerLobby
         gameType="chess"
         onStartGame={handleStartGame}

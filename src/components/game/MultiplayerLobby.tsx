@@ -79,8 +79,12 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       // Ensure lobby status is set to 'playing' before calling onStartGame
       // Pass the complete lobby object from the callback which has the latest data
       console.log('🚨🚨🚨 [MULTIPLAYER LOBBY] CALLING onStartGame CALLBACK! 🚨🚨🚨', { lobby, isHost });
-      onStartGame?.(lobby, isHost);
-      console.log('🎮 [MULTIPLAYER LOBBY] onStartGame callback completed');
+      try {
+        onStartGame?.(lobby, isHost);
+        console.log('✅ [MULTIPLAYER LOBBY] onStartGame callback completed successfully');
+      } catch (error) {
+        console.error('❌ [MULTIPLAYER LOBBY] Error in onStartGame callback:', error);
+      }
       setGameStartTimeout(null);
       gameStartingRef.current = false; // Reset the ref when done
     }, 1500); // Reduced delay since we're now properly managing state
