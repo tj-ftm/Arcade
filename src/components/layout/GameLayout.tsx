@@ -153,7 +153,7 @@ export const GameLayout = () => {
             "First player to empty their hand wins the round.",
             "Points are scored by cards left in opponents' hands.",
             "First player to 500 points wins the game."
-          ]}
+          ]
           onClose={() => setShowUnoRules(false)}
           onStartGame={() => {
             setShowUnoRules(false);
@@ -528,7 +528,7 @@ export default function MainApp() {
         </header>
       )}
 
-      {showGenericHeader &&
+      {showGenericHeader && (
         <header className="absolute top-5 left-0 w-full z-20 p-1 sm:p-2">
           <div className="flex justify-between items-center w-full">
             <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
@@ -537,6 +537,7 @@ export default function MainApp() {
             <ConnectWallet />
           </div>
         </header>
+      )}
 
 
       <div className="flex-1 w-full flex items-center justify-center overflow-auto" style={{paddingTop: showGenericHeader ? '60px' : '0', minHeight: 0}}>
