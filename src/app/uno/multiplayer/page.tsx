@@ -42,9 +42,24 @@ export default function UnoMultiplayerPage() {
 
   const handleStartGame = (lobby: Lobby, isHostPlayer: boolean) => {
     console.log('handleStartGame called with:', { lobby, isHostPlayer });
-    setCurrentLobby(lobby);
-    setIsHost(isHostPlayer);
-    setCurrentView('game');
+    
+    // For non-host players, wait a moment for Firebase to update the lobby with player2 data
+    if (!isHostPlayer) {
+      console.log('🔄 [UNO PAGE] Non-host player, waiting for lobby update...');
+      setTimeout(() => {
+        // Use Firebase lobby if available, otherwise use the passed lobby
+        const finalLobby = firebaseLobby && firebaseLobby.player2Id ? firebaseLobby : lobby;
+        console.log('🔄 [UNO PAGE] Using final lobby for non-host:', finalLobby);
+        setCurrentLobby(finalLobby);
+        setIsHost(isHostPlayer);
+        setCurrentView('game');
+      }, 1000); // 1 second delay for Firebase sync
+    } else {
+      setCurrentLobby(lobby);
+      setIsHost(isHostPlayer);
+      setCurrentView('game');
+    }
+    
     console.log('handleStartGame - currentView after update:', 'game', 'currentLobby after update:', lobby, 'isHost after update:', isHostPlayer);
   };
 
