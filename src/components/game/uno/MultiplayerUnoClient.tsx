@@ -157,7 +157,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const playerHandRef = useRef<HTMLDivElement>(null);
     
     // Firebase multiplayer hooks
-    const { sendGameState, onGameStateUpdate, startGame } = useFirebaseMultiplayer(lobby.id);
+    const { sendGameMove, onGameMove, startGame } = useFirebaseMultiplayer();
 
     const isCardPlayable = (card: UnoCard, topCard: UnoCard, activeColor: UnoColor): boolean => {
         if (card.color === 'Wild') return true;
@@ -230,20 +230,27 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setGameStartTime(Date.now());
         
         // Send initial game state to opponent
-        sendGameState(initialGameState);
+        sendGameMove(lobby.id, {
+            type: 'uno-init',
+            gameState: initialGameState
+        });
         console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent to opponent');
     };
 
     // Listen for game state updates from opponent
     useEffect(() => {
-        const unsubscribe = onGameStateUpdate((newGameState: UnoGameState) => {
-            console.log('📨 [UNO MULTIPLAYER] Received game state update:', newGameState);
-            setGameState(newGameState);
-            setIsLoadingGame(false);
+        const unsubscribe = onGameMove((moveData: any) => {
+            console.log('📨 [UNO MULTIPLAYER] Received move data:', moveData);
+            if (moveData.type === 'uno-init' && moveData.gameState) {
+                setGameState(moveData.gameState);
+                setIsLoadingGame(false);
+            } else if (moveData.type === 'uno-update' && moveData.gameState) {
+                setGameState(moveData.gameState);
+            }
         });
 
         return unsubscribe;
-    }, [onGameStateUpdate]);
+    }, [onGameMove]);
 
     const handlePlayCard = (cardIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
         if (!gameState || gameState.winner) return;
@@ -345,7 +352,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         }
         
         setGameState(newGameState);
-        sendGameState(newGameState);
+        sendGameMove(lobby.id, {
+            type: 'uno-update',
+            gameState: newGameState
+        });
     };
 
     const handleColorPick = (color: UnoColor) => {
@@ -387,7 +397,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         newGameState.activePlayerIndex = (gameState.activePlayerIndex + 1) % 2;
         
         setGameState(newGameState);
-        sendGameState(newGameState);
+        sendGameMove(lobby.id, {
+            type: 'uno-update',
+            gameState: newGameState
+        });
     };
 
     const handleNewGame = () => {
