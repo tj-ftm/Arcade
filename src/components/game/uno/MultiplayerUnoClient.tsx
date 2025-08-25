@@ -75,59 +75,83 @@ const calculateUnoScore = (hand: UnoCard[]): number => {
 };
 
 const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick?: (e: React.MouseEvent) => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
-    const cardSize = size === 'large' ? 'w-16 h-24 md:w-20 md:h-32' : 'w-12 h-18 md:w-16 md:h-24';
-    const textSize = size === 'large' ? 'text-lg md:text-2xl' : 'text-sm md:text-lg';
-    
-    const getCardColor = () => {
-        switch (card.color) {
-            case 'Red': return 'bg-red-600';
-            case 'Green': return 'bg-green-600';
-            case 'Blue': return 'bg-blue-600';
-            case 'Yellow': return 'bg-yellow-500';
-            case 'Wild': return 'bg-black';
-            default: return 'bg-gray-600';
-        }
-    };
+  const colorClasses: Record<UnoColor | 'Wild', string> = {
+    Red: 'bg-red-600',
+    Green: 'bg-green-600',
+    Blue: 'bg-blue-600',
+    Yellow: 'bg-yellow-500',
+    Wild: 'bg-black',
+  };
 
-    const getTextColor = () => {
-        return card.color === 'Yellow' ? 'text-black' : 'text-white';
-    };
+  const sizeClasses = {
+      normal: 'w-[12vw] max-w-[70px] md:max-w-[90px] min-w-[40px] md:min-w-[60px] h-auto aspect-[5/7]',
+      large: 'w-[15vw] max-w-[90px] md:max-w-[120px] min-w-[50px] md:min-w-[80px] h-auto aspect-[5/7]',
+  }
+
+  const cardStyle = {
+    ...style,
+    transition: 'all 0.3s ease',
+    boxShadow: isPlayable && isPlayer ? '0 0 25px 8px #fbbf24, 0 0 10px 2px #fff' : '0 4px 6px rgba(0,0,0,0.3)',
+  };
+
+  const InnerContent = () => {
+    if (card.value === 'Wild' || card.value === 'Draw Four') {
+      return (
+        <div className="relative w-full h-full flex items-center justify-center">
+          <div className="absolute w-1/2 h-1/2 bg-red-600 top-0 left-0"></div>
+          <div className="absolute w-1/2 h-1/2 bg-green-600 top-0 right-0"></div>
+          <div className="absolute w-1/2 h-1/2 bg-blue-600 bottom-0 left-0"></div>
+          <div className="absolute w-1/2 h-1/2 bg-yellow-500 bottom-0 right-0"></div>
+          <span className="relative text-white font-bold text-sm md:text-lg drop-shadow-lg">{card.value === 'Draw Four' ? '+4' : ''}</span>
+        </div>
+      );
+    }
+    const text = card.value === 'Draw Two' ? '+2' : card.value === 'Skip' ? '⊘' : card.value === 'Reverse' ? '⟷' : card.value;
+    const textSize = size === 'large' ? 'text-3xl md:text-5xl lg:text-6xl' : 'text-2xl md:text-4xl lg:text-5xl';
+    const cornerTextSize = size === 'large' ? 'text-lg md:text-xl lg:text-2xl' : 'text-base md:text-lg lg:text-xl';
 
     return (
-        <div 
-            className={cn(
-                cardSize,
-                "rounded-lg border-2 border-white flex flex-col items-center justify-center font-bold cursor-pointer transition-all duration-200 relative",
-                getCardColor(),
-                getTextColor(),
-                isPlayer && isPlayable && "hover:scale-110 hover:-translate-y-2 shadow-lg",
-                isPlayer && !isPlayable && "opacity-50 cursor-not-allowed",
-                isLastCard && isPlayer && "animate-pulse shadow-[0_0_20px_5px] shadow-red-500"
-            )}
-            onClick={isPlayer && isPlayable ? onClick : undefined}
-            style={style}
-        >
-            <span className={cn(textSize, "font-bold")}>
-                {card.value === 'Draw Two' ? '+2' :
-                 card.value === 'Draw Four' ? '+4' :
-                 card.value === 'Wild' ? '🌈' :
-                 card.value === 'Skip' ? '⊘' :
-                 card.value === 'Reverse' ? '↻' :
-                 card.value}
-            </span>
-            {(card.value === 'Wild' || card.value === 'Draw Four') && (
-                <div className="absolute inset-1 rounded border-2 border-dashed border-white/50" />
-            )}
-        </div>
-    );
+      <>
+        <div className={cn("absolute top-0.5 left-1 md:top-1 md:left-2 font-bold", cornerTextSize)}>{text}</div>
+        <div className={cn("font-bold drop-shadow-md", textSize)}>{text}</div>
+        <div className={cn("absolute bottom-0.5 right-1 md:bottom-1 md:right-2 font-bold transform rotate-180", cornerTextSize)}>{text}</div>
+      </>
+    )
+  }
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg flex items-center justify-center text-white relative border-2 md:border-4 border-white/80",
+        onClick ? "cursor-pointer" : "cursor-default",
+        colorClasses[card.color],
+        sizeClasses[size],
+         "transition-transform duration-300 ease-out",
+        isPlayer && "hover:-translate-y-4 hover:scale-110 z-0 hover:z-20"
+      )}
+      style={cardStyle}
+      onClick={isPlayable && isPlayer ? onClick : undefined}
+    >
+      <div className="absolute inset-0 w-full h-full bg-black/20 rounded-md"></div>
+       <div className={cn("absolute rounded-full bg-white/20 w-10 h-10 md:w-14 md:h-14", size === 'large' ? "lg:w-20 lg:h-20" : "lg:w-16 lg:h-16")}></div>
+      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
+        <InnerContent />
+      </div>
+      {isLastCard && <div className="absolute -top-3 -left-3 px-2 py-1 bg-yellow-400 text-black text-xs font-bold rounded-full animate-pulse">UNO!</div>}
+    </div>
+  );
 };
 
 const CardBack = ({ style, size = 'normal' }: { style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
-    const cardSize = size === 'large' ? 'w-16 h-24 md:w-20 md:h-32' : 'w-12 h-18 md:w-16 md:h-24';
-    
+    const sizeClasses = {
+      normal: 'w-[12vw] max-w-[60px] md:max-w-[80px] min-w-[35px] md:min-w-[55px] h-auto aspect-[5/7]',
+      large: 'w-[15vw] max-w-[80px] md:max-w-[110px] min-w-[45px] md:min-w-[75px] h-auto aspect-[5/7]',
+    }
+    const logoSize = size === 'large' ? 'text-lg md:text-3xl lg:text-6xl' : 'text-sm md:text-2xl lg:text-5xl';
     return (
-        <div className={cn(cardSize, "bg-gradient-to-br from-purple-800 to-purple-900 rounded-lg border-2 border-white flex items-center justify-center")} style={style}>
-            <span className="text-white text-2xl font-bold">UNO</span>
+        <div className={cn("rounded-lg flex items-center justify-center text-white relative border-2 md:border-4 border-white/80 bg-neutral-800", sizeClasses[size])} style={style}>
+             <div className="absolute inset-0 w-full h-full bg-black/20 rounded-md"></div>
+            <h1 className={cn("text-red-600 font-headline", logoSize)} style={{textShadow: '2px 2px 0 #000'}}>UNO</h1>
         </div>
     );
 };
