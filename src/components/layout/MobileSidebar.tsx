@@ -78,7 +78,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
         <div className="flex flex-col h-full p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-headline text-accent">Menu</h2>
+            <h2 className="text-2xl font-headline text-white">Menu</h2>
             <Button
               onClick={closeSidebar}
               variant="ghost"
@@ -105,7 +105,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
             <Button
               onClick={() => handleNavigation('leaderboard')}
               variant="ghost"
-              className="w-full justify-start text-lg h-12 text-accent font-headline border border-accent/40 hover:border-accent/60 pl-2"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 pl-2"
             >
               <BarChart className="mr-3 h-5 w-5" />
               Leaderboard
@@ -115,7 +115,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
             <Button
               onClick={() => handleNavigation('settings')}
               variant="ghost"
-              className="w-full justify-start text-lg h-12 text-accent font-headline border border-accent/40 hover:border-accent/60 transition-all duration-200 pl-2"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
             >
               <Settings className="mr-3 h-5 w-5" />
               Settings
