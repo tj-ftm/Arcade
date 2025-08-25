@@ -266,7 +266,24 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         const unsubscribe = onGameMove((moveData: any) => {
             console.log('📨 [UNO MULTIPLAYER] Received move data:', moveData);
             if (moveData.type === 'uno-init' && moveData.gameState) {
-                setGameState(moveData.gameState);
+                console.log('🎮 [UNO MULTIPLAYER] Non-host receiving initial game state');
+                // For non-host players, we need to adjust the game state
+                const receivedGameState = moveData.gameState;
+                if (!isHost) {
+                    // Swap the player hands so non-host sees their own hand
+                    const adjustedGameState = {
+                        ...receivedGameState,
+                        playerHand: receivedGameState.players[1].hand, // Non-host gets player2's hand
+                        players: [
+                            receivedGameState.players[0], // Host player (opponent for non-host)
+                            receivedGameState.players[1]  // Non-host player (current player)
+                        ]
+                    };
+                    setGameState(adjustedGameState);
+                    console.log('🔄 [UNO MULTIPLAYER] Adjusted game state for non-host player');
+                } else {
+                    setGameState(receivedGameState);
+                }
                 setIsLoadingGame(false);
             } else if (moveData.type === 'uno-update' && moveData.gameState) {
                 setGameState(moveData.gameState);
@@ -274,7 +291,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         });
 
         return unsubscribe;
-    }, [onGameMove]);
+    }, [onGameMove, isHost]);
 
     const handlePlayCard = (cardIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
         if (!gameState || gameState.winner) return;
