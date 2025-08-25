@@ -8,6 +8,7 @@ import { RefreshCw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play } from 'luci
 import { cn } from '@/lib/utils';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
+import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
 import { MintSuccessModal } from './MintSuccessModal';
 import { SnakeStartScreen } from './snake/SnakeStartScreen';
 import { SnakeEndGameScreen } from './snake/SnakeEndGameScreen';
@@ -49,6 +50,9 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     const [tokensEarned, setTokensEarned] = useState<number>(0);
     const [showStartScreen, setShowStartScreen] = useState(true);
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
+    const [isBonusMode, setIsBonusMode] = useState(false);
+    const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+    const [paymentTxHash, setPaymentTxHash] = useState<string>('');
 
     const generateFood = useCallback(() => {
         let newFoodPosition: { x: number; y: number };
@@ -82,7 +86,7 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
             
             const gameResult = createGameResult(
                 account!,
-                'snake',
+                isBonusMode ? 'snake-bonus' : 'snake',
                 score,
                 isWin,
                 gameDuration
@@ -90,10 +94,14 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
             
             const logResponse = await logGameCompletion(gameResult);
 
-            // Update tokensToMint based on actual reward from backend
+            // Update tokensToMint based on actual reward from backend or calculate bonus
             let tokensToMint = 0;
             if (logResponse?.reward) {
                 tokensToMint = parseFloat(logResponse.reward);
+            } else if (isBonusMode) {
+                // Fallback for bonus mode: 2 ARC per 10 score (2x normal)
+                const baseReward = Math.floor(score / 10);
+                tokensToMint = getBonusReward('snake', baseReward);
             }
             setTokensEarned(tokensToMint);
                 
@@ -109,7 +117,7 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
         }
     };
 
-    const handleStartGame = () => {
+    const handleStartGame = (bonusMode = false) => {
         setSnake(INITIAL_SNAKE);
         setFood(INITIAL_FOOD);
         setDirection(INITIAL_DIRECTION);
@@ -118,10 +126,48 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
         setGameState('running');
         setShowStartScreen(false);
         setShowEndGameScreen(false);
+        setIsBonusMode(bonusMode);
+        setTokensEarned(0);
+        setMintTxHash('');
+        setPaymentTxHash('');
+        setIsVerifyingPayment(false);
     };
 
     const handleNewGame = () => {
         handleStartGame();
+    };
+
+    const handleBonusPayment = async () => {
+        const web3Context = useWeb3();
+        const provider = web3Context.getProvider();
+        const signer = web3Context.getSigner();
+        
+        if (!provider || !signer || !account) {
+            alert('Please connect your wallet first');
+            return;
+        }
+
+        setIsVerifyingPayment(true);
+        
+        try {
+            const paymentResult = await sendBonusPayment(provider, signer);
+            
+            if (paymentResult.success && paymentResult.transactionHash) {
+                setPaymentTxHash(paymentResult.transactionHash);
+                handleStartGame(true);
+            } else {
+                alert(`Payment failed: ${paymentResult.error}`);
+            }
+        } catch (error) {
+            console.error('Bonus payment error:', error);
+            alert('Failed to process bonus payment');
+        } finally {
+            setIsVerifyingPayment(false);
+        }
+    };
+
+    const handleStartBonusMode = () => {
+        handleBonusPayment();
     };
 
     const handleShowStartScreen = () => {
@@ -234,7 +280,10 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     return (
         <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in h-full w-full max-w-4xl mx-auto p-4 overflow-hidden touch-none">
             {showStartScreen && (
-                <SnakeStartScreen onStartGame={handleStartGame} />
+                <SnakeStartScreen 
+                    onStartGame={() => handleStartGame(false)} 
+                    onStartBonusMode={handleStartBonusMode}
+                />
             )}
 
             {showEndGameScreen && (

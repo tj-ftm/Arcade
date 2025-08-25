@@ -7,9 +7,10 @@ interface UnoStartScreenProps {
   onStartGame: () => void;
   onGoToMenu: () => void;
   onStartMultiplayer: () => void;
+  onStartBonusMode: () => void;
 }
 
-export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer }: UnoStartScreenProps) => {
+export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBonusMode }: UnoStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
@@ -37,6 +38,14 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer }: 
           <Play className="mr-4 h-8 w-8" />
           Multiplayer
         </Button>
+        <Button 
+          size="lg" 
+          onClick={onStartBonusMode}
+          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600 text-white border-2 border-yellow-400/30"
+        >
+          <Play className="mr-4 h-8 w-8" />
+          Bonus Mode (0.1 S)
+        </Button>
         {/* Rewards Info */}
         <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 rounded-xl p-4 border border-yellow-400/30">
           <div className="flex items-center justify-center gap-3">
@@ -44,7 +53,7 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer }: 
               <span className="text-black font-bold text-sm">ARC</span>
             </div>
             <p className="text-yellow-400 font-medium text-sm sm:text-base md:text-lg">
-              Win to earn 100 ARC tokens!
+              Win to earn 50 ARC tokens! (100 ARC in Bonus Mode)
             </p>
           </div>
         </div>

@@ -8,7 +8,8 @@ import { RefreshCw, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '../web3/Web3Provider';
-import { logGameCompletion } from '@/lib/game-logger';
+import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
+import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
 
 
 import { UnoEndGameScreen } from './UnoEndGameScreen';
@@ -152,18 +153,23 @@ interface UnoClientProps {
 }
 
 export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps) => {
-    const { username } = useWeb3();
+    const { username, account } = useWeb3();
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [flyingCard, setFlyingCard] = useState<FlyingCard | null>(null);
     const [turnMessage, setTurnMessage] = useState<string | null>(null);
     const [isLogVisible, setIsLogVisible] = useState(false);
+    const [gameStartTime, setGameStartTime] = useState<number>(0);
+    const [isLoggingGame, setIsLoggingGame] = useState(false);
 
     const [mintTxHash, setMintTxHash] = useState<string>('');
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
     const [showStartScreen, setShowStartScreen] = useState(true);
     const [isMinting, setIsMinting] = useState(false);
     const [tokensEarned, setTokensEarned] = useState(0);
+    const [isBonusMode, setIsBonusMode] = useState(false);
+    const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+    const [paymentTxHash, setPaymentTxHash] = useState<string>('');
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -187,24 +193,49 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
       const handleGameWin = async () => {
         if (gameState?.winner === 'player') {
           setShowEndGameScreen(true);
+          
+          // Only log game if wallet is connected
+          if (!isValidWalletAddress(account || '') || isLoggingGame) {
+            setIsMinting(false);
+            return;
+          }
+
+          setIsLoggingGame(true);
           setIsMinting(true);
+          
           try {
-            const gameResult = {
-              playerAddress: username || '', // Assuming 'username' is the player's address
-              gameType: 'uno',
-              score: calculateUnoScore(gameState.playerHand), // Calculate score based on remaining cards
-              won: true,
-            };
+            const gameDuration = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
+            const playerScore = calculateUnoScore(gameState.players[0].hand);
+            const isWin = true; // Player won
+            
+            const gameResult = createGameResult(
+              account!,
+              isBonusMode ? 'uno-bonus' : 'uno',
+              playerScore,
+              isWin,
+              gameDuration
+            );
+            
             const logResponse = await logGameCompletion(gameResult);
-            if (logResponse?.mintTransaction) {
+
+            // Update tokensToMint based on actual reward from backend or calculate bonus
+            let tokensToMint = 0;
+            if (logResponse?.reward) {
+              tokensToMint = parseFloat(logResponse.reward);
+            } else if (isBonusMode) {
+              // Fallback for bonus mode: 100 ARC tokens (2x normal 50)
+              tokensToMint = getBonusReward('uno', 50);
+            }
+            setTokensEarned(tokensToMint);
+                
+            // Show mint success modal if tokens were earned
+            if (tokensToMint > 0 && logResponse?.mintTransaction) {
               setMintTxHash(logResponse.mintTransaction);
             }
-            if (logResponse?.reward) {
-              setTokensEarned(parseFloat(logResponse.reward));
-            }
           } catch (error) {
-            console.error('Failed to log game completion or mint tokens:', error);
+            console.error('Failed to log game completion:', error);
           } finally {
+            setIsLoggingGame(false);
             setIsMinting(false);
           }
         } else if (gameState?.winner) {
@@ -215,7 +246,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
       if (gameState?.winner) {
         handleGameWin();
       }
-    }, [gameState?.winner, username, gameState?.playerHand]);
+    }, [gameState?.winner, account, gameState?.players, gameStartTime, isLoggingGame]);
 
     const addGameLog = (message: string) => {
         setGameState(prev => {
@@ -226,7 +257,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         });
     }
 
-    const handleNewGame = useCallback(() => {
+    const handleNewGame = useCallback((bonusMode = false) => {
         let deck = shuffleDeck(createDeck());
         
         const dealHand = () => {
@@ -258,12 +289,51 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
             winner: null,
             isReversed: false,
             direction: 'clockwise',
-            gameLog: ['Game started. Your turn!'],
+            gameLog: [bonusMode ? 'Bonus Game started. Your turn!' : 'Game started. Your turn!'],
         });
+        setGameStartTime(Date.now());
         setTurnMessage("Your Turn!");
         setShowStartScreen(false);
         setShowEndGameScreen(false);
+        setIsBonusMode(bonusMode);
+        setTokensEarned(0);
+        setMintTxHash('');
+        setPaymentTxHash('');
+        setIsVerifyingPayment(false);
     }, [username]);
+
+    const handleBonusPayment = async () => {
+        const web3Context = useWeb3();
+        const provider = web3Context.getProvider();
+        const signer = web3Context.getSigner();
+        
+        if (!provider || !signer || !account) {
+            alert('Please connect your wallet first');
+            return;
+        }
+
+        setIsVerifyingPayment(true);
+        
+        try {
+            const paymentResult = await sendBonusPayment(provider, signer);
+            
+            if (paymentResult.success && paymentResult.transactionHash) {
+                setPaymentTxHash(paymentResult.transactionHash);
+                handleNewGame(true);
+            } else {
+                alert(`Payment failed: ${paymentResult.error}`);
+            }
+        } catch (error) {
+            console.error('Bonus payment error:', error);
+            alert('Failed to process bonus payment');
+        } finally {
+            setIsVerifyingPayment(false);
+        }
+    };
+
+    const handleStartBonusMode = () => {
+        handleBonusPayment();
+    };
 
     const handleStartMultiplayer = () => {
         // Logic to start multiplayer game
@@ -503,9 +573,10 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         return (
             <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
                 <UnoStartScreen
-                    onStartGame={handleNewGame}
+                    onStartGame={() => handleNewGame(false)}
                     onGoToMenu={onGameEnd || (() => {})}
                     onStartMultiplayer={handleStartMultiplayer}
+                    onStartBonusMode={handleStartBonusMode}
                 />
             </div>
         );

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
+import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
 import { MintSuccessModal } from './MintSuccessModal';
 import { ChessStartScreen } from './chess/ChessStartScreen';
 import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
@@ -74,6 +75,10 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
     const [isMinting, setIsMinting] = useState(false);
     const [score, setScore] = useState(0);
+    const [tokensEarned, setTokensEarned] = useState<number>(0);
+    const [isBonusMode, setIsBonusMode] = useState(false);
+    const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+    const [paymentTxHash, setPaymentTxHash] = useState<string>('');
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -101,12 +106,12 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
         }
     }, [game]);
 
-    const handleNewGame = useCallback(() => {
+    const handleNewGame = useCallback((bonusMode = false) => {
       setGame(new Chess());
       setBoard(new Chess().board());
       setSelectedSquare(null);
       setPossibleMoves([]);
-      setGameLog(['Game started. Your turn.']);
+      setGameLog([bonusMode ? 'Bonus Game started. Your turn.' : 'Game started. Your turn.']);
       setWinner(null);
       setIsBotThinking(false);
       setGameStartTime(Date.now());
@@ -115,16 +120,22 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
       setShowMintSuccess(false);
       setMintTxHash('');
       setShowEndGameScreen(false);
+      setTokensEarned(0);
+      setIsBonusMode(bonusMode);
+      setPaymentTxHash('');
+      setIsVerifyingPayment(false);
     }, []);
 
     const handleGameEnd = async (playerWon: boolean, endReason: string) => {
         setShowEndGameScreen(true);
         // Only log game if wallet is connected
         if (!isValidWalletAddress(account || '') || isLoggingGame) {
+            setIsMinting(false);
             return;
         }
 
         setIsLoggingGame(true);
+        setIsMinting(true);
         
         try {
             const gameDuration = Math.floor((Date.now() - gameStartTime) / 1000); // in seconds
@@ -136,8 +147,8 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
             }
             
             const gameResult = createGameResult(
-                account || '',
-                'chess',
+                account!,
+                isBonusMode ? 'chess-bonus' : 'chess',
                 score,
                 playerWon,
                 gameDuration
@@ -146,17 +157,26 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
             setScore(score);
             
             const logResponse = await logGameCompletion(gameResult);
-            if (playerWon && logResponse?.mintTransaction) {
-                setIsMinting(true);
-                setTimeout(() => {
-                    setMintTxHash(logResponse.mintTransaction || '');
-                    setIsMinting(false);
-                }, 3000); // Simulate 3-second minting process
+
+            // Update tokensToMint based on actual reward from backend or calculate bonus
+            let tokensToMint = 0;
+            if (logResponse?.reward) {
+                tokensToMint = parseFloat(logResponse.reward);
+            } else if (isBonusMode && playerWon) {
+                // Fallback for bonus mode: 200 ARC tokens (2x normal 100)
+                tokensToMint = getBonusReward('chess', 100);
+            }
+            setTokensEarned(tokensToMint);
+                
+            // Show mint success modal if tokens were earned
+            if (tokensToMint > 0 && logResponse?.mintTransaction) {
+                setMintTxHash(logResponse.mintTransaction);
             }
         } catch (error) {
             console.error('Failed to log chess game completion:', error);
         } finally {
             setIsLoggingGame(false);
+            setIsMinting(false);
         }
     };
 
@@ -224,6 +244,40 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
         }
     };
 
+    const handleBonusPayment = async () => {
+        const web3Context = useWeb3();
+        const provider = web3Context.getProvider();
+        const signer = web3Context.getSigner();
+        
+        if (!provider || !signer || !account) {
+            alert('Please connect your wallet first');
+            return;
+        }
+
+        setIsVerifyingPayment(true);
+        
+        try {
+            const paymentResult = await sendBonusPayment(provider, signer);
+            
+            if (paymentResult.success && paymentResult.transactionHash) {
+                setPaymentTxHash(paymentResult.transactionHash);
+                handleNewGame(true);
+                setShowStartScreen(false);
+            } else {
+                alert(`Payment failed: ${paymentResult.error}`);
+            }
+        } catch (error) {
+            console.error('Bonus payment error:', error);
+            alert('Failed to process bonus payment');
+        } finally {
+            setIsVerifyingPayment(false);
+        }
+    };
+
+    const handleStartBonusMode = () => {
+        handleBonusPayment();
+    };
+
     const handleSquareClick = (square: Square) => {
         if (winner || game.turn() !== 'w' || isBotThinking) return;
 
@@ -270,8 +324,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
         <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8">
             {showStartScreen && (
                 <ChessStartScreen 
-                    onStartGame={() => setShowStartScreen(false)} 
+                    onStartGame={() => { handleNewGame(false); setShowStartScreen(false); }} 
                     onStartMultiplayer={handleStartMultiplayer}
+                    onStartBonusMode={handleStartBonusMode}
                 />
             )}
 
@@ -343,7 +398,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
                     onBackToMenu={handleShowStartScreen}
                     isMinting={isMinting}
                     mintTxHash={mintTxHash}
-                    tokensEarned={100}
+                    tokensEarned={tokensEarned}
                 />
             )}
 

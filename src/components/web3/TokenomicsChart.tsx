@@ -91,10 +91,10 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
   const getProvider = useCallback(() => {
     if (typeof window !== "undefined" && window.ethereum) {
       return new ethers.BrowserProvider(window.ethereum);
-    } else if (typeof process.env.NEXT_PUBLIC_RPC_URL === 'string' && process.env.NEXT_PUBLIC_RPC_URL.length > 0) {
-      // Try multiple RPC endpoints for better reliability
+    } else {
+      // Hardcode RPC URL as it's not a private link
       const rpcUrls = [
-        process.env.NEXT_PUBLIC_RPC_URL,
+        'https://rpc.soniclabs.com/',
         'https://rpc.sonic.fantom.network/', // Alternative Sonic RPC
         'https://sonic-mainnet.gateway.tatum.io/' // Another alternative
       ];
@@ -251,22 +251,16 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
       {/* Title and Back Button */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
         <h1 className="text-4xl sm:text-6xl font-headline text-center uppercase tracking-wider mb-6 text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Tokenomics</h1>
-        {onBack && (
-          <div className="flex justify-center mb-6">
-            <Button onClick={onBack} variant="secondary" className="font-headline text-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30">
-              <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
-            </Button>
-          </div>
-        )}
+
       </div>
       
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
         <CardHeader>
           <CardTitle className="text-accent">Current Total Supply</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-h-[300px]">
           {loading ? (
             <p className="text-2xl font-bold">Loading...</p>
           ) : error ? (
@@ -281,7 +275,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
         <CardHeader>
           <CardTitle className="text-accent">Minted Tokens Over Time</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-h-[300px]">
           {loading ? (
             <div className="flex items-center justify-center h-[300px]">
               <p className="text-gray-400">Loading chart data...</p>
@@ -294,7 +288,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
               </div>
             </div>
           ) : chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                 <XAxis dataKey="date" stroke="#888" />
@@ -317,41 +311,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-2 bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-accent">Minting Log</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[300px] w-full rounded-md border border-gray-700 p-4">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-400">Loading minting events...</p>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <p className="text-red-400 mb-2">Failed to load minting events</p>
-                  <p className="text-sm text-gray-400">{error}</p>
-                </div>
-              </div>
-            ) : mintEvents.length > 0 ? (
-              <ul className="space-y-2">
-                {mintEvents.map((event, index) => (
-                  <li key={index} className="text-sm">
-                    <span className="font-semibold">{new Date(event.timestamp).toLocaleString()}:</span>
-                    {' '}{event.amount.toFixed(4)} ARC minted to <span className="font-mono text-blue-400">{event.minter}</span>
-                    {' '}(Tx:{' '}<a href={`https://sonicscan.org/tx/${event.txHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                      {event.txHash.substring(0, 6)}...{event.txHash.substring(event.txHash.length - 4)}
-                    </a>)
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-400">No minting events found.</p>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
+
         </div>
       </div>
     </div>

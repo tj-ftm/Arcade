@@ -345,11 +345,11 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider">
                       <div className="pt-0 sm:pt-1">
-                            <h1 className="text-4xl sm:text-7xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
 
-                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider border border-white">
+                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider border border-white">
                            Play
                          </Button>
                          </div>
@@ -358,11 +358,11 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
                        <div className="pt-0 sm:pt-1">
-                            <h1 className="text-4xl sm:text-7xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
 
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
                             Play
                           </Button>
                          </div>
@@ -371,11 +371,11 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                        <div className="pt-0 sm:pt-1">
-                            <h1 className="text-4xl sm:text-7xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="CHESS Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
 
-                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Play
                           </Button>
                          </div>
@@ -384,11 +384,11 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                        <div className="pt-0 sm:pt-1">
-                             <h1 className="text-4xl sm:text-7xl font-headline text-yellow-500 uppercase tracking-wider mb-0 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
+                             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-yellow-500 uppercase tracking-wider mb-0 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
                         </div>
                         <img src="/arcade_icon.png" alt="SHOP" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
 
-                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Visit
                           </Button>
                           </div>
@@ -472,24 +472,7 @@ export default function HomePage() {
              <header className="w-full z-10 animate-fade-in flex-shrink-0 pt-4 sm:pt-4">
                 <div className="flex justify-between items-center p-3 sm:p-2">
                     <div className="flex items-center gap-1 sm:gap-2 order-last">
-
-                         {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={activeView === 'snake' ? 'snake' : activeView === 'chess' ? 'chess' : undefined} />}
-                         {!isMobile && (
-                             <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                                 Leaderboard
-                             </Button>
-                         )}
-                         {!isMobile && (
-                             <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                                 <Settings className="h-5 w-5" />
-                             </Button>
-                         )}
-                         {!isMobile && (
-                             <Button onClick={() => handleNavigate('tokenomics')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                                 <Coins className="mr-2 h-5 w-5" />
-                                 Tokenomics
-                             </Button>
-                         )}
+                         <MobileSidebar onNavigate={handleNavigate} theme={activeView === 'snake' ? 'snake' : activeView === 'chess' ? 'chess' : undefined} />
                      </div>
                      <div className="flex-grow flex justify-center order-2">
                          <button onClick={() => handleNavigate('menu')}>
@@ -518,7 +501,7 @@ export default function HomePage() {
                         <div className="hidden md:block">
                             <ConnectWallet />
                         </div>
-                        {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />}
+                        <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />
                     </div>
                 </div>
             </header>
@@ -531,8 +514,10 @@ export default function HomePage() {
                         Main Menu
                     </Button>
                     <div className="flex items-center gap-2">
-                         {!isMobile && <ConnectWallet />}
-                         {isMobile && <MobileSidebar onNavigate={handleNavigate} theme="shop" />}
+                         <div className="hidden md:block">
+                             <ConnectWallet />
+                         </div>
+                         <MobileSidebar onNavigate={handleNavigate} theme="shop" />
                      </div>
                 </div>
             </header>
@@ -544,10 +529,12 @@ export default function HomePage() {
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
                         Main Menu
                     </Button>
-                    <div className="hidden md:block">
-                        <ConnectWallet />
+                    <div className="flex items-center gap-2">
+                        <div className="hidden md:block">
+                            <ConnectWallet />
+                        </div>
+                        <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />
                     </div>
-                    {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />}
                 </div>
             </header>
         )}

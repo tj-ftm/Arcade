@@ -45,7 +45,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
         onClick={toggleSidebar}
         variant="ghost"
         size="default"
-        className="md:hidden text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 z-[99999] transition-all duration-200 px-4 py-2"
+        className="text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 z-[99999] transition-all duration-200 px-4 py-2"
       >
         <Menu className="h-6 w-6" />
       </Button>
@@ -53,7 +53,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[99998] md:hidden"
+          className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[99998]"
           onClick={closeSidebar}
         />
       )}
@@ -61,7 +61,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-0 z-[99999] md:hidden transition-transform duration-300 ease-in-out transform-gpu",
+          "fixed inset-0 z-[99999] transition-transform duration-300 ease-in-out transform-gpu",
           isOpen ? "translate-x-0" : "-translate-x-full",
           !isOpen && "pointer-events-none"
         )}
@@ -111,16 +111,6 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
               Leaderboard
             </Button>
 
-            {/* Settings */}
-            <Button
-              onClick={() => handleNavigation('settings')}
-              variant="ghost"
-              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
-            >
-              <Settings className="mr-3 h-5 w-5" />
-              Settings
-            </Button>
-
             {/* Tokenomics */}
             <Button
               onClick={() => handleNavigation('tokenomics')}
@@ -129,6 +119,16 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
             >
               <Coins className="mr-3 h-5 w-5" />
               Tokenomics
+            </Button>
+
+            {/* Settings */}
+            <Button
+              onClick={() => handleNavigation('settings')}
+              variant="ghost"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
+            >
+              <Settings className="mr-3 h-5 w-5" />
+              Settings
             </Button>
           </div>
 

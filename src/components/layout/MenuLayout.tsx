@@ -110,27 +110,27 @@ const SettingsContent = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div className="w-full max-w-lg z-10 my-auto animate-fade-in">
-        <div className="bg-black/50 p-8 rounded-xl">
-          <h1 className="text-6xl font-headline uppercase tracking-wider mb-2 text-accent">Options</h1>
-          <p className="text-white/70 mb-8 text-lg">Adjust your game experience.</p>
+    <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl z-10 my-auto animate-fade-in px-4">
+        <div className="bg-black/50 p-4 sm:p-6 md:p-8 rounded-xl">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-headline uppercase tracking-wider mb-2 text-accent">Options</h1>
+          <p className="text-white/70 mb-6 md:mb-8 text-base md:text-lg">Adjust your game experience.</p>
           
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="username" className="text-xl">Username</Label>
+          <div className="space-y-4 md:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <Label htmlFor="username" className="text-lg md:text-xl">Username</Label>
               <Input 
                 id="username"
-                className="w-[180px] rounded-md"
+                className="w-full sm:w-[180px] md:w-[200px] rounded-md"
                 value={currentUsername || ""}
                 onChange={(e) => setCurrentUsername(e.target.value)}
                 placeholder="Enter a cool name..."
                 disabled={!account}
               />
             </div>
-             <div className="flex items-center justify-between">
-              <Label htmlFor="difficulty" className="text-xl">Difficulty</Label>
+             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <Label htmlFor="difficulty" className="text-lg md:text-xl">Difficulty</Label>
               <Select defaultValue="medium">
-                <SelectTrigger id="difficulty" className="w-[180px] rounded-md">
+                <SelectTrigger id="difficulty" className="w-full sm:w-[180px] md:w-[200px] rounded-md">
                   <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
                 <SelectContent>
@@ -140,10 +140,10 @@ const SettingsContent = ({ onBack }: { onBack: () => void }) => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="quality" className="text-xl">Graphics Quality</Label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <Label htmlFor="quality" className="text-lg md:text-xl">Graphics Quality</Label>
               <Select defaultValue="high">
-                <SelectTrigger id="quality" className="w-[180px] rounded-md">
+                <SelectTrigger id="quality" className="w-full sm:w-[180px] md:w-[200px] rounded-md">
                   <SelectValue placeholder="Select quality" />
                 </SelectTrigger>
                 <SelectContent>
@@ -153,26 +153,26 @@ const SettingsContent = ({ onBack }: { onBack: () => void }) => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="effects" className="text-xl">Particle Effects</Label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <Label htmlFor="effects" className="text-lg md:text-xl">Particle Effects</Label>
               <Switch id="effects" defaultChecked />
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="music" className="text-xl">Background Music</Label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <Label htmlFor="music" className="text-lg md:text-xl">Background Music</Label>
               <Switch id="music" defaultChecked />
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="sfx" className="text-xl">Sound Effects</Label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <Label htmlFor="sfx" className="text-lg md:text-xl">Sound Effects</Label>
               <Switch id="sfx" defaultChecked />
             </div>
           </div>
 
-          <div className="mt-8 flex justify-between items-center">
-            <Button onClick={onBack} variant="ghost" className="rounded-lg font-headline text-lg">
-                <ArrowLeft className="mr-2 h-5 w-5" /> Back
+          <div className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
+            <Button onClick={onBack} variant="ghost" className="rounded-lg font-headline text-base md:text-lg w-full sm:w-auto">
+                <ArrowLeft className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Back
             </Button>
-            <Button onClick={handleSave} className="rounded-lg font-headline text-lg">
-              <Save className="mr-2 h-5 w-5" /> Save
+            <Button onClick={handleSave} className="rounded-lg font-headline text-base md:text-lg w-full sm:w-auto">
+              <Save className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Save
             </Button>
           </div>
         </div>
