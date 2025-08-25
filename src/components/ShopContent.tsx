@@ -67,15 +67,33 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
       
       // Transform the API response to our NFT interface
-      const nfts: NFT[] = nftArray.map((nft: any, index: number) => {
-        console.log(`Processing NFT ${index}:`, nft);
+      const nfts: NFT[] = nftArray.map((item: any, index: number) => {
+        console.log(`Processing NFT ${index}:`, item);
+        
+        // Access the nested nft object for metadata
+        const nftData = item.nft || item;
+        const tokenId = item.tokenId || nftData.tokenId || item.id || 'unknown';
+        const contractAddress = item.address || nftData.address || item.contractAddress || 'unknown';
+        
+        console.log(`NFT Data for ${index}:`, nftData);
+        console.log(`NFT Data keys:`, Object.keys(nftData));
+        console.log(`Token ID: ${tokenId}, Contract: ${contractAddress}`);
+        
+        // Check if metadata needs to be fetched from IPFS
+        if (nftData.tokenURI) {
+          console.log(`Token URI found: ${nftData.tokenURI}`);
+        }
+        if (nftData.metadata) {
+          console.log(`Metadata object:`, nftData.metadata);
+        }
+        
         return {
-          tokenId: nft.tokenId || nft.id || nft.token_id || nft.tokenID || 'unknown',
-          contractAddress: nft.contractAddress || nft.contract || nft.contract_address || nft.contractAddr || 'unknown',
-          name: nft.name || nft.title || nft.metadata?.name || `NFT #${nft.tokenId || nft.id || 'unknown'}`,
-          description: nft.description || nft.desc || nft.metadata?.description || "No description available",
-          image: nft.image || nft.imageUrl || nft.image_url || nft.thumbnail || nft.metadata?.image || placeholderImage,
-          metadata: nft
+          tokenId: tokenId,
+          contractAddress: contractAddress,
+          name: nftData.name || nftData.title || nftData.metadata?.name || `NFT #${tokenId}`,
+          description: nftData.description || nftData.desc || nftData.metadata?.description || "No description available",
+          image: nftData.image || nftData.imageUrl || nftData.image_url || nftData.thumbnail || nftData.metadata?.image || placeholderImage,
+          metadata: item
         };
       });
       
