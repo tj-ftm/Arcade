@@ -15,7 +15,7 @@ import { useWeb3 } from "@/components/web3/Web3Provider";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MobileSidebar } from '@/components/layout/MobileSidebar';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,15 +24,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 type View = 'menu' | 'uno' | 'snake' | 'chess' | 'platformer' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno';
+type ActiveView = View | 'shop' | 'uno-multiplayer' | 'chess-multiplayer';
 
 export const GameLayout = () => {
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
   const [view, setView] = useState<View>('menu');
 
   const [showUnoRules, setShowUnoRules] = useState(false);
   const [showChessRules, setShowChessRules] = useState(false);
 
-  const { account, isConnected: web3IsConnected } = useWeb3();
+  const { account } = useWeb3();
+  const web3IsConnected = !!account;
   const { toast } = useToast();
 
   const handleNavigate = useCallback((targetView: View) => {
@@ -390,7 +392,7 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, on
 );
 
 export default function MainApp() {
-  const [activeView, setActiveView] = useState<View>('menu');
+  const [activeView, setActiveView] = useState<ActiveView>('menu');
   const [gameKey, setGameKey] = useState(0);
   const [showUnoRules, setShowUnoRules] = useState(false);
   const [showChessRules, setShowChessRules] = useState(false);
@@ -546,6 +548,11 @@ export default function MainApp() {
 
       {showUnoRules && (
         <GameRulesModal
+          gameName="UNO"
+          rules={[
+            "Wild cards can change the color.",
+            "Say 'UNO' when you have one card left.",
+            "First player to empty their hand wins the round.",
             "Points are scored by cards left in opponents' hands.",
             "First player to 500 points wins the game."
           ]}
