@@ -112,13 +112,17 @@ const TokenomicsChart: React.FC = () => {
       const supply = await contract.totalSupply();
       setTotalSupply(formatEther(supply));
 
+      // Get current block number and limit the range to avoid timeout
+      const currentBlock = await provider.getBlockNumber();
+      const fromBlock = Math.max(0, currentBlock - 10000); // Last ~10k blocks to avoid timeout
+      
       // Fetch past minting events (TokensMinted and Transfer events from address 0x0)
       const tokensMintedFilter = contract.filters.TokensMinted();
       const transferMintFilter = contract.filters.Transfer('0x0000000000000000000000000000000000000000');
 
       const [mintedEvents, transferEvents] = await Promise.all([
-        contract.queryFilter(tokensMintedFilter, 0),
-        contract.queryFilter(transferMintFilter, 0)
+        contract.queryFilter(tokensMintedFilter, fromBlock),
+        contract.queryFilter(transferMintFilter, fromBlock)
       ]);
 
       const allMintEvents: MintEvent[] = [];
