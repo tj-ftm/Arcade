@@ -24,9 +24,21 @@ export default function UnoMultiplayerPage() {
 
   // Keep currentLobby synchronized with Firebase lobby updates
   useEffect(() => {
-    if (currentView === 'game' && firebaseLobby && currentLobby && firebaseLobby.id === currentLobby.id) {
-      console.log('🔄 [UNO PAGE] Updating lobby state from Firebase:', firebaseLobby);
-      setCurrentLobby(firebaseLobby);
+    console.log('🔍 [UNO PAGE] Firebase lobby sync check:', {
+      currentView,
+      hasFirebaseLobby: !!firebaseLobby,
+      firebaseLobbyId: firebaseLobby?.id,
+      hasCurrentLobby: !!currentLobby,
+      currentLobbyId: currentLobby?.id,
+      firebaseLobbyPlayer2Id: firebaseLobby?.player2Id
+    });
+    
+    if (currentView === 'game' && firebaseLobby && currentLobby) {
+      // Update if it's the same lobby or if current lobby doesn't have player2Id but Firebase does
+      if (firebaseLobby.id === currentLobby.id || (!currentLobby.player2Id && firebaseLobby.player2Id)) {
+        console.log('🔄 [UNO PAGE] Updating lobby state from Firebase:', firebaseLobby);
+        setCurrentLobby(firebaseLobby);
+      }
     }
   }, [firebaseLobby, currentView, currentLobby]);
 
