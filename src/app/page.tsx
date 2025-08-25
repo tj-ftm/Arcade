@@ -3,7 +3,8 @@
 
 import { useState, useCallback } from 'react'; // Added a comment to force re-compilation
 import { Button } from "@/components/ui/button";
-import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2 } from "lucide-react";
+import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2, Coins } from "lucide-react";
+import TokenomicsChart from "@/components/web3/TokenomicsChart";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileSidebar } from '@/components/layout/MobileSidebar';
 
@@ -28,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer' | 'platformer';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer' | 'platformer' | 'tokenomics';
 
 // --- Replicated Page Components ---
 
@@ -181,6 +182,20 @@ const MultiplayerContent = ({ onBack }: { onBack: () => void }) => {
     );
 };
 
+const TokenomicsContent = ({ onBack }: { onBack: () => void }) => (
+    <div className="w-full max-w-4xl z-10 animate-fade-in my-auto pt-16 px-4">
+        <div className="bg-black/50 p-6 rounded-xl">
+            <h1 className="text-4xl sm:text-6xl font-headline text-center uppercase tracking-wider mb-4 sm:mb-6 text-accent">Tokenomics</h1>
+            <TokenomicsChart />
+            <div className="flex justify-center mt-8">
+                <Button onClick={onBack} variant="secondary" className="font-headline text-lg">
+                    <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
+                </Button>
+            </div>
+        </div>
+    </div>
+);
+
 const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, onPaidPlay: () => void }) => (
      <div className="w-full h-full max-w-md z-10 text-center my-auto animate-fade-in overflow-y-auto">
         <div className="bg-black/50 p-8 rounded-xl flex flex-col items-center">
@@ -326,6 +341,8 @@ export default function HomePage() {
         return <LeaderboardContent onBack={() => handleNavigate('menu')} />;
       case 'settings':
         return <SettingsContent onBack={() => handleNavigate('menu')} />;
+      case 'tokenomics':
+        return <TokenomicsContent onBack={() => handleNavigate('menu')} />;
        case 'multiplayer':
         return <MultiplayerContent onBack={() => handleNavigate('menu')} />;
       case 'menu':
@@ -355,7 +372,7 @@ export default function HomePage() {
                         </div>
                         <img src="/arcade_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
 
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider">
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-lg sm:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
                             Play
                           </Button>
                          </div>
@@ -469,6 +486,12 @@ export default function HomePage() {
                          {!isMobile && (
                              <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                                  <Settings className="h-5 w-5" />
+                             </Button>
+                         )}
+                         {!isMobile && (
+                             <Button onClick={() => handleNavigate('tokenomics')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                                 <Coins className="mr-2 h-5 w-5" />
+                                 Tokenomics
                              </Button>
                          )}
                      </div>

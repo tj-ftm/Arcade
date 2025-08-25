@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Settings, BarChart, Ticket } from "lucide-react";
+import { Menu, X, Settings, BarChart, Ticket, Coins } from "lucide-react";
 import { ConnectWallet } from '@/components/web3/ConnectWallet';
 import { cn } from '@/lib/utils';
 
 interface MobileSidebarProps {
-  onNavigate: (view: 'leaderboard' | 'settings') => void;
+  onNavigate: (view: 'leaderboard' | 'settings' | 'tokenomics') => void;
   theme?: string;
 
 }
@@ -18,7 +18,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
 
-  const handleNavigation = (view: 'leaderboard' | 'settings') => {
+  const handleNavigation = (view: 'leaderboard' | 'settings' | 'tokenomics') => {
     onNavigate(view);
     closeSidebar();
   };
@@ -119,6 +119,16 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
             >
               <Settings className="mr-3 h-5 w-5" />
               Settings
+            </Button>
+
+            {/* Tokenomics */}
+            <Button
+              onClick={() => handleNavigation('tokenomics')}
+              variant="ghost"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
+            >
+              <Coins className="mr-3 h-5 w-5" />
+              Tokenomics
             </Button>
           </div>
 
