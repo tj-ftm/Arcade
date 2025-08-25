@@ -304,7 +304,7 @@ export default function HomePage() {
         return <ChessClient key={gameKey} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} />;
       case 'uno-multiplayer':
         return (
-          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center">
+          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
             <MultiplayerLobby
               gameType="uno"
               onStartGame={() => {/* Handle game start */}}
@@ -314,7 +314,7 @@ export default function HomePage() {
         );
       case 'chess-multiplayer':
         return (
-          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center">
+          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
             <MultiplayerLobby
               gameType="chess"
               onStartGame={() => {/* Handle game start */}}
