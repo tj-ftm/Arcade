@@ -34,7 +34,7 @@ interface SnakeClientProps {
 }
 
 export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
-    const { account } = useWeb3();
+    const { account, getProvider, getSigner } = useWeb3();
     const isMobile = useIsMobile();
     const gameAreaRef = useRef<HTMLDivElement>(null);
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -138,9 +138,8 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     };
 
     const handleBonusPayment = async () => {
-        const web3Context = useWeb3();
-        const provider = web3Context.getProvider();
-        const signer = web3Context.getSigner();
+        const provider = getProvider();
+        const signer = getSigner();
         
         if (!provider || !signer || !account) {
             alert('Please connect your wallet first');

@@ -57,7 +57,7 @@ interface ChessClientProps {
 }
 
 export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientProps = {}) => {
-    const { account } = useWeb3();
+    const { account, getProvider, getSigner } = useWeb3();
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
     const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
@@ -245,9 +245,8 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
     };
 
     const handleBonusPayment = async () => {
-        const web3Context = useWeb3();
-        const provider = web3Context.getProvider();
-        const signer = web3Context.getSigner();
+        const provider = getProvider();
+        const signer = getSigner();
         
         if (!provider || !signer || !account) {
             alert('Please connect your wallet first');

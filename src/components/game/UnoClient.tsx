@@ -153,7 +153,7 @@ interface UnoClientProps {
 }
 
 export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps) => {
-    const { username, account } = useWeb3();
+    const { username, account, getProvider, getSigner } = useWeb3();
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [flyingCard, setFlyingCard] = useState<FlyingCard | null>(null);
@@ -303,9 +303,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
     }, [username]);
 
     const handleBonusPayment = async () => {
-        const web3Context = useWeb3();
-        const provider = web3Context.getProvider();
-        const signer = web3Context.getSigner();
+        const provider = getProvider();
+        const signer = getSigner();
         
         if (!provider || !signer || !account) {
             alert('Please connect your wallet first');
