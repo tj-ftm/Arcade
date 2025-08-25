@@ -407,7 +407,8 @@ export default function HomePage() {
   
   const showMainMenuHeader = activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer';
   const showMultiplayerHeader = activeView === 'uno-multiplayer' || activeView === 'chess-multiplayer';
-  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader;
+  const showShopHeader = activeView === 'shop';
+  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader;
 
   return (
       <main className={`flex h-screen flex-col items-center overflow-hidden relative ${getBackgroundClass()}`}>
@@ -432,13 +433,18 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 z-0"></div>
                 
             </>
+        ) : activeView === 'shop' ? (
+            <>
+                <div className="absolute inset-0 bg-yellow-600 bg-gradient-to-br from-yellow-500 via-orange-500 to-orange-600 z-0"></div>
+                
+            </>
         ) : null}
 
         
         {showMainMenuHeader && (
-             <header className="w-full z-10 animate-fade-in flex-shrink-0 p-4 sm:p-4">
-                <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-3 sm:p-2 border-b-2 border-primary/50 rounded-lg">
-                    <div className="flex items-center gap-1 sm:gap-2">
+             <header className="w-full z-10 animate-fade-in flex-shrink-0 pt-4 sm:pt-4">
+                <div className="flex justify-between items-center p-3 sm:p-2">
+                    <div className="flex items-center gap-1 sm:gap-2 order-last">
 
                          {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={activeView === 'snake' ? 'snake' : activeView === 'chess' ? 'chess' : undefined} />}
                          {!isMobile && (
@@ -452,7 +458,7 @@ export default function HomePage() {
                              </Button>
                          )}
                      </div>
-                     <div className="flex-grow flex justify-center">
+                     <div className="flex-grow flex justify-center order-2">
                          <button onClick={() => handleNavigate('menu')}>
                              <h1 className="text-4xl sm:text-6xl font-headline uppercase tracking-wider bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 bg-clip-text text-transparent" style={{ WebkitTextStroke: '2px black' }}>
                                  Sonic Arcade
@@ -470,9 +476,9 @@ export default function HomePage() {
          )}
 
          {showMultiplayerHeader && (
-             <header className="absolute top-0 left-0 w-full z-20 p-0">
+             <header className="absolute top-5 left-0 w-full z-20 p-0">
                 <div className="flex justify-between items-center w-full">
-                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-left">
                         Main Menu
                     </Button>
                     <div className="flex items-center gap-2">
@@ -485,11 +491,25 @@ export default function HomePage() {
             </header>
         )}
 
-         {isGameActive && activeView !== 'platformer' && !showMultiplayerHeader && (
-             <header className="absolute top-0 left-0 w-full z-20 px-1 pb-1 sm:px-2 sm:pb-2">
+         {showShopHeader && (
+             <header className="absolute top-5 left-0 w-full z-20 px-1 pb-1 sm:px-2 sm:pb-2">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                        <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
+                        <span className="text-lg text-left">Main Menu</span>
+                    </Button>
+                    <div className="flex items-center gap-2">
+                         {!isMobile && <ConnectWallet />}
+                         {isMobile && <MobileSidebar onNavigate={handleNavigate} theme="shop" />}
+                     </div>
+                </div>
+            </header>
+        )}
+
+         {isGameActive && activeView !== 'platformer' && !showMultiplayerHeader && (
+             <header className="absolute top-5 left-0 w-full z-20 px-1 pb-1 sm:px-2 sm:pb-2">
+                <div className="flex justify-between items-center w-full">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
+                        Main Menu
                     </Button>
                     <div className="hidden md:block">
                         <ConnectWallet />
@@ -499,7 +519,7 @@ export default function HomePage() {
             </header>
         )}
         
-        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative z-10" style={{paddingTop: (isGameActive && activeView !== 'platformer') || showMultiplayerHeader ? '80px' : showMainMenuHeader ? '0' : '0', minHeight: 0}}>
+        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: (isGameActive && activeView !== 'platformer') || showMultiplayerHeader || showShopHeader ? '80px' : showMainMenuHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>
