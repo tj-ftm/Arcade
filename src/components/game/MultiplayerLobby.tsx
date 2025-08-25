@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,6 +32,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const [activeTab, setActiveTab] = useState('browse');
   const [gameStarting, setGameStarting] = useState(false);
   const [gameStartTimeout, setGameStartTimeout] = useState<NodeJS.Timeout | null>(null);
+  const gameStartingRef = useRef(false);
   
   const { onLobbyJoined, startGame } = useFirebaseMultiplayer();
   const { account } = useWeb3();
@@ -39,12 +40,19 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const currentUserId = account || `guest-${Date.now()}`;
   
   const handleGameStart = useCallback(async (lobby: Lobby, isHost: boolean) => {
+    // Prevent multiple game starts
+    if (gameStartingRef.current) {
+      console.log('🚫 [MULTIPLAYER LOBBY] Game already starting, ignoring duplicate call');
+      return;
+    }
+    
     console.log('🎯 [MULTIPLAYER LOBBY] Game start triggered:', {
       lobby: lobby,
       isHost: isHost,
-      gameStarting: gameStarting,
       currentUserId: currentUserId
     });
+    
+    gameStartingRef.current = true;
     
     // Clear any existing timeout
     setGameStartTimeout(prev => {
@@ -73,10 +81,11 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       onStartGame?.(updatedLobby, isHost);
       console.log('🎮 [MULTIPLAYER LOBBY] onStartGame callback completed');
       setGameStartTimeout(null);
+      gameStartingRef.current = false; // Reset the ref when done
     }, 1500); // Reduced delay since we're now properly managing state
     
     setGameStartTimeout(timeout);
-  }, [onStartGame, startGame, gameStarting, currentUserId]);
+  }, [onStartGame, startGame]);
 
   // Set up lobby joined callback for both host and joining player
   useEffect(() => {
@@ -84,8 +93,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     const unsubscribe = onLobbyJoined((lobby: Lobby) => {
       console.log('🔔 [MULTIPLAYER LOBBY] Lobby joined callback triggered:', {
         lobby: lobby,
-        currentUserId: currentUserId,
-        gameStarting: gameStarting
+        currentUserId: currentUserId
       });
       
       const isHost = currentUserId === lobby.player1Id;
@@ -96,27 +104,26 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
         isJoiningPlayer: isJoiningPlayer,
         player1Id: lobby.player1Id,
         player2Id: lobby.player2Id,
-        hasPlayer2: !!lobby.player2Id,
-        gameStarting: gameStarting
+        hasPlayer2: !!lobby.player2Id
       });
       
       // Trigger for both host and joining player when lobby has both players
-      if ((isHost || isJoiningPlayer) && lobby.player2Id && !gameStarting) {
+      if ((isHost || isJoiningPlayer) && lobby.player2Id && !gameStartingRef.current) {
         console.log('🚀 [MULTIPLAYER LOBBY] Conditions met, starting game:', {
           isHost: isHost,
           isJoiningPlayer: isJoiningPlayer,
           hasPlayer2: !!lobby.player2Id,
-          gameStarting: gameStarting
+          gameStarting: gameStartingRef.current
         });
         handleGameStart(lobby, isHost);
       } else {
         console.log('⏸️ [MULTIPLAYER LOBBY] Game start conditions not met:', {
           isHostOrJoining: isHost || isJoiningPlayer,
           hasPlayer2: !!lobby.player2Id,
-          gameStarting: gameStarting,
+          gameStarting: gameStartingRef.current,
           reason: !isHost && !isJoiningPlayer ? 'Not host or joining player' :
                   !lobby.player2Id ? 'No player 2' :
-                  gameStarting ? 'Game already starting' : 'Unknown'
+                  gameStartingRef.current ? 'Game already starting' : 'Unknown'
         });
       }
     });
@@ -124,7 +131,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       console.log('🔇 [MULTIPLAYER LOBBY] Unsubscribing from lobby joined listener');
       unsubscribe();
     };
-  }, [currentUserId, onLobbyJoined, handleGameStart, gameStarting]);
+  }, [currentUserId, onLobbyJoined]);
   
   // Cleanup timeout on unmount
   useEffect(() => {
