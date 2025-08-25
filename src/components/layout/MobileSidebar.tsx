@@ -91,11 +91,11 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
 
           {/* Menu Items */}
           <div className={cn(
-            "flex flex-col space-y-2 rounded-lg",
+            "flex flex-col gap-2 rounded-lg",
             (theme === 'snake' || theme === 'chess') ? 'bg-transparent' : 'bg-red-800'
           )}>
             {/* Wallet Connect */}
-            <div className="mb-2">
+            <div>
               <ConnectWallet />
             </div>
 
