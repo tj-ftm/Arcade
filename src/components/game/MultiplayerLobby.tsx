@@ -160,16 +160,9 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       gameStarting: gameStarting
     });
     
-    // Immediately show loading screen for joining player
-    const isHost = currentUserId === lobby.player1Id;
-    console.log('🔍 [MULTIPLAYER LOBBY] Join lobby analysis:', {
-      isHost: isHost,
-      player1Id: lobby.player1Id,
-      player2Id: lobby.player2Id
-    });
-    
-    console.log('🚀 [MULTIPLAYER LOBBY] Calling handleGameStart from handleJoinLobby');
-    handleGameStart(lobby, isHost);
+    console.log('⏳ [MULTIPLAYER LOBBY] Player joined lobby, waiting for Firebase update to trigger game start');
+    // Don't immediately start the game - let the onLobbyJoined listener handle it
+    // when Firebase updates the lobby with the second player's information
   };
 
   const handleBackToMenu = () => {

@@ -23,9 +23,9 @@ interface UseFirebaseMultiplayerReturn {
   startGame: (lobbyId: string) => Promise<void>;
   sendGameMove: (lobbyId: string, moveData: any) => Promise<void>;
   onGameMove: (callback: (moveData: any) => void) => () => void;
-  onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
-  onLobbyLeft: (callback: (lobby: Lobby) => void) => void;
-  onLobbyClosed: (callback: () => void) => void;
+  onLobbyJoined: (callback: (lobby: Lobby) => void) => () => void;
+  onLobbyLeft: (callback: (lobby: Lobby) => void) => () => void;
+  onLobbyClosed: (callback: () => void) => () => void;
 }
 
 export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
