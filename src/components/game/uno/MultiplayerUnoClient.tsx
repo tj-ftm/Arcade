@@ -530,8 +530,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         
         if (isMobile) {
             // Mobile: Use much larger spacing for touch-friendly interaction
-            const spacingMultiplier = 40;
-            const maxSpreadLimit = 400;
+             const spacingMultiplier = 50; // Increased from 40 to 50
+             const maxSpreadLimit = 500; // Increased from 400 to 500
             const maxSpread = Math.min(handSize * spacingMultiplier, maxSpreadLimit);
             const finalSpread = maxSpread / handSize;
             const startOffset = -(maxSpread / 2) + (finalSpread / 2);
@@ -547,7 +547,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             const availableSpace = containerWidth - (cardWidth * 0.5);
             const maxCards = Math.max(handSize, 1);
             const spreadPercentage = Math.min(availableSpace / maxCards / containerWidth * 100, 120);
-            const minSpreadPercentage = 60; // Minimum spacing for desktop
+            const minSpreadPercentage = 80; // Increased minimum spacing for desktop from 60 to 80
             const finalSpread = Math.max(spreadPercentage, minSpreadPercentage);
             const totalSpread = (maxCards - 1) * finalSpread;
             const startOffset = -totalSpread / 2;
