@@ -38,6 +38,12 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
   const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
   const [lobbyClosedCallbacks, setLobbyClosedCallbacks] = useState<(() => void)[]>([]);
   const [gameMovesListeners, setGameMovesListeners] = useState<{[lobbyId: string]: () => void}>({});
+  const gameMovesCallbacksRef = useRef<((moveData: any) => void)[]>([]);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    gameMovesCallbacksRef.current = gameMovesCallbacks;
+  }, [gameMovesCallbacks]);
 
   useEffect(() => {
     // Try to connect to Firebase
@@ -284,7 +290,8 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         const latestMove = moves[moves.length - 1];
         if (latestMove && latestMove.moveData) {
           console.log('🔥 [FIREBASE] Game move received for lobby', lobbyId, ':', latestMove.moveData);
-          gameMovesCallbacks.forEach(callback => callback(latestMove.moveData));
+          console.log('🔥 [FIREBASE] Current callbacks count:', gameMovesCallbacksRef.current.length);
+          gameMovesCallbacksRef.current.forEach(callback => callback(latestMove.moveData));
         }
       }
     });
