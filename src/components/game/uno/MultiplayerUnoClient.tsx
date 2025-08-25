@@ -215,7 +215,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
          };
          console.log('🔍 [UNO MULTIPLAYER] Checking initialization conditions:', JSON.stringify(conditions, null, 2));
         
-        if (lobby.player2Id && lobby.status === 'playing' && !gameState) {
+        if (lobby.player2Id && (lobby.status === 'playing' || lobby.status === 'waiting') && !gameState) {
             console.log('🎮 [UNO MULTIPLAYER] Both players present, checking if game needs initialization');
             
             // Add a delay to ensure Firebase listeners are set up
@@ -235,14 +235,17 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
 
     // Handle loading state
     useEffect(() => {
-        if (!lobby.player2Id && lobby.status !== 'playing') {
-            console.log('⏳ [UNO MULTIPLAYER] Waiting for opponent or game to start');
+        if (!lobby.player2Id) {
+            console.log('⏳ [UNO MULTIPLAYER] Waiting for opponent to join');
+            setIsLoadingGame(true);
+        } else if (!gameState) {
+            console.log('⏳ [UNO MULTIPLAYER] Waiting for game initialization');
             setIsLoadingGame(true);
         } else {
             console.log('✅ [UNO MULTIPLAYER] Game ready, both players present');
             setIsLoadingGame(false);
         }
-    }, [lobby.player2Id, lobby.status]);
+    }, [lobby.player2Id, gameState]);
 
     const initializeGame = () => {
         const deck = shuffleDeck(createDeck());
