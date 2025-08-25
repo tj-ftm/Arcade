@@ -513,9 +513,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
     const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
 
-    // Hand styling function
+    // Hand styling function - improved spacing for better clickability
     const handStyle = (index: number, handSize: number) => {
-        const maxSpread = Math.min(handSize * 8, 80);
+        // Increased spacing: handSize * 15 instead of 8, max spread 150 instead of 80
+        const maxSpread = Math.min(handSize * 15, 150);
         const finalSpread = maxSpread / handSize;
         const startOffset = -(maxSpread / 2) + (finalSpread / 2);
         const translateX = startOffset + index * finalSpread;
