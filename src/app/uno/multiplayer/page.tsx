@@ -33,14 +33,12 @@ export default function UnoMultiplayerPage() {
       firebaseLobbyPlayer2Id: firebaseLobby?.player2Id
     });
     
-    if (currentView === 'game' && firebaseLobby && currentLobby) {
-      // Update if it's the same lobby or if current lobby doesn't have player2Id but Firebase does
-      if (firebaseLobby.id === currentLobby.id || (!currentLobby.player2Id && firebaseLobby.player2Id)) {
-        console.log('🔄 [UNO PAGE] Updating lobby state from Firebase:', firebaseLobby);
-        setCurrentLobby(firebaseLobby);
-      }
+    // Always use Firebase lobby data when in game view and Firebase has lobby data
+    if (currentView === 'game' && firebaseLobby) {
+      console.log('🔄 [UNO PAGE] Using Firebase lobby data:', firebaseLobby);
+      setCurrentLobby(firebaseLobby);
     }
-  }, [firebaseLobby, currentView, currentLobby]);
+  }, [firebaseLobby, currentView]);
 
   const handleStartGame = (lobby: Lobby, isHostPlayer: boolean) => {
     console.log('handleStartGame called with:', { lobby, isHostPlayer });
