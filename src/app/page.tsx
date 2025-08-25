@@ -183,17 +183,7 @@ const MultiplayerContent = ({ onBack }: { onBack: () => void }) => {
 };
 
 const TokenomicsContent = ({ onBack }: { onBack: () => void }) => (
-    <div className="w-full max-w-4xl z-10 animate-fade-in my-auto pt-16 px-4">
-        <div className="bg-black/50 p-6 rounded-xl">
-            <h1 className="text-4xl sm:text-6xl font-headline text-center uppercase tracking-wider mb-4 sm:mb-6 text-accent">Tokenomics</h1>
-            <TokenomicsChart />
-            <div className="flex justify-center mt-8">
-                <Button onClick={onBack} variant="secondary" className="font-headline text-lg">
-                    <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
-                </Button>
-            </div>
-        </div>
-    </div>
+    <TokenomicsChart onBack={onBack} />
 );
 
 const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, onPaidPlay: () => void }) => (
@@ -424,7 +414,8 @@ export default function HomePage() {
           case 'chess':
           case 'chess-multiplayer':
               return 'bg-purple-900/50';
-
+          case 'tokenomics':
+              return 'bg-orange-500';
           case 'shop':
               return 'bg-transparent';
           case 'menu':
@@ -467,6 +458,11 @@ export default function HomePage() {
         ) : activeView === 'shop' ? (
             <>
                 <div className="absolute inset-0 bg-yellow-600 bg-gradient-to-br from-yellow-500 via-orange-500 to-orange-600 z-0"></div>
+                
+            </>
+        ) : activeView === 'tokenomics' ? (
+            <>
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 z-0"></div>
                 
             </>
         ) : null}

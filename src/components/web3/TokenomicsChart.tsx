@@ -6,6 +6,8 @@ import { ARC_TOKEN_ADDRESS } from '@/types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 // Full ABI from contractabi.json (simplified for relevant functions/events)
 const ARC_TOKEN_FULL_ABI = [
@@ -75,7 +77,11 @@ interface MintEvent {
   txHash: string;
 }
 
-const TokenomicsChart: React.FC = () => {
+interface TokenomicsChartProps {
+  onBack?: () => void;
+}
+
+const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
   const [totalSupply, setTotalSupply] = useState<string | null>(null);
   const [mintEvents, setMintEvents] = useState<MintEvent[]>([]);
   const [chartData, setChartData] = useState<{ date: string; minted: number }[]>([]);
@@ -86,8 +92,21 @@ const TokenomicsChart: React.FC = () => {
     if (typeof window !== "undefined" && window.ethereum) {
       return new ethers.BrowserProvider(window.ethereum);
     } else if (typeof process.env.NEXT_PUBLIC_RPC_URL === 'string' && process.env.NEXT_PUBLIC_RPC_URL.length > 0) {
-      // Fallback for environments without window.ethereum (e.g., server-side or if wallet not connected)
-      return new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+      // Try multiple RPC endpoints for better reliability
+      const rpcUrls = [
+        process.env.NEXT_PUBLIC_RPC_URL,
+        'https://rpc.sonic.fantom.network/', // Alternative Sonic RPC
+        'https://sonic-mainnet.gateway.tatum.io/' // Another alternative
+      ];
+      
+      // Return the first available RPC URL
+      for (const url of rpcUrls) {
+        try {
+          return new ethers.JsonRpcProvider(url);
+        } catch (error) {
+          console.warn(`Failed to connect to RPC: ${url}`);
+        }
+      }
     }
     return null;
   }, []);
@@ -112,18 +131,53 @@ const TokenomicsChart: React.FC = () => {
       const supply = await contract.totalSupply();
       setTotalSupply(formatEther(supply));
 
-      // Get current block number and limit the range to avoid timeout
+      // Fetch all historical minting events using pagination to avoid timeout
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 10000); // Last ~10k blocks to avoid timeout
-      
-      // Fetch past minting events (TokensMinted and Transfer events from address 0x0)
       const tokensMintedFilter = contract.filters.TokensMinted();
       const transferMintFilter = contract.filters.Transfer('0x0000000000000000000000000000000000000000');
-
-      const [mintedEvents, transferEvents] = await Promise.all([
-        contract.queryFilter(tokensMintedFilter, fromBlock),
-        contract.queryFilter(transferMintFilter, fromBlock)
-      ]);
+      
+      // Use pagination to fetch all events in chunks
+      const chunkSize = 5000; // Smaller chunks to avoid timeout
+      let allMintedEvents: any[] = [];
+      let allTransferEvents: any[] = [];
+      
+      // Start from a more recent block to get meaningful data faster
+       // Most tokens are likely minted in recent blocks
+       const startBlock = Math.max(0, currentBlock - 50000); // Last ~50k blocks for better coverage
+       
+       console.log(`Fetching minting events from block ${startBlock} to ${currentBlock}`);
+       
+       // Fetch events in chunks
+       for (let fromBlock = startBlock; fromBlock <= currentBlock; fromBlock += chunkSize) {
+         const toBlock = Math.min(fromBlock + chunkSize - 1, currentBlock);
+         
+         try {
+           console.log(`Fetching events for blocks ${fromBlock}-${toBlock}`);
+           
+           const [mintedChunk, transferChunk] = await Promise.all([
+             contract.queryFilter(tokensMintedFilter, fromBlock, toBlock),
+             contract.queryFilter(transferMintFilter, fromBlock, toBlock)
+           ]);
+           
+           allMintedEvents = allMintedEvents.concat(mintedChunk);
+           allTransferEvents = allTransferEvents.concat(transferChunk);
+           
+           console.log(`Found ${mintedChunk.length} TokensMinted and ${transferChunk.length} Transfer events`);
+           
+           // Add a small delay to avoid overwhelming the RPC
+           await new Promise(resolve => setTimeout(resolve, 200));
+         } catch (chunkError) {
+           console.warn(`Failed to fetch events for blocks ${fromBlock}-${toBlock}:`, chunkError);
+           // If we get too many failures, break to avoid infinite retries
+           if (chunkError.message && chunkError.message.includes('timeout')) {
+             console.log('RPC timeout detected, stopping chunk fetching');
+             break;
+           }
+         }
+       }
+      
+      const mintedEvents = allMintedEvents;
+      const transferEvents = allTransferEvents;
 
       const allMintEvents: MintEvent[] = [];
 
@@ -193,8 +247,22 @@ const TokenomicsChart: React.FC = () => {
   }, [fetchTokenData]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card className="bg-black/30 text-white border-none">
+    <div className="w-full h-full flex flex-col z-10 animate-fade-in overflow-y-auto">
+      {/* Title and Back Button */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
+        <h1 className="text-4xl sm:text-6xl font-headline text-center uppercase tracking-wider mb-6 text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Tokenomics</h1>
+        {onBack && (
+          <div className="flex justify-center mb-6">
+            <Button onClick={onBack} variant="secondary" className="font-headline text-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30">
+              <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
+            </Button>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
         <CardHeader>
           <CardTitle className="text-accent">Current Total Supply</CardTitle>
         </CardHeader>
@@ -209,7 +277,7 @@ const TokenomicsChart: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-black/30 text-white border-none">
+      <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
         <CardHeader>
           <CardTitle className="text-accent">Minted Tokens Over Time</CardTitle>
         </CardHeader>
@@ -249,7 +317,7 @@ const TokenomicsChart: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-2 bg-black/30 text-white border-none">
+      <Card className="lg:col-span-2 bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
         <CardHeader>
           <CardTitle className="text-accent">Minting Log</CardTitle>
         </CardHeader>
@@ -284,6 +352,8 @@ const TokenomicsChart: React.FC = () => {
           </ScrollArea>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 };
