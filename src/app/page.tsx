@@ -533,7 +533,7 @@ export default function HomePage() {
             </header>
         )}
         
-        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: (isGameActive && activeView !== 'platformer') || showMultiplayerHeader || showShopHeader ? '80px' : showMainMenuHeader ? '0' : '0', minHeight: 0}}>
+        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: showMainMenuHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>
