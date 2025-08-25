@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 const ShopContent = ({ onBack }: { onBack: () => void }) => {
   return (
-      <div className="w-full h-full max-w-4xl z-10 animate-fade-in my-auto overflow-y-auto">
+      <div className="w-full h-full max-w-4xl animate-fade-in my-auto">
         <div className="w-full flex-1 flex flex-col items-center justify-center pt-8 sm:pt-8 px-2">
         <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-2 w-full max-w-xs sm:max-w-none mx-auto">
           <div className="sm:flex-1 animate-fade-in text-center">
