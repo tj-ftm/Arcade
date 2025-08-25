@@ -10,7 +10,7 @@ export const SnakeStartScreen = ({ onStartGame }: SnakeStartScreenProps) => {
     <div className="absolute inset-0 bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-lime-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
       <div className="text-center">
-        <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-headline text-green-600 uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '4px black', textShadow: '0 0 20px rgba(0, 128, 0, 0.5)' }}>
+        <h1 className="text-7xl sm:text-7xl md:text-8xl lg:text-9xl font-headline text-green-600 uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '0.5px white', textShadow: '0 0 20px rgba(0, 128, 0, 0.5)' }}>
           SNAKE
         </h1>
       </div>

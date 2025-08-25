@@ -37,7 +37,6 @@ const TOKEN_CONTRACT_ABI = [
 ];
 
 interface GameCompleteRequest {
-  playerWon?: boolean;
   playerAddress: string;
   gameType: string;
   score: number;
@@ -148,12 +147,6 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   let provider, signer, tokenContract;
   try {
     console.log('Initializing blockchain connection...');
-    if (!MINTER_PRIVATE_KEY) {
-      throw new Error('MINTER_PRIVATE_KEY is not set');
-    }
-    if (!TOKEN_CONTRACT_ADDRESS) {
-      throw new Error('TOKEN_CONTRACT_ADDRESS is not set');
-    }
     provider = new ethers.JsonRpcProvider(RPC_URL);
     signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
     tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
