@@ -440,7 +440,7 @@ export default function HomePage() {
                 <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-3 sm:p-2 border-b-2 border-primary/50 rounded-lg">
                     <div className="flex items-center gap-1 sm:gap-2">
 
-                         {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
+                         {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={activeView === 'snake' ? 'snake' : activeView === 'chess' ? 'chess' : undefined} />}
                          {!isMobile && (
                              <Button onClick={() => handleNavigate('leaderboard')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
                                  Leaderboard

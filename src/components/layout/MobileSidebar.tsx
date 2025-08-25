@@ -8,10 +8,11 @@ import { cn } from '@/lib/utils';
 
 interface MobileSidebarProps {
   onNavigate: (view: 'leaderboard' | 'settings') => void;
+  theme?: string;
 
 }
 
-export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
+export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -52,7 +53,7 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
           !isOpen && "pointer-events-none"
         )}
         style={{
-          background: 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)',
+          background: theme ? `var(--${theme}-gradient)` : 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)',
           backdropFilter: 'blur(10px)',
           width: '100vw',
           height: '100vh',

@@ -30,6 +30,9 @@ body {
     --input: 217.2 32.6% 17.5%;
     --ring: 3.7 90.2% 52.9%;
     --radius: 0.5rem;
+    --uno-gradient: linear-gradient(to bottom right, #FF0000, #8B0000);
+    --snake-gradient: linear-gradient(to bottom right, #00FF00, #006400);
+    --chess-gradient: linear-gradient(to bottom right, #800080, #4B0082);
   }
   .dark {
     --background: 222 84% 4%;
@@ -51,6 +54,9 @@ body {
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 3.7 90.2% 52.9%;
+    --uno-gradient: linear-gradient(to bottom right, #FF0000, #8B0000);
+    --snake-gradient: linear-gradient(to bottom right, #00FF00, #006400);
+    --chess-gradient: linear-gradient(to bottom right, #800080, #4B0082);
   }
 }
 
