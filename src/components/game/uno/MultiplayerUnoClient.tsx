@@ -177,6 +177,17 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const [isMinting, setIsMinting] = useState(false);
     const [tokensEarned, setTokensEarned] = useState(0);
     const [hasWon, setHasWon] = useState<boolean>(false);
+    const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+    // Handle window resize for responsive card spacing
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowWidth(window.innerWidth);
+        };
+        
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const playerHandRef = useRef<HTMLDivElement>(null);
     
@@ -513,9 +524,16 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
     const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
 
-    // Hand styling function - increased spacing for better card selection
+    // Hand styling function - mobile-responsive spacing for better card selection
     const handStyle = (index: number, handSize: number) => {
-        const maxSpread = Math.min(handSize * 15, 150); // Increased from 8 to 15, max from 80 to 150
+        // Detect mobile screen size
+        const isMobile = windowWidth < 768;
+        
+        // Use much larger spacing on mobile for touch-friendly interaction
+        const spacingMultiplier = isMobile ? 25 : 15; // Mobile gets 67% more spacing
+        const maxSpreadLimit = isMobile ? 250 : 150; // Mobile gets higher max spread
+        
+        const maxSpread = Math.min(handSize * spacingMultiplier, maxSpreadLimit);
         const finalSpread = maxSpread / handSize;
         const startOffset = -(maxSpread / 2) + (finalSpread / 2);
         const translateX = startOffset + index * finalSpread;
