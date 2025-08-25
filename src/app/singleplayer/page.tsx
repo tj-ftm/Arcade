@@ -4,7 +4,7 @@
 import { UnoClient } from '@/components/game/UnoClient';
 import { GameLayout } from '@/components/layout/GameLayout';
 import { useWeb3 } from '@/components/web3/Web3Provider';
-import { PayToPlayModal } from '@/components/web3/PayToPlayModal';
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Ticket, Play } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function SinglePlayerPage() {
           <UnoClient key={gameId} onGameEnd={handleGameEnd} />
         )}
         {gameState === 'paying' && (
-            <PayToPlayModal onPaymentSuccess={handlePaymentSuccess} onCancel={() => setGameState('idle')} />
+          
         )}
         {gameState === 'idle' && (
            <div className="w-full max-w-md z-10 text-center my-auto animate-fade-in">

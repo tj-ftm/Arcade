@@ -52,9 +52,10 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 
 interface ChessClientProps {
   onNavigateToMultiplayer?: () => void;
+  onGameEnd?: () => void;
 }
 
-export const ChessClient = ({ onNavigateToMultiplayer }: ChessClientProps = {}) => {
+export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientProps = {}) => {
     const { account } = useWeb3();
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
@@ -72,6 +73,7 @@ export const ChessClient = ({ onNavigateToMultiplayer }: ChessClientProps = {}) 
     const [showStartScreen, setShowStartScreen] = useState(true);
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
     const [isMinting, setIsMinting] = useState(false);
+    const [score, setScore] = useState(0);
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -118,7 +120,7 @@ export const ChessClient = ({ onNavigateToMultiplayer }: ChessClientProps = {}) 
     const handleGameEnd = async (playerWon: boolean, endReason: string) => {
         setShowEndGameScreen(true);
         // Only log game if wallet is connected
-        if (!isValidWalletAddress(account) || isLoggingGame) {
+        if (!isValidWalletAddress(account || '') || isLoggingGame) {
             return;
         }
 
@@ -134,18 +136,20 @@ export const ChessClient = ({ onNavigateToMultiplayer }: ChessClientProps = {}) 
             }
             
             const gameResult = createGameResult(
-                account!,
+                account || '',
                 'chess',
                 score,
                 playerWon,
                 gameDuration
             );
             
+            setScore(score);
+            
             const logResponse = await logGameCompletion(gameResult);
             if (playerWon && logResponse?.mintTransaction) {
                 setIsMinting(true);
                 setTimeout(() => {
-                    setMintTxHash(logResponse.mintTransaction);
+                    setMintTxHash(logResponse.mintTransaction || '');
                     setIsMinting(false);
                 }, 3000); // Simulate 3-second minting process
             }

@@ -23,7 +23,7 @@ interface UseFirebaseMultiplayerReturn {
   joinLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
   leaveLobby: (lobbyId: string, playerId?: string) => Promise<void>;
   sendGameMove: (lobbyId: string, moveData: any) => Promise<void>;
-  onGameMove: (callback: (moveData: any) => void) => void;
+  onGameMove: (callback: (moveData: any) => void) => () => void;
   onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
   onLobbyLeft: (callback: (lobby: Lobby) => void) => void;
   onLobbyClosed: (callback: () => void) => void;
@@ -49,16 +49,20 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       return;
     }
 
+
     try {
       // Listen to lobbies
       const lobbiesRef = ref(database, 'lobbies');
       const unsubscribeLobbies = onValue(lobbiesRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const lobbiesArray = Object.entries(data).map(([key, value]: [string, any]) => ({
-            ...value,
-            id: key
-          }));
+          const lobbiesArray: any[] = [];
+          Object.entries(data).forEach(([key, value]: [string, any]) => {
+            lobbiesArray.push({
+              ...value,
+              id: key
+            });
+          });
           setLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting'));
         } else {
           setLobbies([]);
@@ -71,6 +75,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         off(lobbiesRef);
         setIsConnected(false);
       };
+    
     } catch (error) {
       console.error('Firebase connection error:', error);
       setIsConnected(false);
@@ -83,14 +88,17 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     return `${prefix}-${pin}`;
   };
 
-  const createLobby = async (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => {
+
+
+
+  const createLobby = async (gameType: 'chess' | 'uno', player1Name: string, player1Id: string): Promise<void> => {
     if (!isConnected) return;
 
     try {
       const lobbyId = generateLobbyId(gameType);
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
-      const colors = Math.random() < 0.5 ? { player1: 'white', player2: 'black' } : { player1: 'black', player2: 'white' };
+      const colors = Math.random() < 0.5 ? { player1: 'white' as const, player2: 'black' as const } : { player1: 'black' as const, player2: 'white' as const };
       const newLobby: Omit<Lobby, 'id'> = {
         gameType,
         player1Id,
@@ -98,7 +106,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         status: 'waiting',
         createdAt: serverTimestamp(),
         player1Color: colors.player1,
-        player2Color: colors.player2
+        player2Color: colors.player2,
       };
 
       await set(lobbyRef, newLobby);
@@ -122,8 +130,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           lobbyClosedCallbacks.forEach(callback => callback());
         }
       });
-
-      return () => off(lobbyRef);
     } catch (error) {
       console.error('Error creating lobby:', error);
       throw error;
@@ -147,8 +153,8 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       }
 
       // Update lobby with player 2
-      const assignedPlayer1Color = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
-      const assignedPlayer2Color = lobbyData.player2Color || (assignedPlayer1Color === 'white' ? 'black' : 'white');
+      const assignedPlayer1Color: 'white' | 'black' = lobbyData.player1Color || (Math.random() < 0.5 ? 'white' : 'black');
+      const assignedPlayer2Color: 'white' | 'black' = lobbyData.player2Color || (assignedPlayer1Color === 'white' ? 'black' : 'white');
 
       const updatedLobbyData = {
         ...lobbyData,
@@ -181,8 +187,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         }
       });
 
-      // Clean up listener when component unmounts or lobby is left
-      return () => off(lobbyRef);
 
     } catch (error) {
       console.error('Error joining lobby:', error);
@@ -230,9 +234,11 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       console.error('Error sending game move:', error);
     }
   };
-
   const onGameMove = useCallback((callback: (moveData: any) => void) => {
     setGameMovesCallbacks(prev => [...prev, callback]);
+    return () => {
+      setGameMovesCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
   }, []);
 
   const onLobbyJoined = useCallback((callback: (lobby: Lobby) => void) => {
@@ -244,10 +250,16 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
   const onLobbyLeft = useCallback((callback: (lobby: Lobby) => void) => {
     setLobbyLeftCallbacks(prev => [...prev, callback]);
+    return () => {
+      setLobbyLeftCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
   }, []);
 
   const onLobbyClosed = useCallback((callback: () => void) => {
     setLobbyClosedCallbacks(prev => [...prev, callback]);
+    return () => {
+      setLobbyClosedCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
   }, []);
 
   return {

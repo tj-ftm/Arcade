@@ -28,7 +28,11 @@ const SnakeCell = ({ type }: { type: 'snake' | 'food' | 'empty' }) => {
     return <div className={cn("w-full h-full flex items-center justify-center")}><div className={cn("w-full h-full", cellClasses[type])}></div></div>;
 };
 
-export const SnakeClient = () => {
+interface SnakeClientProps {
+  onGameEnd?: () => void;
+}
+
+export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     const { account } = useWeb3();
     const isMobile = useIsMobile();
     const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -47,7 +51,7 @@ export const SnakeClient = () => {
     const [showEndGameScreen, setShowEndGameScreen] = useState(false);
 
     const generateFood = useCallback(() => {
-        let newFoodPosition;
+        let newFoodPosition: { x: number; y: number };
         do {
             newFoodPosition = {
                 x: Math.floor(Math.random() * GRID_SIZE),
@@ -64,7 +68,7 @@ export const SnakeClient = () => {
 
         
         // Only log game if wallet is connected
-        if (!isValidWalletAddress(account) || isLoggingGame) {
+        if (!isValidWalletAddress(account || '') || isLoggingGame) {
             setIsMinting(false);
             return;
         }
@@ -190,7 +194,7 @@ export const SnakeClient = () => {
         }
     }, [gameState, handleKeyDown]);
     
-    const gameLoop = () => {
+    const gameLoop = useCallback(() => {
         if (gameState !== 'running') return;
 
         const newSnake = [...snake];
@@ -223,7 +227,7 @@ export const SnakeClient = () => {
         }
 
         setSnake(newSnake);
-    };
+    }, [gameState, snake, direction, food, handleGameOver, setScore, generateFood, setSnake]);
 
     useInterval(gameLoop, gameState === 'running' ? GAME_SPEED : null);
 

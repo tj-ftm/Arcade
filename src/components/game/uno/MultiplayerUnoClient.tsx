@@ -111,7 +111,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     type: 'number',
   };
   const [discardPile, setDiscardPile] = useState<UnoCard[]>([initialDiscardCard]);
-  const [currentColor, setCurrentColor] = useState<UnoColor>(initialDiscardCard.color);
+  const [currentColor, setCurrentColor] = useState<UnoColor>(initialDiscardCard.color as UnoColor);
   const [isMyTurn, setIsMyTurn] = useState(isHost);
   const [gameDirection, setGameDirection] = useState(1); // 1 for normal, -1 for reverse
   const [winner, setWinner] = useState<string | null>(null);
@@ -142,7 +142,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     setDeck(newDeck);
     setPlayerHand(playerCards);
     setDiscardPile([firstCard]);
-    setCurrentColor(firstCard.color as UnoColor);
+    setCurrentColor((firstCard.color === 'black' ? 'red' : firstCard.color) as UnoColor);
     
     // Send initial game state to opponent
     sendGameMove(lobby.id, {
@@ -152,7 +152,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
       playerCards: opponentCards, // What opponent gets as their cards
       firstCard,
       currentColor: firstCard.color
-    }, currentUserId);
+    });
     
     addGameLog('Game initialized!');
     setGameInitialized(true);
@@ -279,7 +279,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
       card,
       newColor,
       opponentHandSize: newPlayerHand.length
-    }, currentUserId);
+    });
     
     addGameLog(`You played ${card.value}`);
     
@@ -290,7 +290,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
       sendGameMove(lobby.id, {
         type: 'game-end',
         winner: 'You'
-      }, currentUserId);
+      });
     }
     
     // Handle special cards for opponent
@@ -321,7 +321,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     sendGameMove(lobby.id, {
       type: 'uno-draw-card',
       opponentHandSize: playerHand.length + 1
-    }, currentUserId);
+    });
     
     addGameLog('You drew a card');
   };

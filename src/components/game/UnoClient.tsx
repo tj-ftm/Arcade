@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { UnoGameState, Player, UnoCard, UnoColor, UnoValue } from '@/types';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, PanelLeft } from 'lucide-react';
-import { cn, isValidWalletAddress } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWeb3 } from '../web3/Web3Provider';
 import { logGameCompletion } from '@/lib/game-logger';
@@ -59,7 +59,7 @@ const calculateUnoScore = (hand: UnoCard[]): number => {
   }, 0);
 };
 
-const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick: () => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
+const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick?: (e: React.MouseEvent) => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
   const colorClasses: Record<UnoColor | 'Wild', string> = {
     Red: 'bg-red-600',
     Green: 'bg-green-600',
@@ -250,12 +250,14 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                 { id: 'player', name: username || 'Player', hand: playerHand },
                 { id: 'bot', name: 'Bot', hand: botHand },
             ],
+            playerHand: playerHand,
             deck,
             discardPile: [topCard],
             activePlayerIndex: 0,
             activeColor: topCard.color,
             winner: null,
             isReversed: false,
+            direction: 'clockwise',
             gameLog: ['Game started. Your turn!'],
         });
         setTurnMessage("Your Turn!");
@@ -379,7 +381,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                 switch(value) {
                     case 'Draw Two': {
                         for(let i = 0; i < 2; i++) {
-                           if(newState.deck.length > 0) opponent.hand.push(newState.deck.pop());
+                           const card = newState.deck.pop();
+                           if(card) opponent.hand.push(card);
                         }
                         const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew 2 cards.`;
                         addGameLog(msg);
@@ -389,7 +392,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                     }
                     case 'Draw Four': {
                         for(let i = 0; i < 4; i++) {
-                           if(newState.deck.length > 0) opponent.hand.push(newState.deck.pop());
+                           const card = newState.deck.pop();
+                           if(card) opponent.hand.push(card);
                         }
                          const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew 4 cards.`;
                         addGameLog(msg);
@@ -474,12 +478,12 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                          }
                         setTimeout(() => playCard(card, chosenColor), 1000);
                     } else { // If drawn card is not playable, skip bot's turn
-                        newState.activePlayerIndex = (newState.activePlayerIndex + newState.direction + newState.players.length) % newState.players.length;
+                        newState.activePlayerIndex = (newState.activePlayerIndex + (newState.isReversed ? -1 : 1) + newState.players.length) % newState.players.length;
                         addGameLog("Bot could not play a card and skipped its turn.");
                         setTurnMessage("Bot skipped turn");
                     }
                 } else { // If deck is empty, bot cannot draw, so skip turn
-                    newState.activePlayerIndex = (newState.activePlayerIndex + newState.direction + newState.players.length) % newState.players.length;
+                    newState.activePlayerIndex = (newState.activePlayerIndex + (newState.isReversed ? -1 : 1) + newState.players.length) % newState.players.length;
                     addGameLog("Bot could not draw a card and skipped its turn.");
                     setTurnMessage("Bot skipped turn");
                 }
@@ -622,11 +626,12 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                                 <CardComponent 
                                     card={card} 
                                     isPlayer={true} 
-                                    onClick={(e) => handlePlayCard(i, e)}
+                                    onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
                                     isPlayable={activePlayerIndex === 0 && isCardPlayable(card, topCard, gameState.activeColor)}
                                     isLastCard={player.hand.length === 1}
                                 />
-                            </div>)
+                            </div>
+                        )
                         )}
                     </div>
                      <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", activePlayerIndex === 0 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
@@ -678,7 +683,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                 <UnoEndGameScreen
                     score={calculateUnoScore(gameState.players[0].hand)}
                     onNewGame={handleNewGame}
-                    onBackToMenu={onGameEnd}
+                    onBackToMenu={onGameEnd || (() => {})}
                     isMinting={isMinting}
                     mintTxHash={mintTxHash}
                     tokensEarned={tokensEarned}

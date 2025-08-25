@@ -120,7 +120,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
       
       // Listen for opponent moves
-      onGameMove((moveData: any) => {
+      const unsubscribeOnGameMove = onGameMove((moveData: any) => {
         if (moveData.type === 'chess-move') {
           try {
             const move = game.move(moveData.move);
@@ -139,6 +139,9 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
           setShowEndGameScreen(true);
         }
       });
+      return () => {
+        unsubscribeOnGameMove();
+      };
     }
   }, [game, lobby, isHost, opponentName, onGameMove]);
 
@@ -158,7 +161,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
         setIsLoadingGame(false);
       }
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, [lobby.id, onLobbyJoined]);
 
   const addGameLog = useCallback((message: string) => {
@@ -205,7 +208,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       sendGameMove(lobby.id, {
         type: 'game-end',
         winner: gameWinner
-      }, currentUserId);
+      });
     }
   }, [game, addGameLog, calculateScore, lobby.id, sendGameMove]);
 
@@ -242,8 +245,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
           // Send move to opponent
           sendGameMove(lobby.id, {
             type: 'chess-move',
-            move: moveResult
-          }, currentUserId);
+            move: move
+        });
           
           checkGameState();
         }

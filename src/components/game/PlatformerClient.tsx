@@ -59,7 +59,11 @@ const useKeyboardControls = (setLeft: (v: boolean) => void, setRight: (v: boolea
 };
 
 
-export const PlatformerClient = () => {
+interface PlatformerClientProps {
+  onGameEnd?: () => void;
+}
+
+export const PlatformerClient = ({ onGameEnd }: PlatformerClientProps) => {
   const [gameState, setGameState] = useState<'start' | 'playing' | 'lost'>('start');
   
   const [player, setPlayer] = useState({ x: 200, y: 100, vx: 0, vy: 0 });
@@ -220,7 +224,7 @@ export const PlatformerClient = () => {
         }
 
         // Fall off screen
-        if (newY > gameAreaRef.current.offsetHeight + 100) {
+        if (gameAreaRef.current && newY > gameAreaRef.current.offsetHeight + 100) {
             setGameState('lost');
         }
 

@@ -14,7 +14,7 @@ import { PlatformerClient } from '@/components/game/PlatformerClient';
 // Page-like components
 import { ConnectWallet } from '@/components/web3/ConnectWallet';
 import { useWeb3 } from "@/components/web3/Web3Provider";
-import { PayToPlayModal } from '@/components/web3/PayToPlayModal';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -251,7 +251,7 @@ export default function SnakeHome() {
       case 'uno':
         return <UnoClient key={gameKey} onGameEnd={handleGameEnd} />;
       case 'pay-uno':
-        return <PayToPlayModal onPaymentSuccess={() => handleNavigate('uno')} onCancel={() => handleNavigate('menu')} />;
+        
       case 'snake':
         return <SnakeClient key={gameKey} />;
       case 'chess':
@@ -404,7 +404,7 @@ export default function SnakeHome() {
              <header className="absolute top-0 left-0 w-full z-20 p-2 sm:p-4">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-lg">
-                        <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
+                        Main Menu
                     </Button>
                     <ConnectWallet />
                 </div>

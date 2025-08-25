@@ -30,8 +30,8 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
       <Button
         onClick={toggleSidebar}
         variant="ghost"
-        size="icon"
-        className="md:hidden text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 z-[99999] transition-all duration-200"
+        size="default"
+        className="md:hidden text-white bg-black/30 hover:text-white hover:bg-black/50 border border-white/40 hover:border-white/60 z-[99999] transition-all duration-200 px-4 py-2"
       >
         <Menu className="h-6 w-6" />
       </Button>

@@ -18,7 +18,7 @@ import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 // Page-like components
 import { ConnectWallet } from '@/components/web3/ConnectWallet';
 import { useWeb3 } from "@/components/web3/Web3Provider";
-import { PayToPlayModal } from '@/components/web3/PayToPlayModal';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'chess-multiplayer' | 'platformer';
 
 // --- Replicated Page Components ---
 
@@ -281,7 +281,7 @@ export default function HomePage() {
       case 'uno':
         return <UnoClient key={gameKey} onGameEnd={handleGameEnd} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} />;
       case 'pay-uno':
-        return <PayToPlayModal onPaymentSuccess={() => handleNavigate('uno')} onCancel={() => handleNavigate('menu')} />;
+        
       case 'shop':
          return <ShopContent onBack={() => handleNavigate('menu')} />;
       case 'snake':
@@ -473,7 +473,7 @@ export default function HomePage() {
              <header className="absolute top-0 left-0 w-full z-20 p-0">
                 <div className="flex justify-between items-center w-full">
                     <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
-                        <HomeIcon className="mr-2 h-5 w-5"/> Main Menu
+                        Main Menu
                     </Button>
                     <div className="flex items-center gap-2">
                         <div className="hidden md:block">

@@ -16,12 +16,14 @@ export interface Player {
 
 export interface UnoGameState {
   players: Player[];
+  playerHand: UnoCard[];
   deck: UnoCard[];
   discardPile: UnoCard[];
   activePlayerIndex: number;
   activeColor: UnoColor;
   winner: string | null;
   isReversed: boolean;
+  direction: 'clockwise' | 'counter-clockwise';
   gameLog: string[];
 }
 

@@ -14,7 +14,7 @@ import { PlatformerClient } from '@/components/game/PlatformerClient';
 // Page-like components
 import { ConnectWallet } from '@/components/web3/ConnectWallet';
 import { useWeb3 } from "@/components/web3/Web3Provider";
-import { PayToPlayModal } from '@/components/web3/PayToPlayModal';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
