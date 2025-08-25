@@ -15,7 +15,7 @@ import { useWeb3 } from "@/components/web3/Web3Provider";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MobileSidebar } from '@/components/layout/MobileSidebar';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,17 +26,17 @@ import { Progress } from "@/components/ui/progress";
 type View = 'menu' | 'uno' | 'snake' | 'chess' | 'platformer' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno';
 
 export const GameLayout = () => {
-  const { isMobile } = useMobile();
+  const { isMobile } = useIsMobile();
   const [view, setView] = useState<View>('menu');
 
   const [showUnoRules, setShowUnoRules] = useState(false);
   const [showChessRules, setShowChessRules] = useState(false);
 
-  const { account, isConnected: web3IsConnected } = useWeb3();
+  const { account } = useWeb3();
   const { toast } = useToast();
 
   const handleNavigate = useCallback((targetView: View) => {
-    if (targetView === 'pay-uno' && (!web3IsConnected || !account)) {
+    if (targetView === 'pay-uno' && !account) {
       toast({
         title: "Wallet Not Connected",
         description: "Please connect your wallet to play Uno.",
@@ -49,7 +49,7 @@ export const GameLayout = () => {
     } else {
       setView(targetView);
     }
-  }, [web3IsConnected, account, toast]);
+  }, [account, toast]);
 
   const renderContent = useCallback(() => {
     switch (view) {
@@ -131,7 +131,7 @@ export const GameLayout = () => {
             </Button>
             <div className="flex items-center gap-2">
               <ConnectWallet />
-              {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={view === 'snake' ? 'snake' : view === 'chess' ? 'chess' : undefined} />}
+              {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={view === 'snake' ? 'snake' : view === 'chess' ? 'chess' : view === 'uno' ? 'uno' : view === 'platformer' ? 'platformer' : undefined} />}
             </div>
           </div>
         </header>
@@ -546,6 +546,14 @@ export default function MainApp() {
 
       {showUnoRules && (
         <GameRulesModal
+          gameName="UNO"
+          rules={[
+            "Each player is dealt 7 cards.",
+            "Match the top card of the discard pile by color or number.",
+            "Action cards (Skip, Reverse, Draw Two) add twists.",
+            "Wild cards can change the color.",
+            "Say 'UNO' when you have one card left.",
+            "First player to empty their hand wins the round.",
             "Points are scored by cards left in opponents' hands.",
             "First player to 500 points wins the game."
           ]}
