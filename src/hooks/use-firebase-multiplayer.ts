@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { database } from '@/lib/firebase';
-import { ref, push, onValue, off, remove, set, serverTimestamp } from 'firebase/database';
+import { ref, push, onValue, off, remove, set, serverTimestamp, get } from 'firebase/database';
 
 interface Lobby {
   id: string;
@@ -139,9 +139,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
       // Get current lobby data
-      const snapshot = await new Promise<any>((resolve) => {
-        onValue(lobbyRef, resolve, { onlyOnce: true });
-      });
+      const snapshot = await get(lobbyRef);
       
       const lobbyData = snapshot.val();
       if (!lobbyData || lobbyData.status !== 'waiting' || lobbyData.player2Id) {
@@ -167,8 +165,10 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const joinedLobby = { ...updatedLobbyData, id: lobbyId };
       setCurrentLobby(joinedLobby);
       
-      // Note: Loading screen is now handled by MultiplayerLobby component
       console.log('Joined lobby successfully, lobby state updated');
+      
+      // Trigger lobby joined callback for the joining player
+      lobbyJoinedCallbacks.forEach(callback => callback(joinedLobby));
 
       // Listen for lobby updates for the joining player
       const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
@@ -182,7 +182,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           lobbyClosedCallbacks.forEach(callback => callback());
         }
       });
-
 
     } catch (error) {
       console.error('Error joining lobby:', error);

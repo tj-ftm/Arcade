@@ -165,6 +165,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
             } else if (isBonusMode && playerWon) {
                 // Fallback for bonus mode: 200 ARC tokens (2x normal 100)
                 tokensToMint = getBonusReward('chess', 100);
+            } else if (playerWon) {
+                // Regular mode: 100 ARC tokens for winning
+                tokensToMint = 100;
             }
             setTokensEarned(tokensToMint);
                 
@@ -256,7 +259,8 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
         setIsVerifyingPayment(true);
         
         try {
-            const paymentResult = await sendBonusPayment(provider, signer);
+            const signerPromise = getSigner();
+            const paymentResult = await sendBonusPayment(provider, signerPromise);
             
             if (paymentResult.success && paymentResult.transactionHash) {
                 setPaymentTxHash(paymentResult.transactionHash);
@@ -275,6 +279,18 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
 
     const handleStartBonusMode = () => {
         handleBonusPayment();
+    };
+
+    const handleTestWin = () => {
+        if (winner || showStartScreen) {
+            alert('Please start a game first!');
+            return;
+        }
+        
+        // Simulate player win by checkmate
+        setWinner('white');
+        setEndReason('checkmate');
+        setShowEndGameScreen(true);
     };
 
     const handleSquareClick = (square: Square) => {
@@ -355,8 +371,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
                             ))}
                             </div>
                         </ScrollArea>
-                        <div className="mt-4">
+                        <div className="mt-4 space-y-2">
                             <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleShowStartScreen}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
+                            <Button variant="outline" className="w-full font-headline text-sm" onClick={handleTestWin}>🏆 Test Win</Button>
                         </div>
                     </div>
 
@@ -394,19 +411,21 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
                 <ChessEndGameScreen
                     score={score}
                     onNewGame={handleNewGame}
-                    onBackToMenu={handleShowStartScreen}
-                    isMinting={isMinting}
-                    mintTxHash={mintTxHash}
+                    onShowStartScreen={handleShowStartScreen}
+                    isBonusMode={isBonusMode}
                     tokensEarned={tokensEarned}
+                    mintTxHash={mintTxHash}
                 />
             )}
 
-            <MintSuccessModal
-                isOpen={showMintSuccess}
-                onClose={() => setShowMintSuccess(false)}
-                txHash={mintTxHash}
-                gameName="Chess"
-            />
+            {mintTxHash && !isMinting && (
+                <MintSuccessModal
+                    isOpen={!!mintTxHash}
+                    onClose={() => setMintTxHash('')}
+                    txHash={mintTxHash}
+                    tokensEarned={tokensEarned}
+                />
+            )}
         </div>
     );
 }

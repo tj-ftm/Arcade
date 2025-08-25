@@ -71,15 +71,18 @@ export async function verifyPayment(
 
 export async function sendBonusPayment(
   provider: ethers.BrowserProvider,
-  signer: ethers.Signer
+  signer: Promise<ethers.JsonRpcSigner>
 ): Promise<PaymentVerificationResult> {
   try {
+    // Await the signer promise
+    const actualSigner = await signer;
+    
     const transaction = {
       to: BONUS_MODE_WALLET,
       value: ethers.parseEther(REQUIRED_PAYMENT),
     };
 
-    const tx = await signer.sendTransaction(transaction);
+    const tx = await actualSigner.sendTransaction(transaction);
     await tx.wait(); // Wait for confirmation
 
     return {

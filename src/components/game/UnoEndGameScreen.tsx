@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useWeb3 } from '../web3/Web3Provider';
 
 interface UnoEndGameScreenProps {
-  score: number;
+  hasWon: boolean;
   onNewGame: () => void;
   onBackToMenu: () => void;
   isMinting: boolean;
@@ -14,7 +14,7 @@ interface UnoEndGameScreenProps {
 }
 
 export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
-  score,
+  hasWon,
   onNewGame,
   onBackToMenu,
   isMinting,
@@ -27,11 +27,9 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
     <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8">
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg text-center max-w-md w-full">
         <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-white">
-          Game Over
+          {hasWon ? 'You Won!' : 'You Lost!'}
         </h2>
-        <p className="text-lg sm:text-xl text-white mb-6">
-          Score: {score}
-        </p>
+        
 
         {isMinting && tokensEarned > 0 && (
           <div className="mb-6 flex flex-col items-center">
@@ -48,9 +46,15 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
           </div>
         )}
 
-        {!isValidWallet && (
+        {!hasWon && !isValidWallet && (
           <div className="mb-6">
             <p className="text-base sm:text-lg font-bold text-white">Connect wallet and play to earn ARC tokens</p>
+          </div>
+        )}
+
+        {hasWon && !isMinting && !mintTxHash && isValidWallet && (
+          <div className="mb-6">
+            <p className="text-base sm:text-lg font-bold text-white">Play to earn ARC tokens!</p>
           </div>
         )}
 

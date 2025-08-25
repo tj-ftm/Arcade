@@ -149,7 +149,8 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
         setIsVerifyingPayment(true);
         
         try {
-            const paymentResult = await sendBonusPayment(provider, signer);
+            const signerPromise = getSigner();
+            const paymentResult = await sendBonusPayment(provider, signerPromise);
             
             if (paymentResult.success && paymentResult.transactionHash) {
                 setPaymentTxHash(paymentResult.transactionHash);

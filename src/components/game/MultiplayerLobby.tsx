@@ -63,13 +63,15 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     setGameStartTimeout(timeout);
   }, [onStartGame]);
 
-  // Set up lobby joined callback for host when player joins
+  // Set up lobby joined callback for both host and joining player
   useEffect(() => {
     const unsubscribe = onLobbyJoined((lobby: Lobby) => {
       const isHost = currentUserId === lobby.player1Id;
-      // Only trigger for host when someone joins their lobby
-      if (isHost && lobby.player2Id && !gameStarting) {
-        console.log('Player joined host lobby, starting game');
+      const isJoiningPlayer = currentUserId === lobby.player2Id;
+      
+      // Trigger for both host and joining player when lobby is ready
+      if ((isHost || isJoiningPlayer) && lobby.player2Id && lobby.status === 'playing' && !gameStarting) {
+        console.log('Lobby ready, starting game. IsHost:', isHost, 'IsJoiningPlayer:', isJoiningPlayer);
         handleGameStart(lobby, isHost);
       }
     });

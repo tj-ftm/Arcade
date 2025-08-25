@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { UnoEndGameScreen } from '../UnoEndGameScreen';
+import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
+import { MintSuccessModal } from '../MintSuccessModal';
 
 type UnoColor = 'red' | 'blue' | 'green' | 'yellow';
 type UnoCardType = 'number' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild4';
@@ -116,6 +118,11 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   const [gameDirection, setGameDirection] = useState(1); // 1 for normal, -1 for reverse
   const [winner, setWinner] = useState<string | null>(null);
   const [showEndGameScreen, setShowEndGameScreen] = useState(false);
+  const [hasWon, setHasWon] = useState(false);
+  const [isMinting, setIsMinting] = useState(false);
+  const [mintTxHash, setMintTxHash] = useState<string>('');
+  const [tokensEarned, setTokensEarned] = useState<number>(0);
+  const [isLoggingGame, setIsLoggingGame] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pendingWildCard, setPendingWildCard] = useState<UnoCard | null>(null);
   const [opponentName, setOpponentName] = useState('');
@@ -158,6 +165,50 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     setGameInitialized(true);
   }, [isHost, gameInitialized, lobby.id, sendGameMove, addGameLog]);
 
+  const handleGameOver = useCallback(async (winningPlayerId: string) => {
+    setShowEndGameScreen(true);
+    setWinner(winningPlayerId);
+    const playerWon = winningPlayerId === currentUserId;
+    setHasWon(playerWon);
+
+    if (!isValidWalletAddress(account || '') || isLoggingGame || !playerWon) {
+      setIsMinting(false);
+      return;
+    }
+
+    setIsLoggingGame(true);
+    setIsMinting(true);
+
+    try {
+      const gameResult = createGameResult(
+        account!,
+        'uno',
+        0, // Score is not relevant for Uno, it's win/loss
+        playerWon,
+        0 // Duration not tracked for now
+      );
+
+      const logResponse = await logGameCompletion(gameResult);
+
+      let tokensToMint = 0;
+      if (logResponse?.reward) {
+        tokensToMint = parseFloat(logResponse.reward);
+      } else if (playerWon) {
+        tokensToMint = 50; // Default 50 ARC for winning Uno
+      }
+      setTokensEarned(tokensToMint);
+
+      if (tokensToMint > 0 && logResponse?.mintTransaction) {
+        setMintTxHash(logResponse.mintTransaction);
+      }
+    } catch (error) {
+      console.error('Failed to log game completion or mint tokens:', error);
+    } finally {
+      setIsLoggingGame(false);
+      setIsMinting(false);
+    }
+  }, [account, currentUserId, isLoggingGame]);
+
   useEffect(() => {
     if (lobby.status === 'playing' && lobby.player1Id && lobby.player2Id) {
       setIsLoadingGame(false);
@@ -189,7 +240,9 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setDiscardPile([moveData.firstCard]);
         setCurrentColor(moveData.currentColor);
         addGameLog('Game initialized!');
-      } else if (moveData.type === 'uno-play-card') {
+    } else if (moveData.type === 'uno-game-over') {
+      handleGameOver(moveData.winnerId);
+    } else if (moveData.type === 'uno-play-card') {
         setDiscardPile(prev => [...prev, moveData.card]);
         setCurrentColor(moveData.newColor);
         setOpponentHandSize(moveData.opponentHandSize);
@@ -355,19 +408,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
   if (showEndGameScreen) {
     return (
       <UnoEndGameScreen
-        score={playerHand.length === 0 ? 100 : 0}
-        onNewGame={() => {
-          // Reset game state
-          setShowEndGameScreen(false);
-          setWinner(null);
-          if (isHost) {
-            initializeGame();
-          }
-        }}
-        onBackToMenu={handleLeaveGame}
-        isMinting={false}
-        mintTxHash=""
-        tokensEarned={winner === 'You' ? 50 : 0}
+        hasWon={hasWon}
+        onNewGame={() => { /* Implement new game logic */ }}
+        onBackToMenu={onGameEnd}
+        isMinting={isMinting}
+        mintTxHash={mintTxHash}
+        tokensEarned={tokensEarned}
       />
     );
   }

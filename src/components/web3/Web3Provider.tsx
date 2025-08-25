@@ -28,6 +28,8 @@ interface Web3ContextType {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   payForGame: () => Promise<boolean>;
+  getProvider: () => ethers.BrowserProvider | null;
+  getSigner: () => Promise<ethers.JsonRpcSigner | null>;
 }
 
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
@@ -58,7 +60,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const getProvider = () => {
+  const getProvider = useCallback(() => {
     if (typeof window !== "undefined" && window.ethereum) {
       console.log("Ethereum provider detected:", window.ethereum);
       console.log("Provider details:", {
@@ -70,7 +72,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
     console.log("No ethereum provider found");
     return null;
-  };
+  }, []);
   
   const getBalance = useCallback(async (provider: ethers.BrowserProvider, userAccount: string) => {
     const balance = await provider.getBalance(userAccount);
@@ -189,6 +191,14 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   };
 
 
+  const getSigner = useCallback(async (): Promise<ethers.JsonRpcSigner | null> => {
+    const provider = getProvider();
+    if (provider) {
+      return await provider.getSigner();
+    }
+    return null;
+  }, [getProvider]);
+
   const connect = async () => {
     console.log("Connect function called");
     
@@ -267,6 +277,11 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     try {
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI, signer);
+        console.log("Signer object in payForGame:", signer);
+        console.log("Type of signer:", typeof signer);
+        console.log("Signer methods:", Object.keys(Object.getPrototypeOf(signer)));
+        console.log("Does signer have sendTransaction?", 'sendTransaction' in signer);
+        console.log("Type of signer.sendTransaction:", typeof (signer as any).sendTransaction);
 
         const fee = parseEther("0.1");
         const tx = await contract.playGame({ value: fee });
@@ -315,7 +330,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [account, getBalance]);
 
-  const value = { account, username, setUsername, sBalance: balance, arcBalance, connect, disconnect, payForGame };
+  const value = { account, username, setUsername, sBalance: balance, arcBalance, connect, disconnect, payForGame, getProvider, getSigner };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 };

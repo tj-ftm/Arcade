@@ -14,6 +14,7 @@ import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationRes
 
 import { UnoEndGameScreen } from './UnoEndGameScreen';
 import { UnoStartScreen } from './UnoStartScreen';
+import { MintSuccessModal } from './MintSuccessModal';
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
 const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two'];
@@ -225,6 +226,9 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
             } else if (isBonusMode) {
               // Fallback for bonus mode: 100 ARC tokens (2x normal 50)
               tokensToMint = getBonusReward('uno', 50);
+            } else {
+              // Regular mode: 50 ARC tokens for winning
+              tokensToMint = 50;
             }
             setTokensEarned(tokensToMint);
                 
@@ -314,7 +318,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         setIsVerifyingPayment(true);
         
         try {
-            const paymentResult = await sendBonusPayment(provider, signer);
+            const signerPromise = getSigner();
+            const paymentResult = await sendBonusPayment(provider, signerPromise);
             
             if (paymentResult.success && paymentResult.transactionHash) {
                 setPaymentTxHash(paymentResult.transactionHash);
@@ -332,6 +337,19 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
 
     const handleStartBonusMode = () => {
         handleBonusPayment();
+    };
+
+    const handleTestWin = () => {
+        if (!gameState) {
+            alert('Please start a game first!');
+            return;
+        }
+        
+        // Simulate player win by setting winner to 'player'
+        setGameState(prev => prev ? {
+            ...prev,
+            winner: 'player'
+        } : null);
     };
 
     const handleStartMultiplayer = () => {
@@ -636,8 +654,9 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                        ))}
                     </div>
                 </ScrollArea>
-                <div className="mt-4">
+                <div className="mt-4 space-y-2">
                     <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleShowStartScreen}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
+                    <Button variant="outline" className="w-full font-headline text-sm" onClick={handleTestWin}>🏆 Test Win</Button>
                 </div>
             </div>
 
@@ -756,6 +775,15 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                     onBackToMenu={onGameEnd || (() => {})}
                     isMinting={isMinting}
                     mintTxHash={mintTxHash}
+                    tokensEarned={tokensEarned}
+                />
+            )}
+            
+            {mintTxHash && !isMinting && (
+                <MintSuccessModal
+                    isOpen={!!mintTxHash}
+                    onClose={() => setMintTxHash('')}
+                    txHash={mintTxHash}
                     tokensEarned={tokensEarned}
                 />
             )}
