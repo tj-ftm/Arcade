@@ -360,6 +360,13 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                     const currentPlayer = newGameState.players[newGameState.activePlayerIndex];
                     const isMyTurn = (newGameState.activePlayerIndex === 0 && isHost) || (newGameState.activePlayerIndex === 1 && !isHost);
                     setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                    
+                    // Show color change message if opponent played a wild card
+                    if (moveData.colorChanged) {
+                        setTimeout(() => {
+                            setTurnMessage(`Color changed to ${moveData.colorChanged.newColor}!`);
+                        }, 1600); // Show after turn message
+                    }
                 }
             }
         });
@@ -479,10 +486,22 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         }
         
         setGameState(newGameState);
-        sendGameMove(lobby.id, {
+        
+        // Prepare move data with color change information
+        const moveData: any = {
             type: 'uno-update',
             gameState: newGameState
-        });
+        };
+        
+        // Include color change information for wild cards
+        if ((card.value === 'Wild' || card.value === 'Draw Four') && chosenColor) {
+            moveData.colorChanged = {
+                newColor: chosenColor,
+                cardValue: card.value
+            };
+        }
+        
+        sendGameMove(lobby.id, moveData);
     };
 
     const handleColorPick = (color: UnoColor) => {
