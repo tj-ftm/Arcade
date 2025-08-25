@@ -23,6 +23,19 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
     closeSidebar();
   };
 
+  const getThemeBackground = (theme?: string) => {
+    switch (theme) {
+      case 'chess':
+        return 'linear-gradient(to bottom right, #581c87, #7c3aed, #6366f1)';
+      case 'snake':
+        return 'linear-gradient(to bottom right, #374151, #4b5563, #000000)';
+      case 'shop':
+        return 'linear-gradient(to bottom right, #d97706, #f59e0b, #fbbf24)';
+      default:
+        return 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)';
+    }
+  };
+
 
 
   return (
@@ -53,7 +66,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
           !isOpen && "pointer-events-none"
         )}
         style={{
-          background: theme ? `var(--${theme}-gradient)` : 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)',
+          background: getThemeBackground(theme),
           backdropFilter: 'blur(10px)',
           width: '100vw',
           height: '100vh',

@@ -276,6 +276,20 @@ export default function HomePage() {
     setActiveView('menu');
   }, []);
 
+  const getSidebarTheme = () => {
+    switch (activeView) {
+      case 'chess':
+      case 'chess-multiplayer':
+        return 'chess';
+      case 'snake':
+        return 'snake';
+      case 'shop':
+        return 'shop';
+      default:
+        return undefined;
+    }
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'uno':
@@ -485,7 +499,7 @@ export default function HomePage() {
                         <div className="hidden md:block">
                             <ConnectWallet />
                         </div>
-                        {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
+                        {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />}
                     </div>
                 </div>
             </header>
@@ -514,7 +528,7 @@ export default function HomePage() {
                     <div className="hidden md:block">
                         <ConnectWallet />
                     </div>
-                    {isMobile && <MobileSidebar onNavigate={handleNavigate} />}
+                    {isMobile && <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />}
                 </div>
             </header>
         )}
