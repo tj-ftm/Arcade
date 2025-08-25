@@ -94,7 +94,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
     } else {
       // Hardcode RPC URL as it's not a private link
       const rpcUrls = [
-        'https://rpc.soniclabs.com/',
+        process.env.NEXT_PUBLIC_SONIC_RPC_URL || 'https://rpc.soniclabs.com/',
         'https://rpc.sonic.fantom.network/', // Alternative Sonic RPC
         'https://sonic-mainnet.gateway.tatum.io/' // Another alternative
       ];
