@@ -506,10 +506,10 @@ export default function HomePage() {
         )}
 
          {showShopHeader && (
-             <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
-                <div className="flex justify-between items-center w-full">
-                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline justify-start">
-                        <span className="text-xl">Main Menu</span>
+             <header className="w-full z-10 animate-fade-in flex-shrink-0 pt-4 sm:pt-4">
+                <div className="flex justify-between items-center p-3 sm:p-2">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
+                        Main Menu
                     </Button>
                     <div className="flex items-center gap-2">
                          {!isMobile && <ConnectWallet />}
@@ -533,7 +533,7 @@ export default function HomePage() {
             </header>
         )}
         
-        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: showMainMenuHeader ? '0' : '0', minHeight: 0}}>
+        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: showMainMenuHeader || showShopHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>
