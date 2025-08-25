@@ -47,8 +47,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         return;
       }
 
-
-    try {
       // Listen to lobbies
       const lobbiesRef = ref(database, 'lobbies');
       const unsubscribeLobbies = onValue(lobbiesRef, (snapshot) => {
