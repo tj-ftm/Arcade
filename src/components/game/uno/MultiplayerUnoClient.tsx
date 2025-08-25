@@ -205,17 +205,23 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setupGameMovesListener(lobby.id);
     }, [lobby.id, setupGameMovesListener]);
 
-    // Initialize game when component mounts (with delay for non-host to set up listener)
+    // Initialize game when both players are present and no game state exists
     useEffect(() => {
-        if (isHost && !gameState) {
-            console.log('🎮 [UNO MULTIPLAYER] Host initializing game with delay for listener setup');
-            // Add a small delay to ensure non-host player has time to set up Firebase listener
+        if (lobby.player2Id && lobby.status === 'playing' && !gameState) {
+            console.log('🎮 [UNO MULTIPLAYER] Both players present, checking if game needs initialization');
+            
+            // Add a delay to ensure Firebase listeners are set up
             setTimeout(() => {
-                console.log('🎮 [UNO MULTIPLAYER] Host delay completed, initializing game now');
-                initializeGame();
-            }, 2000); // 2 second delay
+                // Check if game state still doesn't exist (no one else initialized it)
+                if (!gameState) {
+                    console.log('🎮 [UNO MULTIPLAYER] No game state found, initializing game');
+                    initializeGame();
+                } else {
+                    console.log('🎮 [UNO MULTIPLAYER] Game state already exists, skipping initialization');
+                }
+            }, 1000); // 1 second delay
         }
-    }, [isHost]);
+    }, [lobby.player2Id, lobby.status, gameState]);
 
     // Handle loading state
     useEffect(() => {
