@@ -1,23 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { UnoGameState, Player, UnoCard, UnoColor, UnoValue } from '@/types';
 import { Button } from '@/components/ui/button';
+import { RefreshCw, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { UnoEndGameScreen } from '../UnoEndGameScreen';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
-import { MintSuccessModal } from '../MintSuccessModal';
-
-type UnoColor = 'red' | 'blue' | 'green' | 'yellow';
-type UnoCardType = 'number' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild4';
-
-interface UnoCard {
-  id: string;
-  color: UnoColor | 'black';
-  value: string;
-  type: UnoCardType;
-}
+import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
 
 interface Lobby {
   id: string;
@@ -36,58 +29,23 @@ interface MultiplayerUnoClientProps {
   onGameEnd: () => void;
 }
 
+const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
+const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two'];
+
 const createDeck = (): UnoCard[] => {
   const deck: UnoCard[] = [];
-  const colors: UnoColor[] = ['red', 'blue', 'green', 'yellow'];
-  
-  // Number cards (0-9)
-  colors.forEach(color => {
-    for (let i = 0; i <= 9; i++) {
-      deck.push({
-        id: `${color}-${i}-1`,
-        color,
-        value: i.toString(),
-        type: 'number'
-      });
-      if (i !== 0) { // Two of each number except 0
-        deck.push({
-          id: `${color}-${i}-2`,
-          color,
-          value: i.toString(),
-          type: 'number'
-        });
+  for (const color of colors) {
+    deck.push({ color, value: '0' });
+    for (let i = 0; i < 2; i++) {
+      for (const value of values.slice(1)) {
+        deck.push({ color, value });
       }
     }
-    
-    // Action cards (2 of each)
-    ['skip', 'reverse', 'draw2'].forEach(action => {
-      for (let i = 1; i <= 2; i++) {
-        deck.push({
-          id: `${color}-${action}-${i}`,
-          color,
-          value: action,
-          type: action as UnoCardType
-        });
-      }
-    });
-  });
-  
-  // Wild cards (4 of each)
-  for (let i = 1; i <= 4; i++) {
-    deck.push({
-      id: `wild-${i}`,
-      color: 'black',
-      value: 'wild',
-      type: 'wild'
-    });
-    deck.push({
-      id: `wild4-${i}`,
-      color: 'black',
-      value: 'wild4',
-      type: 'wild4'
-    });
   }
-  
+  for (let i = 0; i < 4; i++) {
+    deck.push({ color: 'Wild', value: 'Wild' });
+    deck.push({ color: 'Wild', value: 'Draw Four' });
+  }
   return deck;
 };
 
@@ -100,449 +58,554 @@ const shuffleDeck = (deck: UnoCard[]): UnoCard[] => {
   return shuffled;
 };
 
+const calculateUnoScore = (hand: UnoCard[]): number => {
+  return hand.reduce((score, card) => {
+    switch (card.value) {
+      case 'Draw Two':
+      case 'Reverse':
+      case 'Skip':
+        return score + 20;
+      case 'Wild':
+      case 'Draw Four':
+        return score + 50;
+      default:
+        return score + parseInt(card.value, 10) || 0;
+    }
+  }, 0);
+};
+
+const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick?: (e: React.MouseEvent) => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
+    const cardSize = size === 'large' ? 'w-16 h-24 md:w-20 md:h-32' : 'w-12 h-18 md:w-16 md:h-24';
+    const textSize = size === 'large' ? 'text-lg md:text-2xl' : 'text-sm md:text-lg';
+    
+    const getCardColor = () => {
+        switch (card.color) {
+            case 'Red': return 'bg-red-600';
+            case 'Green': return 'bg-green-600';
+            case 'Blue': return 'bg-blue-600';
+            case 'Yellow': return 'bg-yellow-500';
+            case 'Wild': return 'bg-black';
+            default: return 'bg-gray-600';
+        }
+    };
+
+    const getTextColor = () => {
+        return card.color === 'Yellow' ? 'text-black' : 'text-white';
+    };
+
+    return (
+        <div 
+            className={cn(
+                cardSize,
+                "rounded-lg border-2 border-white flex flex-col items-center justify-center font-bold cursor-pointer transition-all duration-200 relative",
+                getCardColor(),
+                getTextColor(),
+                isPlayer && isPlayable && "hover:scale-110 hover:-translate-y-2 shadow-lg",
+                isPlayer && !isPlayable && "opacity-50 cursor-not-allowed",
+                isLastCard && isPlayer && "animate-pulse shadow-[0_0_20px_5px] shadow-red-500"
+            )}
+            onClick={isPlayer && isPlayable ? onClick : undefined}
+            style={style}
+        >
+            <span className={cn(textSize, "font-bold")}>
+                {card.value === 'Draw Two' ? '+2' :
+                 card.value === 'Draw Four' ? '+4' :
+                 card.value === 'Wild' ? '🌈' :
+                 card.value === 'Skip' ? '⊘' :
+                 card.value === 'Reverse' ? '↻' :
+                 card.value}
+            </span>
+            {(card.value === 'Wild' || card.value === 'Draw Four') && (
+                <div className="absolute inset-1 rounded border-2 border-dashed border-white/50" />
+            )}
+        </div>
+    );
+};
+
+const CardBack = ({ style, size = 'normal' }: { style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
+    const cardSize = size === 'large' ? 'w-16 h-24 md:w-20 md:h-32' : 'w-12 h-18 md:w-16 md:h-24';
+    
+    return (
+        <div className={cn(cardSize, "bg-gradient-to-br from-purple-800 to-purple-900 rounded-lg border-2 border-white flex items-center justify-center")} style={style}>
+            <span className="text-white text-2xl font-bold">UNO</span>
+        </div>
+    );
+};
+
+type FlyingCard = {
+  card: UnoCard;
+  startRect: DOMRect;
+};
+
 export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUnoClientProps) => {
-  const [deck, setDeck] = useState<UnoCard[]>([]);
-  const [playerHand, setPlayerHand] = useState<UnoCard[]>([]);
-  const [opponentHandSize, setOpponentHandSize] = useState(7);
-  const initialDiscardCard: UnoCard = {
-    id: 'initial-card',
-    color: 'red',
-    value: '0',
-    type: 'number',
-  };
-  const [discardPile, setDiscardPile] = useState<UnoCard[]>([initialDiscardCard]);
-  const [currentColor, setCurrentColor] = useState<UnoColor>(initialDiscardCard.color as UnoColor);
-  const [isMyTurn, setIsMyTurn] = useState(isHost);
-  const [gameDirection, setGameDirection] = useState(1); // 1 for normal, -1 for reverse
-  const [winner, setWinner] = useState<string | null>(null);
-  const [showEndGameScreen, setShowEndGameScreen] = useState(false);
-  const [hasWon, setHasWon] = useState(false);
-  const [isMinting, setIsMinting] = useState(false);
-  const [mintTxHash, setMintTxHash] = useState<string>('');
-  const [tokensEarned, setTokensEarned] = useState<number>(0);
-  const [isLoggingGame, setIsLoggingGame] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [pendingWildCard, setPendingWildCard] = useState<UnoCard | null>(null);
-  const [opponentName, setOpponentName] = useState('');
-  const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
-  const [isLoadingGame, setIsLoadingGame] = useState(true); // Start with true, will be set based on lobby status
-  const [gameInitialized, setGameInitialized] = useState(false);
-  
-  const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
-  const { account, username } = useWeb3();
-  const currentUserId = account || `guest-${Date.now()}`;
+    const { username, account } = useWeb3();
+    const [gameState, setGameState] = useState<UnoGameState | null>(null);
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [flyingCard, setFlyingCard] = useState<FlyingCard | null>(null);
+    const [turnMessage, setTurnMessage] = useState<string | null>(null);
+    const [isLogVisible, setIsLogVisible] = useState(false);
+    const [gameStartTime, setGameStartTime] = useState<number>(0);
+    const [isLoggingGame, setIsLoggingGame] = useState(false);
+    const [isLoadingGame, setIsLoadingGame] = useState(true);
 
-  const addGameLog = useCallback((message: string) => {
-    setGameLog(prev => [...prev, message]);
-  }, []);
+    const [mintTxHash, setMintTxHash] = useState<string>('');
+    const [showEndGameScreen, setShowEndGameScreen] = useState(false);
+    const [isMinting, setIsMinting] = useState(false);
+    const [tokensEarned, setTokensEarned] = useState(0);
+    const [hasWon, setHasWon] = useState<boolean>(false);
 
-  const initializeGame = useCallback(() => {
-    if (!isHost || gameInitialized) return; // Only host initializes the game once
+    const playerHandRef = useRef<HTMLDivElement>(null);
     
-    const newDeck = shuffleDeck(createDeck());
-    const playerCards = newDeck.splice(0, 7);
-    const opponentCards = newDeck.splice(0, 7);
-    const firstCard = newDeck.splice(0, 1)[0];
+    // Firebase multiplayer hooks
+    const { sendGameState, onGameStateUpdate, startGame } = useFirebaseMultiplayer(lobby.id);
+
+    const isCardPlayable = (card: UnoCard, topCard: UnoCard, activeColor: UnoColor): boolean => {
+        if (card.color === 'Wild') return true;
+        if (card.color === activeColor) return true;
+        if (card.value === topCard.value) return true;
+        return false;
+    };
     
-    setDeck(newDeck);
-    setPlayerHand(playerCards);
-    setDiscardPile([firstCard]);
-    setCurrentColor((firstCard.color === 'black' ? 'red' : firstCard.color) as UnoColor);
-    
-    // Send initial game state to opponent
-    sendGameMove(lobby.id, {
-      type: 'uno-init',
-      deck: newDeck,
-      opponentCards: playerCards, // What opponent sees as player's cards
-      playerCards: opponentCards, // What opponent gets as their cards
-      firstCard,
-      currentColor: firstCard.color
-    });
-    
-    addGameLog('Game initialized!');
-    setGameInitialized(true);
-  }, [isHost, gameInitialized, lobby.id, sendGameMove, addGameLog]);
+    useEffect(() => {
+        if (turnMessage) {
+            const timer = setTimeout(() => {
+                setTurnMessage(null);
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [turnMessage]);
 
-  const handleGameOver = useCallback(async (winningPlayerId: string) => {
-    setShowEndGameScreen(true);
-    setWinner(winningPlayerId);
-    const playerWon = winningPlayerId === currentUserId;
-    setHasWon(playerWon);
+    // Initialize game when component mounts
+    useEffect(() => {
+        if (isHost && !gameState) {
+            console.log('🎮 [UNO MULTIPLAYER] Host initializing game');
+            initializeGame();
+        }
+    }, [isHost]);
 
-    if (!isValidWalletAddress(account || '') || isLoggingGame || !playerWon) {
-      setIsMinting(false);
-      return;
-    }
+    // Handle loading state
+    useEffect(() => {
+        if (!lobby.player2Id && lobby.status !== 'playing') {
+            console.log('⏳ [UNO MULTIPLAYER] Waiting for opponent or game to start');
+            setIsLoadingGame(true);
+        } else {
+            console.log('✅ [UNO MULTIPLAYER] Game ready, both players present');
+            setIsLoadingGame(false);
+        }
+    }, [lobby.player2Id, lobby.status]);
 
-    setIsLoggingGame(true);
-    setIsMinting(true);
+    const initializeGame = () => {
+        const deck = shuffleDeck(createDeck());
+        const player1Hand = deck.splice(0, 7);
+        const player2Hand = deck.splice(0, 7);
+        const topCard = deck.splice(0, 1)[0];
+        
+        // Ensure starting card is not a wild card
+        while (topCard.color === 'Wild') {
+            deck.push(topCard);
+            const newTopCard = deck.splice(0, 1)[0];
+            if (newTopCard) {
+                topCard.color = newTopCard.color;
+                topCard.value = newTopCard.value;
+            }
+        }
 
-    try {
-      const gameResult = createGameResult(
-        account!,
-        'uno',
-        0, // Score is not relevant for Uno, it's win/loss
-        playerWon,
-        0 // Duration not tracked for now
-      );
+        const initialGameState: UnoGameState = {
+            players: [
+                { id: 'player', name: lobby.player1Name, hand: player1Hand },
+                { id: 'bot', name: lobby.player2Name || 'Player 2', hand: player2Hand }
+            ],
+            playerHand: player1Hand,
+            deck: deck,
+            discardPile: [topCard],
+            activePlayerIndex: 0,
+            activeColor: topCard.color,
+            winner: null,
+            isReversed: false,
+            direction: 'clockwise',
+            gameLog: ['Game started!']
+        };
 
-      const logResponse = await logGameCompletion(gameResult);
+        setGameState(initialGameState);
+        setGameStartTime(Date.now());
+        
+        // Send initial game state to opponent
+        sendGameState(initialGameState);
+        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent to opponent');
+    };
 
-      let tokensToMint = 0;
-      if (logResponse?.reward) {
-        tokensToMint = parseFloat(logResponse.reward);
-      } else if (playerWon) {
-        tokensToMint = 50; // Default 50 ARC for winning Uno
-      }
-      setTokensEarned(tokensToMint);
+    // Listen for game state updates from opponent
+    useEffect(() => {
+        const unsubscribe = onGameStateUpdate((newGameState: UnoGameState) => {
+            console.log('📨 [UNO MULTIPLAYER] Received game state update:', newGameState);
+            setGameState(newGameState);
+            setIsLoadingGame(false);
+        });
 
-      if (tokensToMint > 0 && logResponse?.mintTransaction) {
-        setMintTxHash(logResponse.mintTransaction);
-      }
-    } catch (error) {
-      console.error('Failed to log game completion or mint tokens:', error);
-    } finally {
-      setIsLoggingGame(false);
-      setIsMinting(false);
-    }
-  }, [account, currentUserId, isLoggingGame]);
+        return unsubscribe;
+    }, [onGameStateUpdate]);
 
-  useEffect(() => {
-    // Show loading if we don't have both players AND lobby is not in playing status
-    if (!lobby.player2Id && lobby.status !== 'playing') {
-      setIsLoadingGame(true);
-      return;
-    }
-    
-    // Both players are present OR lobby is in playing status - initialize game
-    setIsLoadingGame(false);
-    setOpponentName(isHost ? (lobby.player2Name || 'Player') : (lobby.player1Name || 'Player'));
-    if (isHost && !gameInitialized) {
-      initializeGame();
-    }
-  }, [lobby, isHost, initializeGame, gameInitialized]);
+    const handlePlayCard = (cardIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
+        if (!gameState || gameState.winner) return;
+        
+        const currentPlayer = gameState.players[gameState.activePlayerIndex];
+        const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
+        
+        if (!isMyTurn) {
+            setTurnMessage("Not your turn!");
+            return;
+        }
 
+        const card = currentPlayer.hand[cardIndex];
+        const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+        
+        if (!isCardPlayable(card, topCard, gameState.activeColor)) {
+            setTurnMessage("Can't play that card!");
+            return;
+        }
 
+        // Handle wild cards
+        if (card.color === 'Wild') {
+            setShowColorPicker(true);
+            return;
+        }
 
-  // Listen for opponent moves
-  useEffect(() => {
-    onGameMove((moveData: any) => {
-      if (moveData.type === 'uno-init' && !isHost) {
-        setDeck(moveData.deck);
-        setPlayerHand(moveData.playerCards);
-        setOpponentHandSize(moveData.opponentCards.length);
-        setDiscardPile([moveData.firstCard]);
-        setCurrentColor(moveData.currentColor);
-        addGameLog('Game initialized!');
-    } else if (moveData.type === 'uno-game-over') {
-      handleGameOver(moveData.winnerId);
-    } else if (moveData.type === 'uno-play-card') {
-        setDiscardPile(prev => [...prev, moveData.card]);
-        setCurrentColor(moveData.newColor);
-        setOpponentHandSize(moveData.opponentHandSize);
-        setIsMyTurn(true);
-        addGameLog(`${opponentName} played ${moveData.card.value}`);
+        playCard(cardIndex, card.color);
+    };
+
+    const playCard = (cardIndex: number, chosenColor?: UnoColor) => {
+        if (!gameState) return;
+        
+        const currentPlayer = gameState.players[gameState.activePlayerIndex];
+        const card = currentPlayer.hand[cardIndex];
+        
+        // Create flying card animation
+        if (playerHandRef.current) {
+            const cardElement = playerHandRef.current.children[cardIndex] as HTMLElement;
+            if (cardElement) {
+                setFlyingCard({
+                    card,
+                    startRect: cardElement.getBoundingClientRect()
+                });
+                
+                setTimeout(() => setFlyingCard(null), 600);
+            }
+        }
+
+        // Update game state
+        const newGameState = { ...gameState };
+        const newCurrentPlayer = { ...currentPlayer };
+        newCurrentPlayer.hand = [...currentPlayer.hand];
+        newCurrentPlayer.hand.splice(cardIndex, 1);
+        newGameState.players[gameState.activePlayerIndex] = newCurrentPlayer;
+        
+        // Add card to discard pile
+        newGameState.discardPile = [...gameState.discardPile, card];
+        
+        // Set active color
+        newGameState.activeColor = chosenColor || card.color;
+        
+        // Add to game log
+        newGameState.gameLog = [...gameState.gameLog, `${currentPlayer.name} played ${card.value} ${card.color}`];
+        
+        // Check for winner
+        if (newCurrentPlayer.hand.length === 0) {
+            newGameState.winner = currentPlayer.name;
+            newGameState.gameLog.push(`${currentPlayer.name} wins!`);
+            setHasWon(currentPlayer.id === 'player');
+        }
         
         // Handle special cards
-        if (moveData.card.type === 'skip') {
-          addGameLog('You were skipped!');
-          setIsMyTurn(false);
-        } else if (moveData.card.type === 'reverse') {
-          setGameDirection(prev => prev * -1);
-          addGameLog('Direction reversed!');
-        } else if (moveData.card.type === 'draw2') {
-          drawCards(2);
-          addGameLog('You drew 2 cards!');
-          setIsMyTurn(false);
-        } else if (moveData.card.type === 'wild4') {
-          drawCards(4);
-          addGameLog('You drew 4 cards!');
-          setIsMyTurn(false);
+        let nextPlayerIndex = gameState.activePlayerIndex;
+        if (card.value === 'Skip') {
+            nextPlayerIndex = (nextPlayerIndex + 1) % 2;
+            newGameState.gameLog.push(`${gameState.players[nextPlayerIndex].name} was skipped!`);
+        } else if (card.value === 'Reverse') {
+            newGameState.isReversed = !gameState.isReversed;
+            newGameState.gameLog.push('Direction reversed!');
+        } else if (card.value === 'Draw Two') {
+            const targetPlayerIndex = (nextPlayerIndex + 1) % 2;
+            const targetPlayer = { ...newGameState.players[targetPlayerIndex] };
+            const drawnCards = newGameState.deck.splice(0, 2);
+            targetPlayer.hand = [...targetPlayer.hand, ...drawnCards];
+            newGameState.players[targetPlayerIndex] = targetPlayer;
+            newGameState.gameLog.push(`${targetPlayer.name} draws 2 cards!`);
+        } else if (card.value === 'Draw Four') {
+            const targetPlayerIndex = (nextPlayerIndex + 1) % 2;
+            const targetPlayer = { ...newGameState.players[targetPlayerIndex] };
+            const drawnCards = newGameState.deck.splice(0, 4);
+            targetPlayer.hand = [...targetPlayer.hand, ...drawnCards];
+            newGameState.players[targetPlayerIndex] = targetPlayer;
+            newGameState.gameLog.push(`${targetPlayer.name} draws 4 cards!`);
         }
         
-        // Check if opponent won
-        if (moveData.opponentHandSize === 0) {
-          setWinner(opponentName);
-          setShowEndGameScreen(true);
+        // Move to next player
+        if (!newGameState.winner) {
+            newGameState.activePlayerIndex = (gameState.activePlayerIndex + 1) % 2;
         }
-      } else if (moveData.type === 'uno-draw-card') {
-        setOpponentHandSize(moveData.opponentHandSize);
-        addGameLog(`${opponentName} drew a card`);
-        setIsMyTurn(true);
-      } else if (moveData.type === 'game-end') {
-        setWinner(moveData.winner);
-        setShowEndGameScreen(true);
-      }
-    });
-  }, [lobby, isHost, opponentName, onGameMove, initializeGame, addGameLog]);
+        
+        setGameState(newGameState);
+        sendGameState(newGameState);
+    };
 
-  // Initialize game state when component mounts with a complete lobby
-  useEffect(() => {
-    if (lobby.player1Id && lobby.player2Id && !isLoadingGame) {
-      setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
-      if (isHost) {
-        initializeGame();
-      }
+    const handleColorPick = (color: UnoColor) => {
+        setShowColorPicker(false);
+        if (!gameState) return;
+        
+        const currentPlayer = gameState.players[gameState.activePlayerIndex];
+        const cardIndex = currentPlayer.hand.findIndex(card => card.color === 'Wild');
+        if (cardIndex !== -1) {
+            playCard(cardIndex, color);
+        }
+    };
+
+    const handleDrawCard = () => {
+        if (!gameState || gameState.winner) return;
+        
+        const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
+        if (!isMyTurn) {
+            setTurnMessage("Not your turn!");
+            return;
+        }
+
+        const newGameState = { ...gameState };
+        const currentPlayer = { ...gameState.players[gameState.activePlayerIndex] };
+        
+        if (newGameState.deck.length === 0) {
+            // Reshuffle discard pile into deck
+            const newDeck = shuffleDeck(newGameState.discardPile.slice(0, -1));
+            newGameState.deck = newDeck;
+            newGameState.discardPile = [newGameState.discardPile[newGameState.discardPile.length - 1]];
+        }
+        
+        const drawnCard = newGameState.deck.splice(0, 1)[0];
+        currentPlayer.hand = [...currentPlayer.hand, drawnCard];
+        newGameState.players[gameState.activePlayerIndex] = currentPlayer;
+        newGameState.gameLog = [...gameState.gameLog, `${currentPlayer.name} drew a card`];
+        
+        // Move to next player
+        newGameState.activePlayerIndex = (gameState.activePlayerIndex + 1) % 2;
+        
+        setGameState(newGameState);
+        sendGameState(newGameState);
+    };
+
+    const handleNewGame = () => {
+        setGameState(null);
+        setShowEndGameScreen(false);
+        setHasWon(false);
+        setIsLoadingGame(true);
+        if (isHost) {
+            initializeGame();
+        }
+    };
+
+    // Show loading screen
+    if (isLoadingGame || !gameState) {
+        const message = !lobby.player2Id && lobby.status !== 'playing' 
+            ? "Waiting for opponent..." 
+            : "Starting game...";
+            
+        return (
+            <div className="w-full h-full flex items-center justify-center text-white">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
+                    <p className="text-2xl font-headline">{message}</p>
+                </div>
+            </div>
+        );
     }
-  }, [lobby.player1Id, lobby.player2Id, isHost, lobby.player1Name, lobby.player2Name, isLoadingGame, initializeGame]);
 
-  const drawCards = useCallback((count: number) => {
-    const newCards = deck.splice(0, count);
-    setPlayerHand(prev => [...prev, ...newCards]);
-    setDeck(prev => prev.slice(count));
-  }, [deck]);
+    const player = gameState.players[isHost ? 0 : 1];
+    const opponent = gameState.players[isHost ? 1 : 0];
+    const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+    const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
+    const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
 
-  const canPlayCard = (card: UnoCard): boolean => {
-    const topCard = discardPile[discardPile.length - 1];
+    // Hand styling function
+    const handStyle = (index: number, handSize: number) => {
+        const maxSpread = Math.min(handSize * 8, 80);
+        const finalSpread = maxSpread / handSize;
+        const startOffset = -(maxSpread / 2) + (finalSpread / 2);
+        const translateX = startOffset + index * finalSpread;
+        return {
+            transform: `translateX(${translateX}%)`,
+            zIndex: index,
+        };
+    };
+
     return (
-      card.color === 'black' ||
-      card.color === currentColor ||
-      card.value === topCard.value
-    );
-  };
-
-  const handlePlayCard = (card: UnoCard) => {
-    if (!isMyTurn || !canPlayCard(card)) return;
-    
-    if (card.type === 'wild' || card.type === 'wild4') {
-      setPendingWildCard(card);
-      setShowColorPicker(true);
-      return;
-    }
-    
-    playCard(card, currentColor);
-  };
-
-  const playCard = (card: UnoCard, newColor: UnoColor) => {
-    const newPlayerHand = playerHand.filter(c => c.id !== card.id);
-    setPlayerHand(newPlayerHand);
-    setDiscardPile(prev => [...prev, card]);
-    setCurrentColor(newColor);
-    setIsMyTurn(false);
-    
-    // Send move to opponent
-    sendGameMove(lobby.id, {
-      type: 'uno-play-card',
-      card,
-      newColor,
-      opponentHandSize: newPlayerHand.length
-    });
-    
-    addGameLog(`You played ${card.value}`);
-    
-    // Check if player won
-    if (newPlayerHand.length === 0) {
-      setWinner('You');
-      setShowEndGameScreen(true);
-      sendGameMove(lobby.id, {
-        type: 'game-end',
-        winner: 'You'
-      });
-    }
-    
-    // Handle special cards for opponent
-    if (card.type === 'skip') {
-      addGameLog(`${opponentName} was skipped!`);
-      setIsMyTurn(true);
-    } else if (card.type === 'reverse') {
-      setGameDirection(prev => prev * -1);
-      addGameLog('Direction reversed!');
-      setIsMyTurn(true);
-    }
-  };
-
-  const handleColorPick = (color: UnoColor) => {
-    if (pendingWildCard) {
-      playCard(pendingWildCard, color);
-      setPendingWildCard(null);
-      setShowColorPicker(false);
-    }
-  };
-
-  const handleDrawCard = () => {
-    if (!isMyTurn || deck.length === 0) return;
-    
-    drawCards(1);
-    setIsMyTurn(false);
-    
-    sendGameMove(lobby.id, {
-      type: 'uno-draw-card',
-      opponentHandSize: playerHand.length + 1
-    });
-    
-    addGameLog('You drew a card');
-  };
-
-  const handleLeaveGame = () => {
-    leaveLobby(lobby.id, currentUserId);
-    onGameEnd();
-  };
-
-  const getCardColor = (card: UnoCard) => {
-    switch (card.color) {
-      case 'red': return 'bg-red-500';
-      case 'blue': return 'bg-blue-500';
-      case 'green': return 'bg-green-500';
-      case 'yellow': return 'bg-yellow-500';
-      case 'black': return 'bg-gray-800';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getCurrentColorDisplay = () => {
-    switch (currentColor) {
-      case 'red': return 'bg-red-500';
-      case 'blue': return 'bg-blue-500';
-      case 'green': return 'bg-green-500';
-      case 'yellow': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  if (showEndGameScreen) {
-    return (
-      <UnoEndGameScreen
-        hasWon={hasWon}
-        onNewGame={() => { /* Implement new game logic */ }}
-        onBackToMenu={onGameEnd}
-        isMinting={isMinting}
-        mintTxHash={mintTxHash}
-        tokensEarned={tokensEarned}
-      />
-    );
-  }
-
-  return (
-    <div className="w-full h-screen bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {isLoadingGame ? (
-        <div className="flex flex-col items-center justify-center w-full h-full">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mb-4"></div>
-          <h2 className="text-4xl font-bold mb-4 text-white">
-            {(!lobby.player2Id && lobby.status !== 'playing') ? 'Waiting for opponent...' : 'Starting game...'}
-          </h2>
-          <p className="text-lg text-white">Lobby ID: {lobby.id}</p>
-          {lobby.player2Id && (
-            <p className="text-sm text-white/70 mt-2">Both players connected, initializing game...</p>
-          )}
-          <div className="mt-4 text-xs text-white/50 space-y-1">
-            <p>🔍 Debug Info:</p>
-            <p>Player 1: {lobby.player1Name} ({lobby.player1Id})</p>
-            <p>Player 2: {lobby.player2Name || 'None'} ({lobby.player2Id || 'None'})</p>
-            <p>Status: {lobby.status}</p>
-            <p>Is Host: {isHost ? 'Yes' : 'No'}</p>
-            <p>Loading: {isLoadingGame ? 'Yes' : 'No'}</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Color Picker Modal */}
-      {showColorPicker && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 space-y-4">
-            <h3 className="text-xl font-bold text-black text-center">Choose a color</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {(['red', 'blue', 'green', 'yellow'] as UnoColor[]).map(color => (
-                <Button
-                  key={color}
-                  onClick={() => handleColorPick(color)}
-                  className={cn(
-                    "w-20 h-20 rounded-lg text-white font-bold",
-                    getCardColor({ color } as UnoCard)
-        )}
-                >
-                  {color.toUpperCase()}
+        <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
+            
+            {/* Game Log Button */}
+            <div className={cn("absolute top-24 right-2 z-20", gameState.winner && "hidden")}>
+                <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
+                    Log
                 </Button>
-              ))}
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Game Info */}
-      <div className="absolute top-4 left-4 bg-black/50 rounded-lg p-4 text-white">
-        <div className="space-y-2 text-sm">
-          <div>You: {playerHand.length} cards</div>
-          <div>{opponentName}: {opponentHandSize} cards</div>
-          <div className="flex items-center gap-2">
-            Current color: 
-            <div className={cn("w-4 h-4 rounded", getCurrentColorDisplay())}></div>
-          </div>
-          <div className={cn("font-bold", isMyTurn ? "text-green-400" : "text-yellow-400")}>
-            {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
-          </div>
-        </div>
-      </div>
-
-      {/* Leave Game Button */}
-      <div className="absolute top-4 right-4">
-        <Button onClick={handleLeaveGame} variant="destructive">
-          Leave Game
-        </Button>
-      </div>
-
-      {/* Opponent's Hand */}
-      <div className="mb-8">
-        <h3 className="text-white text-center mb-4 font-bold">{opponentName}</h3>
-        <div className="flex gap-1">
-          {Array.from({ length: opponentHandSize }).map((_, i) => (
-            <div
-              key={i}
-              className="w-12 h-16 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center"
-            >
-              <span className="text-white text-xs">UNO</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Discard Pile and Draw Pile */}
-      <div className="flex gap-8 mb-8">
-        <div className="text-center">
-          <h4 className="text-white mb-2">Discard Pile</h4>
-          {discardPile.length > 0 && (
+            {/* Game Log Panel */}
             <div className={cn(
-              "w-20 h-28 rounded-lg border-2 border-white flex items-center justify-center text-white font-bold",
-              getCardColor(discardPile[discardPile.length - 1])
+                "fixed top-0 right-0 h-full w-64 md:w-72 bg-black/80 md:bg-black/50 rounded-l-lg md:rounded-lg p-4 flex flex-col z-30 transition-transform duration-300 ease-in-out",
+                isLogVisible ? "translate-x-0" : "translate-x-full"
             )}>
-              {discardPile[discardPile.length - 1].value.toUpperCase()}
+                 <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => setIsLogVisible(false)}>
+                    X
+                 </Button>
+                <h3 className="text-2xl text-accent text-center font-bold uppercase tracking-wider mb-4">Game Log</h3>
+                <ScrollArea className="flex-1">
+                    <div className="flex flex-col gap-2">
+                       {gameState.gameLog.slice().reverse().map((msg, i) => (
+                           <p key={i} className={cn("text-sm text-white/80 border-b border-white/10 pb-1", i === 0 && "text-white font-bold")}>
+                               {msg}
+                           </p>
+                       ))}
+                    </div>
+                </ScrollArea>
+                <div className="mt-4 space-y-2">
+                    <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleNewGame}><RefreshCw className="mr-2 h-5 w-5"/> New Game</Button>
+                </div>
             </div>
-          )}
-        </div>
-        
-        <div className="text-center">
-          <h4 className="text-white mb-2">Draw Pile</h4>
-          <Button
-            onClick={handleDrawCard}
-            disabled={!isMyTurn || deck.length === 0}
-            className="w-20 h-28 bg-gray-800 border-2 border-white rounded-lg text-white font-bold"
-          >
-            DRAW
-          </Button>
-        </div>
-      </div>
 
-      {/* Player's Hand */}
-      <div>
-        <h3 className="text-white text-center mb-4 font-bold">Your Hand</h3>
-        <div className="flex gap-2 flex-wrap justify-center max-w-4xl">
-          {playerHand.map((card) => (
-            <Button
-              key={card.id}
-              onClick={() => handlePlayCard(card)}
-              disabled={!isMyTurn || !canPlayCard(card)}
-              className={cn(
-                "w-16 h-24 rounded-lg border-2 border-white text-white font-bold text-xs transition-all",
-                getCardColor(card),
-                canPlayCard(card) && isMyTurn ? "hover:scale-105 cursor-pointer" : "opacity-50 cursor-not-allowed"
-              )}
-            >
-              {card.value.toUpperCase()}
-            </Button>
-          ))}
+             <div className="flex-1 h-full flex flex-col justify-between items-center py-2 md:py-4 px-2 md:px-4">
+                {/* Opponent Area */}
+                <div className="flex flex-col items-center gap-2 md:gap-4 min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] w-full max-w-7xl">
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", !isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{opponent.name} ({opponent.hand.length} cards)</div>
+                    <div className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
+                        {opponent.hand.map((_, i) => (
+                            <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, opponent.hand.length), top: 0 }}>
+                                <CardBack />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Center Area with Played and Draw Cards */}
+                <div className="flex flex-col items-center gap-3 md:gap-6 my-4 md:my-6">
+                    {/* Labels Row */}
+                    <div className="flex items-center justify-center gap-12 md:gap-20">
+                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Played</h3>
+                        <h3 className="text-sm md:text-xl lg:text-2xl font-bold uppercase tracking-wider text-center w-20 md:w-32">Draw</h3>
+                    </div>
+                    
+                    {/* Cards Row */}
+                    <div className="flex items-start justify-center gap-12 md:gap-20">
+                        <div className="flex justify-center items-start w-20 md:w-32">
+                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
+                        </div>
+                        
+                        <div className="flex justify-center items-start w-20 md:w-32">
+                            <div onClick={isMyTurn ? handleDrawCard : undefined} className={cn("transition-transform hover:scale-105 relative", isMyTurn && !playerHasPlayableCard ? "cursor-pointer" : "cursor-not-allowed")} style={{transform: 'translateX(-32px)'}}>
+                               {Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={i} className="absolute" style={{ top: `${i * 2}px`, left: `${i * 2}px` }}>
+                                        <CardBack size="large" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Player Area */}
+                <div className="flex flex-col items-center gap-2 md:gap-4 w-full max-w-7xl min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] pb-0 mb-2 md:mb-4">
+                    <div ref={playerHandRef} className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
+                        {player.hand.map((card, i) => (
+                            <div
+                              key={`${card.color}-${card.value}-${i}`}
+                              className="absolute"
+                              style={{
+                                  ...handStyle(i, player.hand.length),
+                                  visibility: flyingCard?.card === card ? 'hidden' : 'visible',
+                                  bottom: 0,
+                              }}
+                            >
+                                <CardComponent 
+                                    card={card} 
+                                    isPlayer={true} 
+                                    onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
+                                    isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState.activeColor)}
+                                    isLastCard={player.hand.length === 1}
+                                />
+                            </div>
+                        )
+                        )}
+                    </div>
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
+                </div>
+            </div>
+
+            {/* Turn Message Overlay */}
+            {turnMessage && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center animate-message pointer-events-none">
+                    <div className="bg-black/50 p-4 md:p-8 rounded-xl backdrop-blur-sm">
+                        <h2 className="text-4xl md:text-6xl text-white font-headline uppercase tracking-wider text-center" style={{ WebkitTextStroke: '2px black' }}>
+                            {turnMessage}
+                        </h2>
+                    </div>
+                </div>
+            )}
+
+            {/* Flying Card Animation */}
+            {flyingCard && (
+                <div
+                    className="absolute z-50 animate-fly"
+                    style={
+                        {
+                            '--start-x': `${flyingCard.startRect.left}px`,
+                            '--start-y': `${flyingCard.startRect.top}px`,
+                            '--start-rotate': `${(Math.random() - 0.5) * 15}deg`,
+                            left: 0,
+                            top: 0
+                        } as React.CSSProperties
+                    }
+                >
+                    <CardComponent card={flyingCard.card} isPlayer={false} onClick={()=>{}} isPlayable={false} />
+                </div>
+            )}
+
+            {/* Winner Overlay */}
+            {gameState.winner && !showEndGameScreen && (
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-30">
+                    <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO!</h2>
+                    <p className="text-2xl md:text-4xl text-white -mt-4">{gameState.winner} Wins!</p>
+                    <div className="flex gap-4">
+                        <Button size="lg" onClick={handleNewGame} className="font-headline text-2xl"><RefreshCw className="mr-2"/> New Game</Button>
+                        <Button size="lg" onClick={onGameEnd} className="font-headline text-2xl">Back to Menu</Button>
+                    </div>
+                </div>
+            )}
+
+            {/* End Game Screen */}
+            {showEndGameScreen && gameState && (
+                <UnoEndGameScreen
+                    hasWon={hasWon}
+                    onNewGame={handleNewGame}
+                    onBackToMenu={onGameEnd}
+                    isMinting={isMinting}
+                    mintTxHash={mintTxHash}
+                    tokensEarned={tokensEarned}
+                />
+            )}
+            
+            {/* Color Picker Modal */}
+            {showColorPicker && (
+                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-20">
+                     <h2 className="text-3xl md:text-6xl text-white font-bold drop-shadow-lg mb-4">Choose a color</h2>
+                     <div className="grid grid-cols-2 md:flex gap-4">
+                        {colors.map(color => (
+                            <button key={color} onClick={() => handleColorPick(color)} className={cn("w-24 h-24 md:w-32 md:h-32 rounded-full cursor-pointer border-8 border-white flex items-center justify-center transition-transform hover:scale-110", {
+                              'bg-red-600': color === 'Red',
+                              'bg-green-600': color === 'Green',
+                              'bg-blue-600': color === 'Blue',
+                              'bg-yellow-500': color === 'Yellow',
+                            })}>
+                                <span className="text-white text-lg md:text-2xl font-bold">{color}</span>
+                            </button>
+                        ))}
+                     </div>
+                 </div>
+            )}
+
         </div>
-      </div>
-    </>
-  )}
-    </div>
-  );
+    );
 };
