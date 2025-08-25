@@ -106,7 +106,13 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const { account, username } = useWeb3();
   const currentUserId = account || `guest-${Date.now()}`;
   
-  const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined } = useFirebaseMultiplayer();
+  const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined, setupGameMovesListener } = useFirebaseMultiplayer();
+
+  // Set up Firebase game moves listener
+  useEffect(() => {
+    console.log('🔗 [CHESS MULTIPLAYER] Setting up game moves listener for lobby:', lobby.id);
+    setupGameMovesListener(lobby.id);
+  }, [lobby.id, setupGameMovesListener]);
 
   // Initialize board from game instance
   useEffect(() => {
@@ -122,26 +128,36 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       shouldShowLoading: !lobby.player2Id && lobby.status !== 'playing'
     });
     
-    // Show loading if we don't have both players AND lobby is not in playing status
-    if (!lobby.player2Id && lobby.status !== 'playing') {
-      console.log('⏳ [MULTIPLAYER CHESS CLIENT] Setting loading to TRUE');
-      setIsLoadingGame(true);
-      return;
-    }
+    // Always show game interface - initialization will happen in background
+    console.log('🎮 [MULTIPLAYER CHESS CLIENT] Always showing game interface, initialization will happen in background');
+    setIsLoadingGame(false); // Always show game interface
     
-    // Both players are present OR lobby is in playing status - initialize game
-    console.log('🎮 [MULTIPLAYER CHESS CLIENT] Setting loading to FALSE - game should start');
-    setIsLoadingGame(false);
+    // Enhanced debug logging for player assignment
+    console.log('🎮 [CHESS MULTIPLAYER] Player assignment - Player1 (creator):', lobby.player1Id, lobby.player1Name, '| Player2 (joiner):', lobby.player2Id || 'waiting-for-player2', lobby.player2Name || 'Waiting for Player 2...');
     
     // Randomly assign colors - host gets random color, guest gets opposite
     const hostIsWhite = Math.random() < 0.5;
     const myColor = isHost ? (hostIsWhite ? 'w' : 'b') : (hostIsWhite ? 'b' : 'w');
+
+    console.log('🎨 [CHESS MULTIPLAYER] Color assignment:', {
+      isHost,
+      hostIsWhite,
+      myColor,
+      opponentColor: myColor === 'w' ? 'b' : 'w'
+    });
 
     setPlayerColor(myColor);
     setIsMyTurn(myColor === 'w'); // White always starts
 
     // Set opponent name
     setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
+    
+    console.log('👥 [CHESS MULTIPLAYER] Final player setup:', {
+      myName: isHost ? lobby.player1Name : lobby.player2Name,
+      opponentName: isHost ? (lobby.player2Name || 'Player') : lobby.player1Name,
+      myColor,
+      isMyTurn: myColor === 'w'
+    });
     
     // Listen for opponent moves
     const unsubscribeOnGameMove = onGameMove((moveData: any) => {
