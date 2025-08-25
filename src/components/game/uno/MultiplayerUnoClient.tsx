@@ -181,7 +181,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const playerHandRef = useRef<HTMLDivElement>(null);
     
     // Firebase multiplayer hooks
-    const { sendGameMove, onGameMove, startGame } = useFirebaseMultiplayer();
+    const { sendGameMove, onGameMove, startGame, setupGameMovesListener } = useFirebaseMultiplayer();
 
     const isCardPlayable = (card: UnoCard, topCard: UnoCard, activeColor: UnoColor): boolean => {
         if (card.color === 'Wild') return true;
@@ -198,6 +198,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             return () => clearTimeout(timer);
         }
     }, [turnMessage]);
+
+    // Set up game moves listener for this lobby
+    useEffect(() => {
+        console.log('🔗 [UNO MULTIPLAYER] Setting up game moves listener for lobby:', lobby.id);
+        setupGameMovesListener(lobby.id);
+    }, [lobby.id, setupGameMovesListener]);
 
     // Initialize game when component mounts
     useEffect(() => {

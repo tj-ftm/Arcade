@@ -23,6 +23,7 @@ interface UseFirebaseMultiplayerReturn {
   startGame: (lobbyId: string) => Promise<void>;
   sendGameMove: (lobbyId: string, moveData: any) => Promise<void>;
   onGameMove: (callback: (moveData: any) => void) => () => void;
+  setupGameMovesListener: (lobbyId: string) => void;
   onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
   onLobbyLeft: (callback: (lobby: Lobby) => void) => void;
   onLobbyClosed: (callback: () => void) => void;
@@ -36,6 +37,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
   const [lobbyJoinedCallbacks, setLobbyJoinedCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
   const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
   const [lobbyClosedCallbacks, setLobbyClosedCallbacks] = useState<(() => void)[]>([]);
+  const [gameMovesListeners, setGameMovesListeners] = useState<{[lobbyId: string]: () => void}>({});
 
   useEffect(() => {
     // Try to connect to Firebase
@@ -267,6 +269,28 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       console.error('Error sending game move:', error);
     }
   };
+
+  const setupGameMovesListener = (lobbyId: string) => {
+    if (gameMovesListeners[lobbyId]) {
+      return; // Already listening to this lobby
+    }
+
+    const movesRef = ref(database, `game-moves/${lobbyId}`);
+    const unsubscribe = onValue(movesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Get the latest move (last entry)
+        const moves = Object.values(data) as any[];
+        const latestMove = moves[moves.length - 1];
+        if (latestMove && latestMove.moveData) {
+          console.log('🔥 [FIREBASE] Game move received for lobby', lobbyId, ':', latestMove.moveData);
+          gameMovesCallbacks.forEach(callback => callback(latestMove.moveData));
+        }
+      }
+    });
+
+    setGameMovesListeners(prev => ({ ...prev, [lobbyId]: unsubscribe }));
+  };
   const onGameMove = useCallback((callback: (moveData: any) => void) => {
     setGameMovesCallbacks(prev => [...prev, callback]);
     return () => {
@@ -305,6 +329,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     startGame,
     sendGameMove,
     onGameMove,
+    setupGameMovesListener,
     onLobbyJoined,
     onLobbyLeft,
     onLobbyClosed
