@@ -92,9 +92,9 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
     if (typeof window !== "undefined" && window.ethereum) {
       return new ethers.BrowserProvider(window.ethereum);
     } else {
-      // Hardcode RPC URL as it's not a private link
+      // Hardcode RPC URLs as they are public endpoints
       const rpcUrls = [
-        process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.soniclabs.com/',
+        'https://rpc.soniclabs.com/',
         'https://rpc.sonic.fantom.network/', // Alternative Sonic RPC
         'https://sonic-mainnet.gateway.tatum.io/' // Another alternative
       ];
@@ -117,7 +117,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
     
     const provider = getProvider();
     if (!provider) {
-      const errorMsg = "No Ethereum provider available. Please ensure NEXT_PUBLIC_RPC_URL is set in your .env.local file or connect a wallet.";
+      const errorMsg = "No Ethereum provider available. Please connect a wallet or check your network connection.";
       console.error(errorMsg);
       setError(errorMsg);
       setLoading(false);
