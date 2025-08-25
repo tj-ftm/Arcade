@@ -19,6 +19,30 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Function to fetch metadata from IPFS/HTTP URL
+  const fetchMetadataFromURI = async (tokenURI: string) => {
+    try {
+      // Convert IPFS URLs to HTTP gateway URLs
+      let metadataUrl = tokenURI;
+      if (tokenURI.startsWith('ipfs://')) {
+        metadataUrl = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+      }
+      
+      console.log(`Fetching metadata from: ${metadataUrl}`);
+      const response = await fetch(metadataUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metadata: ${response.status}`);
+      }
+      
+      const metadata = await response.json();
+      console.log('Fetched metadata:', metadata);
+      return metadata;
+    } catch (error) {
+      console.error('Error fetching metadata:', error);
+      return null;
+    }
+  };
+
   const fetchOwnedNFTs = async () => {
     if (!account) {
       setError("Please connect your wallet first");
@@ -67,7 +91,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
       
       // Transform the API response to our NFT interface
-      const nfts: NFT[] = nftArray.map((item: any, index: number) => {
+      const nfts: NFT[] = await Promise.all(nftArray.map(async (item: any, index: number) => {
         console.log(`Processing NFT ${index}:`, item);
         
         // Access the nested nft object for metadata
@@ -80,22 +104,46 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
         console.log(`Token ID: ${tokenId}, Contract: ${contractAddress}`);
         
         // Check if metadata needs to be fetched from IPFS
+        let fetchedMetadata = null;
         if (nftData.tokenURI) {
           console.log(`Token URI found: ${nftData.tokenURI}`);
+          fetchedMetadata = await fetchMetadataFromURI(nftData.tokenURI);
         }
         if (nftData.metadata) {
           console.log(`Metadata object:`, nftData.metadata);
         }
         
+        // Debug image URL extraction with enhanced fallback
+        let imageUrl = nftData.image || nftData.imageUrl || nftData.image_url || nftData.thumbnail || nftData.metadata?.image;
+        
+        // If no direct image URL, try fetched metadata
+        if (!imageUrl && fetchedMetadata) {
+          imageUrl = fetchedMetadata.image || fetchedMetadata.imageUrl || fetchedMetadata.image_url;
+          // Handle IPFS image URLs
+          if (imageUrl && imageUrl.startsWith('ipfs://')) {
+            imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+          }
+        }
+        
+        console.log(`Final Image URL for NFT ${index}:`, imageUrl);
+        console.log(`Available image fields:`, {
+          image: nftData.image,
+          imageUrl: nftData.imageUrl,
+          image_url: nftData.image_url,
+          thumbnail: nftData.thumbnail,
+          metadataImage: nftData.metadata?.image,
+          fetchedImage: fetchedMetadata?.image
+        });
+        
         return {
           tokenId: tokenId,
           contractAddress: contractAddress,
-          name: nftData.name || nftData.title || nftData.metadata?.name || `NFT #${tokenId}`,
-          description: nftData.description || nftData.desc || nftData.metadata?.description || "No description available",
-          image: nftData.image || nftData.imageUrl || nftData.image_url || nftData.thumbnail || nftData.metadata?.image || placeholderImage,
+          name: nftData.name || nftData.title || nftData.metadata?.name || fetchedMetadata?.name || `NFT #${tokenId}`,
+          description: nftData.description || nftData.desc || nftData.metadata?.description || fetchedMetadata?.description || "No description available",
+          image: imageUrl || placeholderImage,
           metadata: item
         };
-      });
+      }));
       
       setOwnedNFTs(nfts);
     } catch (err) {
