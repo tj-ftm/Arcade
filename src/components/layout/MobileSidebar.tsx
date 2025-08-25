@@ -28,7 +28,7 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
       case 'chess':
         return 'linear-gradient(to bottom right, #581c87, #7c3aed, #6366f1)';
       case 'snake':
-        return 'linear-gradient(to bottom right, #374151, #4b5563, #000000)';
+        return 'linear-gradient(to bottom right, #166534, #16a34a, #22c55e)';
       case 'shop':
         return 'linear-gradient(to bottom right, #d97706, #f59e0b, #fbbf24)';
       default:
@@ -90,7 +90,10 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
           </div>
 
           {/* Menu Items */}
-          <div className="flex flex-col space-y-2 bg-red-800 rounded-lg">
+          <div className={cn(
+            "flex flex-col space-y-2 rounded-lg",
+            (theme === 'snake' || theme === 'chess') ? 'bg-transparent' : 'bg-red-800'
+          )}>
             {/* Wallet Connect */}
             <div className="mb-2">
               <ConnectWallet />
