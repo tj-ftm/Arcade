@@ -40,7 +40,10 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
   );
 
   const handleJoinLobby = async (lobby: Lobby) => {
+    console.log('🎮 [LOBBY LIST] Join lobby button clicked for:', lobby.id);
+    
     if (!effectivePlayerName.trim()) {
+      console.warn('⚠️ [LOBBY LIST] No player name provided');
       if (account) {
         alert('Please set a username in your wallet profile');
       } else {
@@ -49,19 +52,26 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
       return;
     }
 
-    console.log('Attempting to join lobby:', lobby.id);
-    console.log('Effective Player Name:', effectivePlayerName.trim());
-    console.log('Is Connected:', isConnected);
+    console.log('🚀 [LOBBY LIST] Starting join process with details:', {
+      lobbyId: lobby.id,
+      playerName: effectivePlayerName.trim(),
+      account: account,
+      isConnected: isConnected,
+      lobby: lobby
+    });
     
     setJoiningLobby(lobby.id);
     try {
+      console.log('📡 [LOBBY LIST] Calling joinLobby function...');
       await joinLobby(lobby.id, effectivePlayerName.trim(), account || `guest_${Date.now()}`);
-      console.log('Successfully joined lobby, calling onJoinLobby callback');
+      console.log('✅ [LOBBY LIST] joinLobby completed successfully, calling onJoinLobby callback');
       onJoinLobby?.(lobby);
+      console.log('📞 [LOBBY LIST] onJoinLobby callback completed');
     } catch (error) {
-      console.error('Failed to join lobby:', error);
-      alert('Failed to join lobby. Please try again.');
+      console.error('💥 [LOBBY LIST] Failed to join lobby:', error);
+      alert(`Failed to join lobby: ${error.message}`);
     } finally {
+      console.log('🏁 [LOBBY LIST] Join process finished, clearing joining state');
       setJoiningLobby(null);
     }
   };

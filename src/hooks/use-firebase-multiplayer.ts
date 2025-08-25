@@ -129,17 +129,37 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
   };
 
   const joinLobby = async (lobbyId: string, player2Name: string, player2Id: string) => {
-    if (!isConnected) return;
+    console.log('🔄 [JOIN LOBBY] Starting join process:', { lobbyId, player2Name, player2Id, isConnected });
+    
+    if (!isConnected) {
+      console.error('❌ [JOIN LOBBY] Not connected to Firebase');
+      return;
+    }
 
     try {
+      console.log('📡 [JOIN LOBBY] Getting lobby reference for:', lobbyId);
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
       // Get current lobby data
+      console.log('📥 [JOIN LOBBY] Fetching current lobby data...');
       const snapshot = await get(lobbyRef);
       
       const lobbyData = snapshot.val();
-      if (!lobbyData || lobbyData.status !== 'waiting' || lobbyData.player2Id) {
-        throw new Error('Lobby not available');
+      console.log('📊 [JOIN LOBBY] Current lobby data:', lobbyData);
+      
+      if (!lobbyData) {
+        console.error('❌ [JOIN LOBBY] Lobby does not exist');
+        throw new Error('Lobby not found');
+      }
+      
+      if (lobbyData.status !== 'waiting') {
+        console.error('❌ [JOIN LOBBY] Lobby status is not waiting:', lobbyData.status);
+        throw new Error('Lobby is not accepting players');
+      }
+      
+      if (lobbyData.player2Id) {
+        console.error('❌ [JOIN LOBBY] Lobby already has player 2:', lobbyData.player2Id);
+        throw new Error('Lobby is full');
       }
 
       // Update lobby with player 2 - keep status as 'waiting' until game actually starts
@@ -149,33 +169,40 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         player2Name,
         status: 'waiting', // Keep as waiting until both players are ready
       };
-
+      
+      console.log('💾 [JOIN LOBBY] Updating lobby with player 2 data:', updatedLobbyData);
       await set(lobbyRef, updatedLobbyData);
       
       // Set current lobby immediately for joining player
       const joinedLobby = { ...updatedLobbyData, id: lobbyId };
       setCurrentLobby(joinedLobby);
       
-      console.log('Joined lobby successfully, lobby state updated');
+      console.log('✅ [JOIN LOBBY] Successfully joined lobby, triggering callbacks');
       
       // Trigger lobby joined callback for the joining player
-      lobbyJoinedCallbacks.forEach(callback => callback(joinedLobby));
+      lobbyJoinedCallbacks.forEach(callback => {
+        console.log('📞 [JOIN LOBBY] Calling lobby joined callback');
+        callback(joinedLobby);
+      });
 
       // Listen for lobby updates for the joining player
+      console.log('👂 [JOIN LOBBY] Setting up lobby listener for updates');
       const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
         const data = snapshot.val();
+        console.log('🔄 [JOIN LOBBY] Lobby update received:', data);
         if (data) {
           const updatedLobby = { ...data, id: lobbyId };
           setCurrentLobby(updatedLobby);
         } else {
           // Lobby was deleted
+          console.log('🗑️ [JOIN LOBBY] Lobby was deleted');
           setCurrentLobby(null);
           lobbyClosedCallbacks.forEach(callback => callback());
         }
       });
 
     } catch (error) {
-      console.error('Error joining lobby:', error);
+      console.error('💥 [JOIN LOBBY] Error joining lobby:', error);
       throw error;
     }
   };

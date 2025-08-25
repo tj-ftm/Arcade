@@ -39,45 +39,89 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const currentUserId = account || `guest-${Date.now()}`;
   
   const handleGameStart = useCallback(async (lobby: Lobby, isHost: boolean) => {
-    console.log('Game starting:', lobby, 'isHost:', isHost);
+    console.log('🎯 [MULTIPLAYER LOBBY] Game start triggered:', {
+      lobby: lobby,
+      isHost: isHost,
+      gameStarting: gameStarting,
+      currentUserId: currentUserId
+    });
     
     // Clear any existing timeout
     setGameStartTimeout(prev => {
       if (prev) {
+        console.log('🧹 [MULTIPLAYER LOBBY] Clearing existing timeout');
         clearTimeout(prev);
       }
       return null;
     });
     
+    console.log('⏳ [MULTIPLAYER LOBBY] Setting game starting state to true');
     setGameStarting(true);
     
     // Start the game in Firebase (update status to 'playing')
+    console.log('🔥 [MULTIPLAYER LOBBY] Calling startGame for lobby:', lobby.id);
     await startGame(lobby.id);
+    console.log('✅ [MULTIPLAYER LOBBY] startGame completed');
     
     const timeout = setTimeout(() => {
-      console.log('Timeout completed, calling onStartGame with lobby:', lobby, 'isHost:', isHost);
+      console.log('⏰ [MULTIPLAYER LOBBY] Timeout completed, calling onStartGame with:', {
+        lobby: lobby,
+        isHost: isHost
+      });
       // Ensure lobby status is set to 'playing' before calling onStartGame
       const updatedLobby = { ...lobby, status: 'playing' as const };
       onStartGame?.(updatedLobby, isHost);
+      console.log('🎮 [MULTIPLAYER LOBBY] onStartGame callback completed');
       setGameStartTimeout(null);
     }, 1500); // Reduced delay since we're now properly managing state
     
     setGameStartTimeout(timeout);
-  }, [onStartGame, startGame]);
+  }, [onStartGame, startGame, gameStarting, currentUserId]);
 
   // Set up lobby joined callback for both host and joining player
   useEffect(() => {
+    console.log('👂 [MULTIPLAYER LOBBY] Setting up lobby joined listener for user:', currentUserId);
     const unsubscribe = onLobbyJoined((lobby: Lobby) => {
+      console.log('🔔 [MULTIPLAYER LOBBY] Lobby joined callback triggered:', {
+        lobby: lobby,
+        currentUserId: currentUserId,
+        gameStarting: gameStarting
+      });
+      
       const isHost = currentUserId === lobby.player1Id;
       const isJoiningPlayer = currentUserId === lobby.player2Id;
       
+      console.log('🔍 [MULTIPLAYER LOBBY] Player role analysis:', {
+        isHost: isHost,
+        isJoiningPlayer: isJoiningPlayer,
+        player1Id: lobby.player1Id,
+        player2Id: lobby.player2Id,
+        hasPlayer2: !!lobby.player2Id,
+        gameStarting: gameStarting
+      });
+      
       // Trigger for both host and joining player when lobby has both players
       if ((isHost || isJoiningPlayer) && lobby.player2Id && !gameStarting) {
-        console.log('Lobby ready, starting game. IsHost:', isHost, 'IsJoiningPlayer:', isJoiningPlayer);
+        console.log('🚀 [MULTIPLAYER LOBBY] Conditions met, starting game:', {
+          isHost: isHost,
+          isJoiningPlayer: isJoiningPlayer,
+          hasPlayer2: !!lobby.player2Id,
+          gameStarting: gameStarting
+        });
         handleGameStart(lobby, isHost);
+      } else {
+        console.log('⏸️ [MULTIPLAYER LOBBY] Game start conditions not met:', {
+          isHostOrJoining: isHost || isJoiningPlayer,
+          hasPlayer2: !!lobby.player2Id,
+          gameStarting: gameStarting,
+          reason: !isHost && !isJoiningPlayer ? 'Not host or joining player' :
+                  !lobby.player2Id ? 'No player 2' :
+                  gameStarting ? 'Game already starting' : 'Unknown'
+        });
       }
     });
     return () => {
+      console.log('🔇 [MULTIPLAYER LOBBY] Unsubscribing from lobby joined listener');
       unsubscribe();
     };
   }, [currentUserId, onLobbyJoined, handleGameStart, gameStarting]);
@@ -97,9 +141,21 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   };
 
   const handleJoinLobby = (lobby: Lobby) => {
-    console.log('Joining lobby:', lobby);
+    console.log('🎯 [MULTIPLAYER LOBBY] handleJoinLobby called with:', {
+      lobby: lobby,
+      currentUserId: currentUserId,
+      gameStarting: gameStarting
+    });
+    
     // Immediately show loading screen for joining player
     const isHost = currentUserId === lobby.player1Id;
+    console.log('🔍 [MULTIPLAYER LOBBY] Join lobby analysis:', {
+      isHost: isHost,
+      player1Id: lobby.player1Id,
+      player2Id: lobby.player2Id
+    });
+    
+    console.log('🚀 [MULTIPLAYER LOBBY] Calling handleGameStart from handleJoinLobby');
     handleGameStart(lobby, isHost);
   };
 

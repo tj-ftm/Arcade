@@ -271,6 +271,14 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
           {lobby.player2Id && (
             <p className="text-sm text-white/70 mt-2">Both players connected, initializing game...</p>
           )}
+          <div className="mt-4 text-xs text-white/50 space-y-1">
+            <p>🔍 Debug Info:</p>
+            <p>Player 1: {lobby.player1Name} ({lobby.player1Id})</p>
+            <p>Player 2: {lobby.player2Name || 'None'} ({lobby.player2Id || 'None'})</p>
+            <p>Status: {lobby.status}</p>
+            <p>Is Host: {isHost ? 'Yes' : 'No'}</p>
+            <p>Loading: {isLoadingGame ? 'Yes' : 'No'}</p>
+          </div>
         </div>
       ) : (
         !showEndGameScreen && (
