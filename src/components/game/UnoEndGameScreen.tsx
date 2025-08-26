@@ -11,6 +11,7 @@ interface UnoEndGameScreenProps {
   isMinting: boolean;
   mintTxHash: string;
   tokensEarned: number;
+  isMultiplayer?: boolean;
 }
 
 export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
@@ -20,20 +21,21 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
   isMinting,
   mintTxHash,
   tokensEarned,
+  isMultiplayer = false,
 }) => {
   const { isValidWallet } = useWeb3();
 
   return (
     <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8 z-50">
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg text-center max-w-md w-full">
-        {isMinting && hasWon && tokensEarned > 0 ? (
+        {!isMultiplayer && isMinting && hasWon && tokensEarned > 0 ? (
           <Loader2 className="w-24 h-24 text-white mx-auto mb-4 animate-spin" />
         ) : null}
         <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-white">
-          {hasWon ? 'You Won!' : 'You Lost!'}
+          {hasWon ? (isMultiplayer ? 'UNO! You Won!' : 'You Won!') : (isMultiplayer ? 'You Lost!' : 'You Lost!')}
         </h2>
         
-        {hasWon && (
+        {!isMultiplayer && hasWon && (
           <p className="text-lg text-white mb-6">
             {isMinting && tokensEarned > 0 ? 'Wait for the Tokens to be minted' : 
              mintTxHash ? 'Tokens have been minted!' : 
@@ -41,27 +43,27 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
           </p>
         )}
 
-        {isMinting && hasWon && tokensEarned > 0 && (
+        {!isMultiplayer && isMinting && hasWon && tokensEarned > 0 && (
           <div className="mb-6">
             <p className="text-base sm:text-lg text-white">Minting {tokensEarned} ARC tokens!</p>
             <p className="text-sm text-gray-300">Please wait for the transaction to complete.</p>
           </div>
         )}
 
-        {!isMinting && mintTxHash && hasWon && (
+        {!isMultiplayer && !isMinting && mintTxHash && hasWon && (
           <div className="mb-6">
             <p className="text-base sm:text-lg text-white">{tokensEarned} ARC Minted!</p>
             <p className="text-sm text-gray-300 break-all">Tx Hash: <a href={`https://sonicscan.org/tx/${mintTxHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">{mintTxHash}</a></p>
           </div>
         )}
 
-        {hasWon && !isMinting && !mintTxHash && isValidWallet && (
+        {!isMultiplayer && hasWon && !isMinting && !mintTxHash && isValidWallet && (
           <div className="mb-6">
             <p className="text-base sm:text-lg font-bold text-white">Play to earn ARC tokens!</p>
           </div>
         )}
 
-        {!hasWon && !isValidWallet && (
+        {!isMultiplayer && !hasWon && !isValidWallet && (
           <div className="mb-6">
             <p className="text-base sm:text-lg font-bold text-white">Connect wallet and play to earn ARC tokens</p>
           </div>

@@ -592,7 +592,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
 
     // Check if game has ended and show end screen automatically
     if (gameState.winner && !showEndGameScreen) {
-        setTimeout(() => setShowEndGameScreen(true), 2000); // Show end screen after 2 seconds
+        setShowEndGameScreen(true); // Show end screen immediately
     }
 
     const player = gameState?.players?.[isHost ? 0 : 1];
@@ -780,17 +780,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 </div>
             )}
 
-            {/* Winner Overlay */}
-            {gameState?.winner && !showEndGameScreen && (
-                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-30">
-                    <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO!</h2>
-                    <p className="text-2xl md:text-4xl text-white -mt-4">{gameState.winner} Wins!</p>
-                    <div className="flex gap-4">
-                        <Button size="lg" onClick={handleNewGame} className="font-headline text-2xl"><RefreshCw className="mr-2"/> New Game</Button>
-                        <Button size="lg" onClick={onGameEnd} className="font-headline text-2xl">Back to Menu</Button>
-                    </div>
-                </div>
-            )}
+            {/* Winner Overlay - Removed, going directly to end game screen */}
 
             {/* End Game Screen */}
             {showEndGameScreen && gameState && (
@@ -801,6 +791,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                     isMinting={isMinting}
                     mintTxHash={mintTxHash}
                     tokensEarned={tokensEarned}
+                    isMultiplayer={true}
                 />
             )}
             
