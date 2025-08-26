@@ -13,6 +13,15 @@ interface Lobby {
   createdAt: any; // Firebase timestamp
   lastActivity?: any; // Firebase timestamp for cleanup
   expiresAt?: any; // Firebase timestamp for auto-expiration
+  // Gambling specific properties
+  isGamble?: boolean;
+  betAmount?: string;
+  contractAddress?: string;
+  player1Paid?: boolean;
+  player2Paid?: boolean;
+  contractDeployed?: boolean;
+  player1TxHash?: string;
+  player2TxHash?: string;
 }
 
 interface GameResult {
@@ -36,7 +45,7 @@ interface UseFirebaseMultiplayerReturn {
   isConnected: boolean;
   lobbies: Lobby[];
   currentLobby: Lobby | null;
-  createLobby: (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => Promise<void>;
+  createLobby: (gameType: 'chess' | 'uno', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>) => Promise<Lobby>;
   joinLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
   leaveLobby: (lobbyId: string, playerId?: string) => Promise<void>;
   startGame: (lobbyId: string) => Promise<void>;
@@ -115,11 +124,11 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
 
 
-  const createLobby = async (gameType: 'chess' | 'uno', player1Name: string, player1Id: string): Promise<void> => {
-    if (!isConnected) return;
+  const createLobby = async (gameType: 'chess' | 'uno', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>): Promise<Lobby> => {
+    if (!isConnected) throw new Error('Not connected to Firebase');
 
     try {
-      const lobbyId = generateLobbyId(gameType);
+      const lobbyId = gambleData?.id || generateLobbyId(gameType);
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
       // Set lobby to expire after 1 hour if no activity
@@ -133,10 +142,13 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         createdAt: serverTimestamp(),
         lastActivity: serverTimestamp(),
         expiresAt: expirationTime,
+        // Include gambling data if provided
+        ...gambleData,
       };
 
       await set(lobbyRef, newLobby);
-      setCurrentLobby({ ...newLobby, id: lobbyId });
+      const createdLobby = { ...newLobby, id: lobbyId };
+      setCurrentLobby(createdLobby);
 
       // Listen for lobby updates
       const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
@@ -154,8 +166,10 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           // Lobby was deleted
           setCurrentLobby(null);
           lobbyClosedCallbacks.forEach(callback => callback());
-        }
+        };
       });
+      
+      return createdLobby;
     } catch (error) {
       console.error('Error creating lobby:', error);
       throw error;

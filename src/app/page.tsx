@@ -16,6 +16,7 @@ import { ChessClient } from '@/components/game/ChessClient';
 import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
 import { MultiplayerUnoClient } from '@/components/game/uno/MultiplayerUnoClient';
 import { UnoGambleClient } from '@/components/game/uno/UnoGambleClient';
+import { GambleLobby } from '@/components/game/uno/GambleLobby';
 import ShopContent from '@/components/ShopContent';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 
@@ -643,7 +644,7 @@ export default function HomePage() {
       case 'uno-gamble':
         return (
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
-            <MultiplayerLobby
+            <GambleLobby
               gameType="uno"
               onStartGame={handleUnoGambleStart}
               onBackToMenu={() => handleNavigate('menu')}
