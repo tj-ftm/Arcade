@@ -316,7 +316,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
           <div className="mb-6 w-full max-w-md">
             <Button 
               onClick={handleViewNFTs}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group whitespace-normal leading-tight"
               size="lg"
             >
               <Eye className="mr-2 h-5 w-5" />
@@ -401,15 +401,15 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       {/* NFT Modal */}
       {showNFTModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-gray-700">
+          <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-orange-600 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-yellow-400/50 shadow-2xl">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h2 className="text-2xl font-bold text-white">Your Owned NFTs</h2>
+            <div className="flex items-center justify-between p-6 border-b border-yellow-400/30">
+              <h2 className="text-2xl font-bold text-white font-headline uppercase tracking-wider" style={{ WebkitTextStroke: '1px black' }}>Your Owned NFTs</h2>
               <Button
                 onClick={() => setShowNFTModal(false)}
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-white"
+                className="text-white/70 hover:text-white hover:bg-black/20 rounded-lg"
               >
                 <X className="h-6 w-6" />
               </Button>
@@ -419,15 +419,15 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
               {loading && (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-                  <span className="ml-3 text-white">Loading your NFTs...</span>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-300"></div>
+                  <span className="ml-3 text-white font-headline">Loading your NFTs...</span>
                 </div>
               )}
               
               {error && (
                 <div className="text-center py-12">
-                  <p className="text-red-400 mb-4">{error}</p>
-                  <Button onClick={fetchOwnedNFTs} className="bg-purple-600 hover:bg-purple-700">
+                  <p className="text-red-200 mb-4 font-headline">{error}</p>
+                  <Button onClick={fetchOwnedNFTs} className="bg-green-600 hover:bg-green-500 font-headline">
                     Try Again
                   </Button>
                 </div>
@@ -435,8 +435,8 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
               
               {!loading && !error && ownedNFTs.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-gray-400 text-lg">No NFTs found in your wallet</p>
-                  <p className="text-gray-500 text-sm mt-2">Connect your wallet and make sure you own some NFTs</p>
+                  <p className="text-white text-lg font-headline">No NFTs found in your wallet</p>
+                  <p className="text-white/70 text-sm mt-2 font-headline">Connect your wallet and make sure you own some NFTs</p>
                 </div>
               )}
               
@@ -448,17 +448,17 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
                     const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
                     
                     return (
-                      <div key={nftKey} className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300">
-                        <div className="aspect-square bg-gray-700 flex items-center justify-center relative">
+                       <div key={nftKey} className="bg-black/50 rounded-lg overflow-hidden border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 shadow-lg">
+                         <div className="aspect-square bg-black/30 flex items-center justify-center relative">
                           {/* Loading state */}
-                          {imageState?.loading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
-                              <div className="text-center">
-                                <Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto mb-2" />
-                                <p className="text-sm text-gray-400">Loading image...</p>
-                              </div>
-                            </div>
-                          )}
+                           {imageState?.loading && (
+                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                               <div className="text-center">
+                                 <Loader2 className="h-8 w-8 animate-spin text-yellow-300 mx-auto mb-2" />
+                                 <p className="text-sm text-white/70 font-headline">Loading image...</p>
+                               </div>
+                             </div>
+                           )}
                           
                           {/* Loaded image */}
                           {imageState?.loaded && imageState.url && (
@@ -470,23 +470,23 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
                           )}
                           
                           {/* Error state or no image */}
-                          {(!imageState || imageState.error || (!imageState.loading && !imageState.loaded)) && (
-                            <div className="text-gray-500 text-center p-4">
-                              <div className="w-16 h-16 bg-gray-600 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                                <span className="text-2xl">🖼️</span>
-                              </div>
-                              <p className="text-sm">{imageState?.error ? 'Failed to load' : 'No Image'}</p>
-                            </div>
-                          )}
+                           {(!imageState || imageState.error || (!imageState.loading && !imageState.loaded)) && (
+                             <div className="text-white/70 text-center p-4">
+                               <div className="w-16 h-16 bg-yellow-600/30 rounded-lg mx-auto mb-2 flex items-center justify-center">
+                                 <span className="text-2xl">🖼️</span>
+                               </div>
+                               <p className="text-sm font-headline">{imageState?.error ? 'Failed to load' : 'No Image'}</p>
+                             </div>
+                           )}
                         </div>
                         <div className="p-4">
-                          <h3 className="text-white font-semibold text-lg mb-2 truncate">{nft.name}</h3>
-                          <p className="text-gray-400 text-sm mb-2 line-clamp-2">{nft.description}</p>
-                          <div className="text-xs text-gray-500">
-                            <p className="truncate">Token ID: {nft.tokenId}</p>
-                            <p className="truncate">Contract: {nft.contractAddress}</p>
-                          </div>
-                        </div>
+                           <h3 className="text-white font-semibold text-lg mb-2 truncate font-headline">{nft.name}</h3>
+                           <p className="text-white/70 text-sm mb-2 line-clamp-2">{nft.description}</p>
+                           <div className="text-xs text-white/60">
+                             <p className="truncate font-headline">Token ID: {nft.tokenId}</p>
+                             <p className="truncate font-headline">Contract: {nft.contractAddress}</p>
+                           </div>
+                         </div>
                       </div>
                     );
                   })}
