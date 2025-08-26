@@ -193,11 +193,69 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
     setGambleState('playing');
   };
 
-  const handleGameEnd = async () => {
-    // This will be called when the UNO game ends
-    // We need to determine the winner and complete the gambling contract
-    setGambleState('completed');
-    onGameEnd();
+  const handleGameEnd = async (gameResult?: {
+    winnerId: string;
+    winnerName: string;
+    winnerAddress: string;
+    loserId: string;
+    loserName: string;
+    loserAddress: string;
+  }) => {
+    if (!gameResult || !signer || !lobby.contractAddress) {
+      console.error('❌ [UNO GAMBLE] Missing game result or contract info');
+      setGambleState('completed');
+      onGameEnd();
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setError('');
+      
+      console.log('🏆 [UNO GAMBLE] Processing game result:', gameResult);
+      
+      // Initialize contract with the lobby's contract address
+      await unoGambleContract.initialize(signer, lobby.contractAddress);
+      
+      // Create result data string with game information
+      const resultData = JSON.stringify({
+        gameId: lobby.id,
+        winnerId: gameResult.winnerId,
+        winnerName: gameResult.winnerName,
+        winnerAddress: gameResult.winnerAddress,
+        loserId: gameResult.loserId,
+        loserName: gameResult.loserName,
+        loserAddress: gameResult.loserAddress,
+        timestamp: Date.now(),
+        gameType: 'uno'
+      });
+      
+      // Verify game result and trigger payout
+      const verificationTxHash = await unoGambleContract.verifyGameResult(
+        lobby.id,
+        gameResult.winnerAddress,
+        resultData
+      );
+      
+      setCurrentTxHash(verificationTxHash);
+      
+      console.log('✅ [UNO GAMBLE] Game result verified and payout processed:', verificationTxHash);
+      
+      // Show success message
+      setError('');
+      
+    } catch (error: any) {
+      console.error('❌ [UNO GAMBLE] Failed to process game result:', error);
+      setError(`Failed to process game result: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+      setGambleState('completed');
+      
+      // Delay before calling onGameEnd to show result
+      setTimeout(() => {
+        onGameEnd();
+      }, 3000);
+    }
   };
 
   // Render different states
@@ -208,6 +266,71 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
         isHost={isHost}
         onGameEnd={handleGameEnd}
       />
+    );
+  }
+  
+  if (gambleState === 'completed') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-black/50 border-yellow-400/30">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl text-yellow-400 mb-2">
+              {isProcessing ? 'Processing Payout...' : 'Game Completed!'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isProcessing ? (
+              <div className="text-center space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-yellow-400" />
+                <p className="text-white">Verifying game result and processing payout...</p>
+                {currentTxHash && (
+                  <div className="bg-black/30 rounded-lg p-3 border border-yellow-400/30">
+                    <p className="text-yellow-400 font-semibold text-sm mb-1">Payout Transaction:</p>
+                    <p className="text-white/70 text-xs break-all">
+                      {currentTxHash.slice(0, 10)}...{currentTxHash.slice(-8)}
+                    </p>
+                    <a 
+                      href={`https://sonicscan.org/tx/${currentTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-yellow-400 hover:text-yellow-300 text-xs underline mt-1 inline-block"
+                    >
+                      View on Sonic Explorer
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center space-y-4">
+                <Trophy className="h-12 w-12 mx-auto text-yellow-400" />
+                <p className="text-white">Game result has been verified and payout processed!</p>
+                <p className="text-white/70 text-sm">
+                  Winner receives {((parseFloat(lobby.betAmount || '0') * 2) * 0.95).toFixed(2)} ARC
+                </p>
+                {currentTxHash && (
+                  <div className="bg-green-600/20 rounded-lg p-3 border border-green-400/30">
+                    <p className="text-green-400 font-semibold text-sm mb-1">✅ Payout Completed</p>
+                    <a 
+                      href={`https://sonicscan.org/tx/${currentTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-400 hover:text-green-300 text-xs underline"
+                    >
+                      View Transaction
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {error && (
+              <div className="bg-red-600/20 rounded-lg p-3 border border-red-400/30">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

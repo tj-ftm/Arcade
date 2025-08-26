@@ -26,7 +26,14 @@ interface Lobby {
 interface MultiplayerUnoClientProps {
   lobby: Lobby;
   isHost: boolean;
-  onGameEnd: () => void;
+  onGameEnd: (gameResult?: {
+    winnerId: string;
+    winnerName: string;
+    winnerAddress: string;
+    loserId: string;
+    loserName: string;
+    loserAddress: string;
+  }) => void;
 }
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
@@ -456,15 +463,36 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             const loserId = currentPlayer.id === lobby.player1Id ? lobby.player2Id! : lobby.player1Id;
             const loserName = currentPlayer.id === lobby.player1Id ? lobby.player2Name! : lobby.player1Name;
             
+            // Get wallet addresses for gambling games
+            const winnerAddress = winnerId === lobby.player1Id ? lobby.player1Id : (lobby.player2Id || '');
+            const loserAddress = loserId === lobby.player1Id ? lobby.player1Id : (lobby.player2Id || '');
+            
             console.log('🏆 [UNO MULTIPLAYER] Recording game result:', {
                 winnerId,
                 winnerName,
+                winnerAddress,
                 loserId,
-                loserName
+                loserName,
+                loserAddress
             });
             
             // Call endGame to record statistics and cleanup lobby
             endGame(lobby.id, winnerId, winnerName, loserId, loserName);
+            
+            // For gambling games, pass result data to onGameEnd
+            const gameResult = {
+                winnerId,
+                winnerName,
+                winnerAddress,
+                loserId,
+                loserName,
+                loserAddress
+            };
+            
+            // Call onGameEnd with game result for gambling integration
+            setTimeout(() => {
+                onGameEnd(gameResult);
+            }, 2000); // Delay to show winner screen first
         }
         
         // Handle special cards

@@ -38,8 +38,9 @@ interface GambleLobbyProps {
   onBackToMenu?: () => void;
 }
 
-type LobbyCreationState = 'setup' | 'paying' | 'creating' | 'completed';
+type LobbyCreationState = 'setup' | 'deploying' | 'paying_gas' | 'paying_tokens' | 'creating' | 'completed';
 type JoinState = 'idle' | 'paying' | 'waiting' | 'ready';
+type DeploymentStep = 'deploying' | 'confirming' | 'initializing' | 'completed';
 
 export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobbyProps) {
   const [activeTab, setActiveTab] = useState('browse');
@@ -51,6 +52,8 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   const [error, setError] = useState('');
   const [gambleLobbies, setGambleLobbies] = useState<GambleLobby[]>([]);
   const [selectedLobby, setSelectedLobby] = useState<GambleLobby | null>(null);
+  const [deploymentStep, setDeploymentStep] = useState<DeploymentStep>('deploying');
+  const [deploymentProgress, setDeploymentProgress] = useState<string>('');
   
   const { account, signer } = useWeb3();
   const { createLobby, joinLobby, onLobbyJoined, startGame } = useFirebaseMultiplayer();
@@ -116,54 +119,85 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       return;
     }
 
-    setCreationState('paying');
     setError('');
+    const lobbyId = `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
+    let contractAddress = '';
 
     try {
-      // Get contract address (for development, this is a mock address)
-      const contractAddress = await unoGambleContract.deployGameContract();
+      // Step 1: Deploy Smart Contract
+      setCreationState('deploying');
+      setDeploymentStep('deploying');
+      setDeploymentProgress('Deploying UNO Gamble smart contract...');
       
-      // Create temporary lobby ID
-      const lobbyId = `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
+      await unoGambleContract.initialize(signer, '');
+      contractAddress = await unoGambleContract.deployGameContract();
       
-      // For development: Simulate gas fee payment (0.05 S)
-      // In production, this would be part of the smart contract deployment
-      const provider = await signer.provider;
-      if (provider) {
-        const gasTx = await signer.sendTransaction({
-          to: '0x0000000000000000000000000000000000000000', // Burn address for demo
-          value: ethers.parseEther('0.05'),
-          data: '0x' // Empty data
-        });
-        setCurrentTxHash(gasTx.hash);
-        await gasTx.wait();
-      }
+      setDeploymentStep('confirming');
+      setDeploymentProgress('Waiting for contract deployment confirmation...');
       
-      // Approve and transfer ARC tokens
+      // Step 2: Initialize Contract
+      setDeploymentStep('initializing');
+      setDeploymentProgress('Initializing contract with game parameters...');
+      
       await unoGambleContract.initialize(signer, contractAddress);
+      
+      // Step 3: Create Game and Pay Gas Fee
+      setCreationState('paying_gas');
+      setDeploymentProgress('Creating game in smart contract (paying gas fee)...');
+      
+      const gameResult = await unoGambleContract.createGame(
+        lobbyId,
+        account,
+        '', // Player 2 will be set when someone joins
+        betAmount
+      );
+      
+      setCurrentTxHash(gameResult.txHash);
+      
+      // Step 4: Approve and Transfer ARC Tokens
+      setCreationState('paying_tokens');
+      setDeploymentProgress('Approving ARC tokens for transfer...');
+      
       const approvalTx = await unoGambleContract.approveTokens(betAmount);
       if (approvalTx) {
         setCurrentTxHash(approvalTx);
       }
       
-      // For development: Simulate ARC token transfer
-      // In production, this would be handled by the smart contract
+      setDeploymentProgress('Transferring ARC tokens to contract...');
+      
+      // Calculate amounts: bet amount to contract, house fee to creator wallet
+      const betAmountWei = ethers.parseEther(betAmount);
+      const houseFeeWei = (betAmountWei * BigInt(5)) / BigInt(100); // 5% house fee
+      const contractAmountWei = betAmountWei - houseFeeWei;
+      
       const arcTokenContract = new ethers.Contract(
         '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
-        ['function transfer(address to, uint256 amount) external returns (bool)'],
+        [
+          'function transfer(address to, uint256 amount) external returns (bool)',
+          'function transferFrom(address from, address to, uint256 amount) external returns (bool)'
+        ],
         signer
       );
       
-      const transferTx = await arcTokenContract.transfer(
+      // Transfer bet amount minus house fee to contract
+      const contractTransferTx = await arcTokenContract.transfer(
         contractAddress,
-        ethers.parseEther(betAmount)
+        contractAmountWei
       );
-      setCurrentTxHash(transferTx.hash);
-      await transferTx.wait();
+      setCurrentTxHash(contractTransferTx.hash);
+      await contractTransferTx.wait();
       
+      // Transfer house fee to creator wallet
+      const houseFeeTransferTx = await arcTokenContract.transfer(
+        '0x5AD5aE34265957fB08eA12f77BAFf1200060473e',
+        houseFeeWei
+      );
+      await houseFeeTransferTx.wait();
+      
+      // Step 5: Create Firebase Lobby
       setCreationState('creating');
+      setDeploymentProgress('Creating lobby and waiting for players...');
       
-      // Create Firebase lobby with gambling properties
       const gambleLobbyData = {
         id: lobbyId,
         isGamble: true,
@@ -172,7 +206,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
         player1Paid: true,
         player2Paid: false,
         contractDeployed: true,
-        player1TxHash: currentTxHash
+        player1TxHash: gameResult.txHash
       };
       
       const lobby = await createLobby(
@@ -183,6 +217,8 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       );
       
       setCreationState('completed');
+      setDeploymentStep('completed');
+      setDeploymentProgress('Lobby created successfully! Waiting for players...');
       
       // Refresh balance after successful payment
       await refreshBalance();
@@ -191,6 +227,8 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       console.error('❌ [GAMBLE LOBBY] Failed to create gamble lobby:', error);
       setError(error.message || 'Failed to create gamble lobby');
       setCreationState('setup');
+      setDeploymentStep('deploying');
+      setDeploymentProgress('');
     }
   };
 
@@ -315,24 +353,67 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
             </>
           )}
           
-          {creationState === 'paying' && (
-            <div className="text-center space-y-4">
-              <Loader2 className="w-16 h-16 text-yellow-400 mx-auto animate-spin" />
-              <h3 className="text-xl text-white">Processing Payment...</h3>
-              <p className="text-white/70">Please confirm the transaction in your wallet</p>
+          {(creationState === 'deploying' || creationState === 'paying_gas' || creationState === 'paying_tokens') && (
+            <div className="text-center py-6 sm:py-8">
+              <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-3 sm:mb-4 text-yellow-400" />
+              
+              {/* Deployment Progress */}
+              <div className="mb-4 sm:mb-6">
+                <h3 className="text-white font-semibold mb-2 text-sm sm:text-base">
+                  {creationState === 'deploying' && 'Deploying Smart Contract'}
+                  {creationState === 'paying_gas' && 'Creating Game & Paying Gas Fee'}
+                  {creationState === 'paying_tokens' && 'Transferring ARC Tokens'}
+                </h3>
+                
+                {/* Progress Steps */}
+                <div className="flex justify-center items-center space-x-2 sm:space-x-4 mb-3 sm:mb-4">
+                  <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+                    creationState === 'deploying' ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'
+                  }`} />
+                  <div className="w-4 sm:w-8 h-0.5 bg-white/30" />
+                  <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+                    creationState === 'paying_gas' ? 'bg-yellow-400 animate-pulse' : 
+                    creationState === 'paying_tokens' ? 'bg-green-400' : 'bg-white/30'
+                  }`} />
+                  <div className="w-4 sm:w-8 h-0.5 bg-white/30" />
+                  <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+                    creationState === 'paying_tokens' ? 'bg-yellow-400 animate-pulse' : 'bg-white/30'
+                  }`} />
+                </div>
+                
+                <p className="text-white/80 text-xs sm:text-sm mb-2">{deploymentProgress}</p>
+              </div>
+              
+              {/* Transaction Details */}
               {currentTxHash && (
-                <div>
-                  <p className="text-white/70 text-sm">Transaction:</p>
+                <div className="bg-black/30 rounded-lg p-2 sm:p-3 border border-yellow-400/30">
+                  <p className="text-yellow-400 font-semibold text-xs sm:text-sm mb-1">Current Transaction:</p>
+                  <p className="text-white/70 text-xs break-all">
+                    {currentTxHash.slice(0, 10)}...{currentTxHash.slice(-8)}
+                  </p>
                   <a 
                     href={`https://sonicscan.org/tx/${currentTxHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 hover:underline text-sm break-all"
+                    className="text-yellow-400 hover:text-yellow-300 text-xs underline mt-1 inline-block"
                   >
-                    {currentTxHash}
+                    View on Sonic Explorer
                   </a>
                 </div>
               )}
+              
+              {/* Step Details */}
+              <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-white/60">
+                {creationState === 'deploying' && (
+                  <p>Deploying a new smart contract for this game...</p>
+                )}
+                {creationState === 'paying_gas' && (
+                  <p>Creating game in contract and paying 0.05 S gas fee...</p>
+                )}
+                {creationState === 'paying_tokens' && (
+                  <p>Transferring {betAmount} ARC tokens (minus 5% house fee)...</p>
+                )}
+              </div>
             </div>
           )}
           

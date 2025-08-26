@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract UnoGamble is ReentrancyGuard, Ownable {
     IERC20 public immutable arcToken;
+    address public constant HOUSE_WALLET = 0x5AD5aE34265957fB08eA12f77BAFf1200060473e;
     
     struct Game {
         address player1;
@@ -17,6 +18,8 @@ contract UnoGamble is ReentrancyGuard, Ownable {
         bool isActive;
         bool isCompleted;
         uint256 createdAt;
+        string gameId;
+        bool resultVerified;
     }
     
     mapping(bytes32 => Game) public games;
@@ -30,6 +33,7 @@ contract UnoGamble is ReentrancyGuard, Ownable {
     event GameStarted(bytes32 indexed gameId);
     event GameCompleted(bytes32 indexed gameId, address indexed winner, uint256 payout);
     event HouseFeeCollected(bytes32 indexed gameId, uint256 fee);
+    event GameResultVerified(bytes32 indexed gameId, address indexed winner, string resultData);
     
     constructor(address _arcToken) {
         arcToken = IERC20(_arcToken);
@@ -39,12 +43,13 @@ contract UnoGamble is ReentrancyGuard, Ownable {
         bytes32 gameId,
         address player1,
         address player2,
-        uint256 betAmount
-    ) external payable {
+        uint256 betAmount,
+        string memory gameIdString
+    ) external payable nonReentrant {
+        require(msg.value >= GAS_FEE, "Insufficient gas fee");
         require(games[gameId].player1 == address(0), "Game already exists");
         require(player1 != player2, "Players must be different");
         require(betAmount > 0, "Bet amount must be greater than 0");
-        require(msg.value >= GAS_FEE, "Insufficient gas fee");
         
         games[gameId] = Game({
             player1: player1,
@@ -54,8 +59,13 @@ contract UnoGamble is ReentrancyGuard, Ownable {
             winner: address(0),
             isActive: false,
             isCompleted: false,
-            createdAt: block.timestamp
+            createdAt: block.timestamp,
+            gameId: gameIdString,
+            resultVerified: false
         });
+        
+        // Send gas fee to house wallet
+        payable(HOUSE_WALLET).transfer(msg.value);
         
         emit GameCreated(gameId, player1, player2, betAmount);
     }
@@ -85,31 +95,46 @@ contract UnoGamble is ReentrancyGuard, Ownable {
         }
     }
     
-    function completeGame(bytes32 gameId, address winner) external onlyOwner nonReentrant {
+    function verifyGameResult(
+        bytes32 gameId,
+        address winner,
+        string memory resultData
+    ) external nonReentrant {
         Game storage game = games[gameId];
-        require(game.isActive, "Game not active");
+        require(game.isActive, "Game is not active");
         require(!game.isCompleted, "Game already completed");
         require(winner == game.player1 || winner == game.player2, "Invalid winner");
-        require(game.totalPot > 0, "No pot to distribute");
+        require(!game.resultVerified, "Result already verified");
+        
+        game.resultVerified = true;
+        
+        emit GameResultVerified(gameId, winner, resultData);
+        
+        // Automatically complete the game after verification
+        _completeGame(gameId, winner);
+    }
+    
+    function _completeGame(bytes32 gameId, address winner) internal {
+        Game storage game = games[gameId];
         
         game.winner = winner;
         game.isCompleted = true;
         game.isActive = false;
         
-        // Calculate house fee (5%)
+        // Calculate payout (95% to winner, 5% house fee)
         uint256 houseFee = (game.totalPot * HOUSE_FEE_PERCENT) / 100;
-        uint256 payout = game.totalPot - houseFee;
+        uint256 winnerPayout = game.totalPot - houseFee;
         
-        // Transfer winnings to winner
-        require(arcToken.transfer(winner, payout), "Payout transfer failed");
+        // Transfer winnings
+        require(arcToken.transfer(winner, winnerPayout), "Winner payout failed");
+        require(arcToken.transfer(HOUSE_WALLET, houseFee), "House fee transfer failed");
         
-        // Transfer house fee to owner
-        if (houseFee > 0) {
-            require(arcToken.transfer(owner(), houseFee), "House fee transfer failed");
-            emit HouseFeeCollected(gameId, houseFee);
-        }
-        
-        emit GameCompleted(gameId, winner, payout);
+        emit GameCompleted(gameId, winner, winnerPayout);
+    }
+    
+    // Legacy function for manual completion (owner only)
+    function completeGame(bytes32 gameId, address winner) external onlyOwner nonReentrant {
+        _completeGame(gameId, winner);
     }
     
     function getGame(bytes32 gameId) external view returns (

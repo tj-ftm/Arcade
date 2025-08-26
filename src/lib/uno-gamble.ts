@@ -24,18 +24,24 @@ export interface PaymentResult {
   success: boolean;
 }
 
-// Contract ABI for UNO Gamble
+// UNO Gamble Smart Contract Bytecode (simplified for development)
+const UNO_GAMBLE_BYTECODE = '0x608060405234801561001057600080fd5b50600436106100365760003560e01c8063...';
+
+// UNO Gamble Smart Contract ABI
 const UNO_GAMBLE_ABI = [
-  "function createGame(bytes32 gameId, address player1, address player2, uint256 betAmount) external payable",
+  "constructor(address _arcToken)",
+  "function createGame(bytes32 gameId, address player1, address player2, uint256 betAmount, string memory gameIdString) external payable",
   "function payBet(bytes32 gameId) external",
+  "function verifyGameResult(bytes32 gameId, address winner, string memory resultData) external",
   "function completeGame(bytes32 gameId, address winner) external",
-  "function getGame(bytes32 gameId) external view returns (address, address, uint256, uint256, address, bool, bool, uint256)",
+  "function getGame(bytes32 gameId) external view returns (address, address, uint256, uint256, address, bool, bool, uint256, string memory, bool)",
   "function hasPlayerPaid(bytes32 gameId, address player) external view returns (bool)",
   "function isGameReady(bytes32 gameId) external view returns (bool)",
   "event GameCreated(bytes32 indexed gameId, address indexed player1, address indexed player2, uint256 betAmount)",
   "event PlayerPaid(bytes32 indexed gameId, address indexed player, uint256 amount)",
   "event GameStarted(bytes32 indexed gameId)",
-  "event GameCompleted(bytes32 indexed gameId, address indexed winner, uint256 payout)"
+  "event GameCompleted(bytes32 indexed gameId, address indexed winner, uint256 payout)",
+  "event GameResultVerified(bytes32 indexed gameId, address indexed winner, string resultData)"
 ];
 
 // ARC Token ABI (simplified)
@@ -67,14 +73,34 @@ export class UnoGambleContract {
   
   // Deploy a new UNO Gamble contract for this game
   async deployGameContract(): Promise<string> {
+    if (!this.signer) {
+      throw new Error('Signer not initialized');
+    }
+    
     try {
-      console.log('🚀 [UNO GAMBLE] Using pre-deployed contract...');
+      console.log('🚀 [UNO GAMBLE] Deploying new contract...');
       
-      // Use a fixed contract address for development
-      // In production, this would be the actual deployed UnoGamble contract
-      const contractAddress = '0x1234567890123456789012345678901234567890';
+      // Create contract factory with updated ABI
+      const contractFactory = new ethers.ContractFactory(
+        UNO_GAMBLE_ABI,
+        UNO_GAMBLE_BYTECODE,
+        this.signer
+      );
       
-      console.log('✅ [UNO GAMBLE] Contract address:', contractAddress);
+      console.log('⏳ [UNO GAMBLE] Deploying contract with ARC token:', ARC_TOKEN_ADDRESS);
+      
+      // Deploy the contract
+      const contract = await contractFactory.deploy(ARC_TOKEN_ADDRESS, {
+        gasLimit: 3000000,
+        gasPrice: ethers.parseUnits('20', 'gwei')
+      });
+      
+      console.log('⏳ [UNO GAMBLE] Waiting for deployment confirmation...');
+      await contract.waitForDeployment();
+      
+      const contractAddress = await contract.getAddress();
+      console.log('✅ [UNO GAMBLE] Contract deployed to:', contractAddress);
+      
       return contractAddress;
       
     } catch (error) {
@@ -106,6 +132,7 @@ export class UnoGambleContract {
         player1,
         player2,
         betAmountWei,
+        gameId, // gameIdString parameter
         { value: gasFee }
       );
       
@@ -120,6 +147,33 @@ export class UnoGambleContract {
       
     } catch (error) {
       console.error('❌ [UNO GAMBLE] Game creation failed:', error);
+      throw error;
+    }
+  }
+  
+  // Verify game result and trigger winner payout
+  async verifyGameResult(
+    gameId: string,
+    winner: string,
+    resultData: string
+  ): Promise<string> {
+    if (!this.contract) {
+      throw new Error('Contract not initialized');
+    }
+    
+    try {
+      console.log('🏆 [UNO GAMBLE] Verifying game result:', { gameId, winner, resultData });
+      
+      const gameIdBytes = ethers.id(gameId);
+      const tx = await this.contract.verifyGameResult(gameIdBytes, winner, resultData);
+      
+      console.log('📝 [UNO GAMBLE] Game result verification transaction:', tx.hash);
+      await tx.wait();
+      
+      return tx.hash;
+      
+    } catch (error) {
+      console.error('❌ [UNO GAMBLE] Game result verification failed:', error);
       throw error;
     }
   }
