@@ -106,7 +106,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
   const { account, username } = useWeb3();
   const currentUserId = account || `guest-${Date.now()}`;
   
-  const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined, setupGameMovesListener } = useFirebaseMultiplayer();
+  const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined, setupGameMovesListener, endGame } = useFirebaseMultiplayer();
 
   // Set up Firebase game moves listener
   useEffect(() => {
@@ -226,13 +226,38 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       setScore(calculateScore());
       setShowEndGameScreen(true);
       
+      // Record game result in Firebase (only if not a draw)
+      if (gameWinner && gameWinner !== 'Draw') {
+        const winnerId = gameWinner === 'White' ? 
+          (playerColor === 'w' ? (isHost ? lobby.player1Id : lobby.player2Id!) : (isHost ? lobby.player2Id! : lobby.player1Id)) :
+          (playerColor === 'b' ? (isHost ? lobby.player1Id : lobby.player2Id!) : (isHost ? lobby.player2Id! : lobby.player1Id));
+        const winnerName = gameWinner === 'White' ? 
+          (playerColor === 'w' ? (isHost ? lobby.player1Name : lobby.player2Name!) : (isHost ? lobby.player2Name! : lobby.player1Name)) :
+          (playerColor === 'b' ? (isHost ? lobby.player1Name : lobby.player2Name!) : (isHost ? lobby.player2Name! : lobby.player1Name));
+        const loserId = gameWinner === 'White' ? 
+          (playerColor === 'w' ? (isHost ? lobby.player2Id! : lobby.player1Id) : (isHost ? lobby.player1Id : lobby.player2Id!)) :
+          (playerColor === 'b' ? (isHost ? lobby.player2Id! : lobby.player1Id) : (isHost ? lobby.player1Id : lobby.player2Id!));
+        const loserName = gameWinner === 'White' ? 
+          (playerColor === 'w' ? (isHost ? lobby.player2Name! : lobby.player1Name) : (isHost ? lobby.player1Name : lobby.player2Name!)) :
+          (playerColor === 'b' ? (isHost ? lobby.player2Name! : lobby.player1Name) : (isHost ? lobby.player1Name : lobby.player2Name!));
+        
+        // Call endGame to record statistics and cleanup lobby
+        endGame(lobby.id, winnerId, winnerName, loserId, loserName);
+      } else if (gameWinner === 'Draw') {
+        // For draws, we still want to cleanup the lobby but not record win/loss stats
+        // We can call endGame with the same player as both winner and loser to indicate a draw
+        const player1Id = isHost ? lobby.player1Id : lobby.player2Id!;
+        const player1Name = isHost ? lobby.player1Name : lobby.player2Name!;
+        endGame(lobby.id, player1Id, `${player1Name} (Draw)`, player1Id, `${player1Name} (Draw)`);
+      }
+      
       // Notify opponent of game end
       sendGameMove(lobby.id, {
         type: 'game-end',
         winner: gameWinner
       });
     }
-  }, [game, addGameLog, calculateScore, lobby.id, sendGameMove]);
+  }, [game, addGameLog, calculateScore, lobby.id, sendGameMove, endGame, playerColor, isHost, lobby]);
 
   const handleNewGame = useCallback(() => {
     game.reset();

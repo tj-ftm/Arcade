@@ -11,6 +11,25 @@ interface Lobby {
   player2Name?: string;
   status: 'waiting' | 'playing' | 'finished';
   createdAt: any; // Firebase timestamp
+  lastActivity?: any; // Firebase timestamp for cleanup
+  expiresAt?: any; // Firebase timestamp for auto-expiration
+}
+
+interface GameResult {
+  id: string;
+  gameType: 'chess' | 'uno';
+  player1Id: string;
+  player1Name: string;
+  player2Id: string;
+  player2Name: string;
+  winnerId: string;
+  winnerName: string;
+  loserId: string;
+  loserName: string;
+  gameStartTime: any;
+  gameEndTime: any;
+  gameDuration: number; // in seconds
+  lobbyId: string;
 }
 
 interface UseFirebaseMultiplayerReturn {
@@ -21,12 +40,14 @@ interface UseFirebaseMultiplayerReturn {
   joinLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
   leaveLobby: (lobbyId: string, playerId?: string) => Promise<void>;
   startGame: (lobbyId: string) => Promise<void>;
+  endGame: (lobbyId: string, winnerId: string, winnerName: string, loserId: string, loserName: string) => Promise<void>;
   sendGameMove: (lobbyId: string, moveData: any) => Promise<void>;
   onGameMove: (callback: (moveData: any) => void) => () => void;
   setupGameMovesListener: (lobbyId: string) => void;
   onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
   onLobbyLeft: (callback: (lobby: Lobby) => void) => void;
   onLobbyClosed: (callback: () => void) => void;
+  cleanupExpiredLobbies: () => Promise<void>;
 }
 
 export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
@@ -101,12 +122,17 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const lobbyId = generateLobbyId(gameType);
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
       
+      // Set lobby to expire after 1 hour if no activity
+      const expirationTime = Date.now() + (60 * 60 * 1000); // 1 hour from now
+      
       const newLobby: Omit<Lobby, 'id'> = {
         gameType,
         player1Id,
         player1Name,
         status: 'waiting',
         createdAt: serverTimestamp(),
+        lastActivity: serverTimestamp(),
+        expiresAt: expirationTime,
       };
 
       await set(lobbyRef, newLobby);
@@ -176,6 +202,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         player2Id,
         player2Name,
         status: 'waiting', // Keep as waiting until both players are ready
+        lastActivity: serverTimestamp(),
       };
       
       console.log('💾 [JOIN LOBBY] Updating lobby with player 2 data:', updatedLobbyData);
@@ -220,17 +247,20 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
     try {
       const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      const gameMovesRef = ref(database, `game-moves/${lobbyId}`);
       
       if (currentLobby.player1Id === playerId) {
-        // Host is leaving, delete the lobby
+        // Host is leaving, delete the lobby and cleanup game moves
         await remove(lobbyRef);
+        await remove(gameMovesRef);
       } else {
-        // Player 2 is leaving, reset to waiting
+        // Player 2 is leaving, reset to waiting and update activity
         await set(lobbyRef, {
           ...currentLobby,
           player2Id: null,
           player2Name: null,
-          status: 'waiting'
+          status: 'waiting',
+          lastActivity: serverTimestamp()
         });
       }
       
@@ -252,12 +282,119 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       if (lobbyData && lobbyData.player2Id) {
         await set(lobbyRef, {
           ...lobbyData,
-          status: 'playing'
+          status: 'playing',
+          lastActivity: serverTimestamp(),
+          gameStartTime: serverTimestamp()
         });
         console.log('Game started, lobby status updated to playing');
       }
     } catch (error) {
       console.error('Error starting game:', error);
+    }
+  };
+
+  const endGame = async (lobbyId: string, winnerId: string, winnerName: string, loserId: string, loserName: string) => {
+    if (!isConnected) return;
+
+    try {
+      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      const gameMovesRef = ref(database, `game-moves/${lobbyId}`);
+      const gameStatsRef = ref(database, 'game-statistics');
+      
+      // Get current lobby data to extract game info
+      const snapshot = await get(lobbyRef);
+      const lobbyData = snapshot.val();
+      
+      if (lobbyData) {
+        // Calculate game duration
+        const gameEndTime = Date.now();
+        const gameStartTime = lobbyData.gameStartTime || lobbyData.createdAt;
+        const gameDuration = Math.floor((gameEndTime - (gameStartTime.seconds ? gameStartTime.seconds * 1000 : gameStartTime)) / 1000);
+        
+        // Create game result record
+        const gameResult: Omit<GameResult, 'id'> = {
+          gameType: lobbyData.gameType,
+          player1Id: lobbyData.player1Id,
+          player1Name: lobbyData.player1Name,
+          player2Id: lobbyData.player2Id,
+          player2Name: lobbyData.player2Name,
+          winnerId,
+          winnerName,
+          loserId,
+          loserName,
+          gameStartTime: gameStartTime,
+          gameEndTime: serverTimestamp(),
+          gameDuration,
+          lobbyId
+        };
+        
+        // Save game statistics
+        await push(gameStatsRef, gameResult);
+        
+        // Update lobby status to finished
+        await set(lobbyRef, {
+          ...lobbyData,
+          status: 'finished',
+          lastActivity: serverTimestamp(),
+          winnerId,
+          winnerName
+        });
+        
+        // Clean up lobby and game moves after a short delay to allow clients to process
+        setTimeout(async () => {
+          try {
+            await remove(lobbyRef);
+            await remove(gameMovesRef);
+            console.log('Lobby and game moves cleaned up after game end');
+          } catch (error) {
+            console.error('Error cleaning up after game end:', error);
+          }
+        }, 5000); // 5 second delay
+      }
+    } catch (error) {
+      console.error('Error ending game:', error);
+    }
+  };
+
+  const cleanupExpiredLobbies = async () => {
+    if (!isConnected) return;
+
+    try {
+      const lobbiesRef = ref(database, 'lobbies');
+      const snapshot = await get(lobbiesRef);
+      const lobbiesData = snapshot.val();
+      
+      if (lobbiesData) {
+        const currentTime = Date.now();
+        const expiredLobbies: string[] = [];
+        
+        Object.entries(lobbiesData).forEach(([lobbyId, lobbyData]: [string, any]) => {
+          // Check if lobby has expired (1 hour of inactivity or explicit expiration)
+          const expiresAt = lobbyData.expiresAt || (lobbyData.createdAt + (60 * 60 * 1000));
+          const lastActivity = lobbyData.lastActivity || lobbyData.createdAt;
+          const inactiveTime = currentTime - (lastActivity.seconds ? lastActivity.seconds * 1000 : lastActivity);
+          
+          // Mark for cleanup if expired or inactive for more than 1 hour
+          if (currentTime > expiresAt || inactiveTime > (60 * 60 * 1000)) {
+            expiredLobbies.push(lobbyId);
+          }
+        });
+        
+        // Clean up expired lobbies
+        for (const lobbyId of expiredLobbies) {
+          const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+          const gameMovesRef = ref(database, `game-moves/${lobbyId}`);
+          await remove(lobbyRef);
+          await remove(gameMovesRef);
+          console.log(`Cleaned up expired lobby: ${lobbyId}`);
+        }
+        
+        if (expiredLobbies.length > 0) {
+          console.log(`Cleaned up ${expiredLobbies.length} expired lobbies`);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up expired lobbies:', error);
     }
   };
 
@@ -326,6 +463,23 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     };
   }, []);
 
+  // Run cleanup on mount and periodically
+  useEffect(() => {
+    if (isConnected) {
+      // Initial cleanup
+      cleanupExpiredLobbies();
+      
+      // Set up periodic cleanup every 10 minutes
+      const cleanupInterval = setInterval(() => {
+        cleanupExpiredLobbies();
+      }, 10 * 60 * 1000); // 10 minutes
+      
+      return () => {
+        clearInterval(cleanupInterval);
+      };
+    }
+  }, [isConnected]);
+
   return {
     isConnected,
     lobbies,
@@ -334,11 +488,13 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     joinLobby,
     leaveLobby,
     startGame,
+    endGame,
     sendGameMove,
     onGameMove,
     setupGameMovesListener,
     onLobbyJoined,
     onLobbyLeft,
-    onLobbyClosed
+    onLobbyClosed,
+    cleanupExpiredLobbies
   };
 };
