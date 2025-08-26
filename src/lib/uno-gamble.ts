@@ -140,7 +140,11 @@ export class UnoGambleContract {
   
   async initialize(signer: ethers.Signer, contractAddress: string) {
     this.signer = signer;
-    this.contract = new ethers.Contract(contractAddress, UNO_GAMBLE_ABI, signer);
+    
+    // Only initialize contract if we have a valid address
+    if (contractAddress && contractAddress !== '') {
+      this.contract = new ethers.Contract(contractAddress, UNO_GAMBLE_ABI, signer);
+    }
     
     // Initialize ARC token contract
     this.arcToken = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, signer);
@@ -166,8 +170,7 @@ export class UnoGambleContract {
       
       // Deploy the contract
       const contract = await contractFactory.deploy(ARC_TOKEN_ADDRESS, {
-        gasLimit: 3000000,
-        gasPrice: ethers.parseUnits('20', 'gwei')
+        gasLimit: 1000000
       });
       
       console.log('⏳ [UNO GAMBLE] Waiting for deployment confirmation...');
