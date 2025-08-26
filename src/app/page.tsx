@@ -15,6 +15,7 @@ import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
 import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
 import { MultiplayerUnoClient } from '@/components/game/uno/MultiplayerUnoClient';
+import { UnoGambleClient } from '@/components/game/uno/UnoGambleClient';
 import ShopContent from '@/components/ShopContent';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 
@@ -34,7 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResult } from '@/lib/game-statistics';
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-gamble' | 'uno-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics';
 
 // --- Replicated Page Components ---
 
@@ -429,7 +430,7 @@ const TokenomicsContent = ({ onBack }: { onBack: () => void }) => (
     <TokenomicsChart onBack={onBack} />
 );
 
-const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, onPaidPlay: () => void }) => (
+const UnoStartScreen = ({ onFreePlay, onPaidPlay, onGamblePlay }: { onFreePlay: () => void, onPaidPlay: () => void, onGamblePlay: () => void }) => (
      <div className="w-full h-full max-w-md z-10 text-center my-auto animate-fade-in overflow-y-auto">
         <div className="bg-black/50 p-8 rounded-xl flex flex-col items-center">
             <h1 className="text-8xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO</h1>
@@ -440,6 +441,9 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, on
                 </Button>
                 <Button size="lg" onClick={onPaidPlay} className="w-full h-16 text-2xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
                     <Ticket className="mr-4" /> Pay & Play (0.1 S)
+                </Button>
+                <Button size="lg" onClick={onGamblePlay} className="w-full h-16 text-2xl font-headline rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-black font-bold">
+                    <Coins className="mr-4" /> UNO Gamble
                 </Button>
             </div>
         </div>
@@ -569,6 +573,20 @@ export default function HomePage() {
     setActiveView('menu');
   }, []);
 
+  const handleUnoGambleStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎰 [MAIN PAGE] UNO gamble game starting:', { lobby, isHost });
+    setUnoLobby(lobby);
+    setIsUnoHost(isHost);
+    setActiveView('uno-gamble-game');
+  }, []);
+
+  const handleUnoGambleEnd = useCallback(() => {
+    console.log('🏁 [MAIN PAGE] UNO gamble game ended');
+    setUnoLobby(null);
+    setIsUnoHost(false);
+    setActiveView('menu');
+  }, []);
+
   const getSidebarTheme = () => {
     switch (activeView) {
       case 'chess':
@@ -578,6 +596,8 @@ export default function HomePage() {
       case 'uno':
       case 'uno-multiplayer':
       case 'uno-multiplayer-game':
+      case 'uno-gamble':
+      case 'uno-gamble-game':
         return 'uno';
       case 'snake':
         return 'snake';
@@ -591,7 +611,7 @@ export default function HomePage() {
   const renderContent = () => {
     switch (activeView) {
       case 'uno':
-        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} />;
+        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} onNavigateToGamble={() => handleNavigate('uno-gamble')} />;
       case 'pay-uno':
         
       case 'shop':
@@ -617,6 +637,26 @@ export default function HomePage() {
               lobby={unoLobby}
               isHost={isUnoHost}
               onGameEnd={handleUnoMultiplayerEnd}
+            />
+          </div>
+        ) : null;
+      case 'uno-gamble':
+        return (
+          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
+            <MultiplayerLobby
+              gameType="uno"
+              onStartGame={handleUnoGambleStart}
+              onBackToMenu={() => handleNavigate('menu')}
+            />
+          </div>
+        );
+      case 'uno-gamble-game':
+        return unoLobby ? (
+          <div className="w-full h-full">
+            <UnoGambleClient
+              lobby={unoLobby}
+              isHost={isUnoHost}
+              onGameEnd={handleUnoGambleEnd}
             />
           </div>
         ) : null;
@@ -763,7 +803,7 @@ export default function HomePage() {
               
               <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent"></div>
             </>
-        ) : activeView === 'uno' || activeView === 'pay-uno' || activeView === 'uno-multiplayer' ? (
+        ) : activeView === 'uno' || activeView === 'pay-uno' || activeView === 'uno-multiplayer' || activeView === 'uno-gamble' ? (
              <>
                 <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
                 

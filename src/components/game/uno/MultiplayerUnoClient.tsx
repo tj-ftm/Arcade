@@ -451,16 +451,17 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             });
             
             // Record game result in Firebase
-            const winnerId = currentPlayer.id === 'player' ? 
-                (isHost ? lobby.player1Id : lobby.player2Id!) : 
-                (isHost ? lobby.player2Id! : lobby.player1Id);
+            const winnerId = currentPlayer.id;
             const winnerName = currentPlayer.name;
-            const loserId = currentPlayer.id === 'player' ? 
-                (isHost ? lobby.player2Id! : lobby.player1Id) : 
-                (isHost ? lobby.player1Id : lobby.player2Id!);
-            const loserName = currentPlayer.id === 'player' ? 
-                (isHost ? lobby.player2Name! : lobby.player1Name) : 
-                (isHost ? lobby.player1Name : lobby.player2Name!);
+            const loserId = currentPlayer.id === lobby.player1Id ? lobby.player2Id! : lobby.player1Id;
+            const loserName = currentPlayer.id === lobby.player1Id ? lobby.player2Name! : lobby.player1Name;
+            
+            console.log('🏆 [UNO MULTIPLAYER] Recording game result:', {
+                winnerId,
+                winnerName,
+                loserId,
+                loserName
+            });
             
             // Call endGame to record statistics and cleanup lobby
             endGame(lobby.id, winnerId, winnerName, loserId, loserName);

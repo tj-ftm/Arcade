@@ -1,16 +1,17 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
-import { Play, ArrowLeft } from 'lucide-react';
+import { Play, ArrowLeft, Coins } from 'lucide-react';
 
 interface UnoStartScreenProps {
   onStartGame: () => void;
   onGoToMenu: () => void;
   onStartMultiplayer: () => void;
   onStartBonusMode: () => void;
+  onStartGamble?: () => void;
 }
 
-export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBonusMode }: UnoStartScreenProps) => {
+export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBonusMode, onStartGamble }: UnoStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
@@ -46,6 +47,16 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, on
           <Play className="mr-4 h-8 w-8" />
           Bonus Mode (0.1 S)
         </Button>
+        {onStartGamble && (
+          <Button 
+            size="lg" 
+            onClick={onStartGamble}
+            className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white border-2 border-orange-400/30"
+          >
+            <Coins className="mr-4 h-8 w-8" />
+            UNO Gamble
+          </Button>
+        )}
         {/* Rewards Info */}
         <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 rounded-xl p-4 border border-yellow-400/30">
           <div className="flex items-center justify-center gap-3">
