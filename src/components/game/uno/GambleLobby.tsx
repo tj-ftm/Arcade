@@ -216,15 +216,39 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       const approvalTx = await unoGambleContract.approveTokens(betAmount);
       if (approvalTx) {
         setCurrentTxHash(approvalTx);
+        setDeploymentProgress('Token approval confirmed, waiting for blockchain sync...');
+        // Wait for blockchain state to sync after approval
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
       
       setDeploymentProgress('Paying ARC bet to deployed contract...');
       
-      // Pay the bet through the smart contract
-      const paymentResult = await unoGambleContract.payBet(lobbyId);
+      // Pay the bet through the smart contract with retry logic
+      let paymentResult;
+      let retryCount = 0;
+      const maxRetries = 3;
       
-      if (!paymentResult.success) {
-        throw new Error('ARC payment failed');
+      while (retryCount < maxRetries) {
+        try {
+          paymentResult = await unoGambleContract.payBet(lobbyId);
+          if (paymentResult.success) {
+            break;
+          }
+        } catch (paymentError: any) {
+          retryCount++;
+          console.warn(`💸 [GAMBLE LOBBY] Host payment attempt ${retryCount} failed:`, paymentError);
+          
+          if (retryCount < maxRetries) {
+            setDeploymentProgress(`Payment failed, retrying... (${retryCount}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            throw new Error(`Host payment failed after ${maxRetries} attempts: ${paymentError.message}`);
+          }
+        }
+      }
+      
+      if (!paymentResult || !paymentResult.success) {
+        throw new Error('Host ARC payment failed after all retry attempts');
       }
       
       setCurrentTxHash(paymentResult.txHash);
@@ -312,16 +336,40 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       const approvalTx = await unoGambleContract.approveTokens(lobby.betAmount);
       if (approvalTx) {
         setCurrentTxHash(approvalTx);
+        setDeploymentProgress('Token approval confirmed, waiting for blockchain sync...');
+        // Wait for blockchain state to sync after approval
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
       
-      // Step 4: Pay the bet
+      // Step 4: Pay the bet with retry logic
       setJoinState('paying_tokens');
       setDeploymentProgress(`Paying ${lobby.betAmount} ARC bet to contract...`);
       
-      const paymentResult = await unoGambleContract.payBet(lobby.id);
+      let paymentResult;
+      let retryCount = 0;
+      const maxRetries = 3;
       
-      if (!paymentResult.success) {
-        throw new Error('ARC payment to contract failed');
+      while (retryCount < maxRetries) {
+        try {
+          paymentResult = await unoGambleContract.payBet(lobby.id);
+          if (paymentResult.success) {
+            break;
+          }
+        } catch (paymentError: any) {
+          retryCount++;
+          console.warn(`💸 [GAMBLE LOBBY] Payment attempt ${retryCount} failed:`, paymentError);
+          
+          if (retryCount < maxRetries) {
+            setDeploymentProgress(`Payment failed, retrying... (${retryCount}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            throw new Error(`Payment failed after ${maxRetries} attempts: ${paymentError.message}`);
+          }
+        }
+      }
+      
+      if (!paymentResult || !paymentResult.success) {
+        throw new Error('ARC payment to contract failed after all retry attempts');
       }
       
       setCurrentTxHash(paymentResult.txHash);

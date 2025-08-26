@@ -233,24 +233,58 @@ export class UnoGambleContract {
     try {
       const betAmountWei = ethers.parseEther(betAmount);
       const contractAddress = await this.contract.getAddress();
+      const signerAddress = await this.signer.getAddress();
+      
+      console.log('🔍 [UNO GAMBLE] Checking token approval for:', {
+        betAmount,
+        contractAddress,
+        signerAddress
+      });
       
       // Check current allowance
       const currentAllowance = await this.arcToken.allowance(
-        await this.signer.getAddress(),
+        signerAddress,
         contractAddress
       );
+      
+      console.log('📊 [UNO GAMBLE] Current allowance:', ethers.formatEther(currentAllowance), 'ARC');
+      console.log('📊 [UNO GAMBLE] Required amount:', betAmount, 'ARC');
       
       if (currentAllowance >= betAmountWei) {
         console.log('✅ [UNO GAMBLE] Sufficient allowance already exists');
         return '';
       }
       
+      // Check user's ARC balance
+      const balance = await this.arcToken.balanceOf(signerAddress);
+      console.log('💰 [UNO GAMBLE] User ARC balance:', ethers.formatEther(balance), 'ARC');
+      
+      if (balance < betAmountWei) {
+        throw new Error(`Insufficient ARC balance. Required: ${betAmount} ARC, Available: ${ethers.formatEther(balance)} ARC`);
+      }
+      
       console.log('🔓 [UNO GAMBLE] Approving ARC tokens:', betAmount);
       
-      const tx = await this.arcToken.approve(contractAddress, betAmountWei);
+      // Approve with a slightly higher amount to account for any rounding issues
+      const approvalAmount = betAmountWei + ethers.parseEther('0.001');
+      
+      const tx = await this.arcToken.approve(contractAddress, approvalAmount, {
+        gasLimit: 100000 // Set explicit gas limit for approval
+      });
+      
       console.log('📝 [UNO GAMBLE] Approval transaction:', tx.hash);
       
-      await tx.wait();
+      const receipt = await tx.wait();
+      console.log('✅ [UNO GAMBLE] Approval confirmed in block:', receipt.blockNumber);
+      
+      // Verify the approval was successful
+      const newAllowance = await this.arcToken.allowance(signerAddress, contractAddress);
+      console.log('📊 [UNO GAMBLE] New allowance:', ethers.formatEther(newAllowance), 'ARC');
+      
+      if (newAllowance < betAmountWei) {
+        throw new Error('Token approval failed - insufficient allowance after approval transaction');
+      }
+      
       return tx.hash;
       
     } catch (error) {
@@ -261,18 +295,71 @@ export class UnoGambleContract {
   
   // Pay the bet for a game
   async payBet(gameId: string): Promise<PaymentResult> {
-    if (!this.contract) {
-      throw new Error('Contract not initialized');
+    if (!this.contract || !this.arcToken || !this.signer) {
+      throw new Error('Contracts not initialized');
     }
     
     try {
       console.log('💰 [UNO GAMBLE] Paying bet for game:', gameId);
       
       const gameIdBytes = ethers.id(gameId);
-      const tx = await this.contract.payBet(gameIdBytes);
+      const contractAddress = await this.contract.getAddress();
+      const signerAddress = await this.signer.getAddress();
+      
+      // Get game info to verify bet amount
+      const gameInfo = await this.contract.getGame(gameIdBytes);
+      const betAmount = gameInfo[2]; // betAmount is the 3rd element
+      
+      console.log('🔍 [UNO GAMBLE] Game info:', {
+        gameId,
+        contractAddress,
+        signerAddress,
+        betAmount: ethers.formatEther(betAmount)
+      });
+      
+      // Verify allowance before attempting payment
+      const allowance = await this.arcToken.allowance(signerAddress, contractAddress);
+      console.log('📊 [UNO GAMBLE] Current allowance before payment:', ethers.formatEther(allowance), 'ARC');
+      
+      if (allowance < betAmount) {
+        throw new Error(`Insufficient token allowance. Required: ${ethers.formatEther(betAmount)} ARC, Current: ${ethers.formatEther(allowance)} ARC`);
+      }
+      
+      // Verify balance before attempting payment
+      const balance = await this.arcToken.balanceOf(signerAddress);
+      console.log('💰 [UNO GAMBLE] Current balance before payment:', ethers.formatEther(balance), 'ARC');
+      
+      if (balance < betAmount) {
+        throw new Error(`Insufficient ARC balance. Required: ${ethers.formatEther(betAmount)} ARC, Available: ${ethers.formatEther(balance)} ARC`);
+      }
+      
+      // Estimate gas for the transaction
+      let gasEstimate;
+      try {
+        gasEstimate = await this.contract.payBet.estimateGas(gameIdBytes);
+        console.log('⛽ [UNO GAMBLE] Estimated gas:', gasEstimate.toString());
+      } catch (gasError) {
+        console.warn('⚠️ [UNO GAMBLE] Gas estimation failed, using default:', gasError);
+        gasEstimate = 200000n; // Default gas limit
+      }
+      
+      // Execute the payment transaction
+      const tx = await this.contract.payBet(gameIdBytes, {
+        gasLimit: gasEstimate + 50000n // Add buffer to gas estimate
+      });
       
       console.log('📝 [UNO GAMBLE] Payment transaction:', tx.hash);
-      await tx.wait();
+      
+      const receipt = await tx.wait();
+      console.log('✅ [UNO GAMBLE] Payment confirmed in block:', receipt.blockNumber);
+      
+      // Verify the payment was successful by checking if player has paid
+      const hasPaid = await this.contract.hasPlayerPaid(gameIdBytes, signerAddress);
+      if (!hasPaid) {
+        throw new Error('Payment verification failed - contract shows player has not paid');
+      }
+      
+      console.log('✅ [UNO GAMBLE] Payment verified successfully');
       
       return {
         txHash: tx.hash,
