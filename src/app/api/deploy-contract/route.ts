@@ -73,11 +73,11 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ [DEPLOY API] Payment verified, deploying contract...');
     
-    // Get game wallet private key from environment
-    const gameWalletPrivateKey = process.env.GAME_WALLET_PRIVATE_KEY;
+    // Get game wallet private key from environment (using MINTER_PRIVATE_KEY)
+    const gameWalletPrivateKey = process.env.MINTER_PRIVATE_KEY;
     if (!gameWalletPrivateKey) {
       return NextResponse.json(
-        { error: 'Game wallet not configured' },
+        { error: 'Game wallet not configured - MINTER_PRIVATE_KEY missing' },
         { status: 500 }
       );
     }
