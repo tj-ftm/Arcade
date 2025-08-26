@@ -13,7 +13,7 @@ import {
 // Environment variables
 const MINTER_PRIVATE_KEY = process.env.MINTER_PRIVATE_KEY;
 const TOKEN_CONTRACT_ADDRESS = process.env.TOKEN_CONTRACT_ADDRESS;
-const RPC_URL = process.env.RPC_URL;
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL;
 
 const TOKEN_CONTRACT_ABI = [
   {
