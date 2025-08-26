@@ -39,17 +39,6 @@ type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' |
 // --- Replicated Page Components ---
 
 // Simplified UI components for consistency
-const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <div className={`bg-black/30 rounded-lg p-4 ${className}`}>{children}</div>
-);
-const CardHeader = ({ children }: { children: React.ReactNode }) => <div className="mb-4">{children}</div>;
-const CardTitle = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <h3 className={`text-xl font-semibold text-white ${className}`}>{children}</h3>
-);
-const CardDescription = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm text-white/70">{children}</p>
-);
-const CardContent = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
 const Badge = ({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'secondary' | 'outline' }) => (
   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
     variant === 'outline' ? 'border border-white/30 text-white/80' :
@@ -113,8 +102,8 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
 
   if (loading) {
     return (
-      <div className="w-full h-full max-w-4xl z-10 animate-fade-in my-auto overflow-y-auto">
-        <div className="bg-black/50 p-8 rounded-xl">
+      <div className="w-full h-full flex flex-col z-10 animate-fade-in overflow-y-auto">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
           <div className="flex items-center justify-center h-32">
             <div className="text-2xl text-white">Loading leaderboard...</div>
           </div>
@@ -124,12 +113,12 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
   }
 
   return (
-    <div className="w-full h-full max-w-6xl z-10 animate-fade-in my-auto overflow-y-auto">
-      <div className="bg-black/50 p-6 rounded-xl">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="w-full h-full flex flex-col z-10 animate-fade-in overflow-y-auto">
+      {/* Header */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-6xl font-headline text-accent uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '4px black' }}>
+            <h1 className="text-4xl sm:text-6xl font-headline text-white uppercase tracking-wider mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
               Leaderboard
             </h1>
             <p className="text-white/70 text-xl">Multiplayer game statistics and rankings</p>
@@ -139,6 +128,9 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
           </Button>
         </div>
 
+      </div>
+      
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
         {error && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
             <p className="text-red-200">{error}</p>
@@ -165,86 +157,86 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
         {/* Player Stats Cards */}
         {playerStats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+              <div className="mb-4">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <Target className="h-5 w-5" />
                   Total Games
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h3>
+              </div>
+              <div>
                 <div className="text-3xl font-bold text-accent">{playerStats.totalGames}</div>
                 <p className="text-sm text-white/70">
                   {playerStats.wins} wins, {playerStats.losses} losses
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+              <div className="mb-4">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
                   Win Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h3>
+              </div>
+              <div>
                 <div className="text-3xl font-bold text-accent">{playerStats.winRate.toFixed(1)}%</div>
                 <p className="text-sm text-white/70">
                   Current streak: {playerStats.currentWinStreak}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+              <div className="mb-4">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <Clock className="h-5 w-5" />
                   Avg Game Time
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h3>
+              </div>
+              <div>
                 <div className="text-3xl font-bold text-accent">{formatDuration(Math.round(playerStats.averageGameDuration))}</div>
                 <p className="text-sm text-white/70">
                   Longest streak: {playerStats.longestWinStreak}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+              <div className="mb-4">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <Trophy className="h-5 w-5" />
                   Best Game
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h3>
+              </div>
+              <div>
                 <div className="text-lg font-bold text-accent">
                   Chess: {playerStats.gamesPerType.chess.wins}/{playerStats.gamesPerType.chess.games}
                 </div>
                 <div className="text-lg font-bold text-accent">
                   UNO: {playerStats.gamesPerType.uno.wins}/{playerStats.gamesPerType.uno.games}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Leaderboard */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Trophy className="h-6 w-6" />
                 Top Players
                 {selectedGameType !== 'all' && (
                   <Badge variant="outline">{selectedGameType.toUpperCase()}</Badge>
                 )}
-              </CardTitle>
-              <CardDescription>
+              </h3>
+              <p className="text-sm text-white/70">
                 Rankings based on wins and current win streaks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </div>
+            <div>
               {leaderboard.length > 0 ? (
                 <ScrollArea className="h-96">
                   <Table>
@@ -286,21 +278,21 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                   <p className="text-sm">Play some multiplayer games to see rankings!</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Recent Games / Match History */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Gamepad2 className="h-6 w-6" />
                 Recent Matches
-              </CardTitle>
-              <CardDescription>
+              </h3>
+              <p className="text-sm text-white/70">
                 Latest completed multiplayer games
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </div>
+            <div>
               {recentGames.length > 0 ? (
                 <ScrollArea className="h-96">
                   <div className="space-y-3">
@@ -338,8 +330,8 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                   <p className="text-sm">Start playing multiplayer games to see match history!</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>
