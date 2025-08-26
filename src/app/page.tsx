@@ -22,6 +22,7 @@ import { SimpleGambleClient } from '@/components/game/uno/SimpleGambleClient';
 import { SimpleGambleGame } from '@/lib/simple-gamble';
 import ShopContent from '@/components/ShopContent';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
+import ProfileContent from './profile/page';
 
 
 // Page-like components
@@ -39,7 +40,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResult } from '@/lib/game-statistics';
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics' | 'profile';
 
 // --- Replicated Page Components ---
 
@@ -617,7 +618,7 @@ export default function HomePage() {
   const renderContent = () => {
     switch (activeView) {
       case 'uno':
-        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} onNavigateToGamble={() => handleNavigate('uno-gamble')} onNavigateToSimpleGamble={() => handleNavigate('uno-simple-gamble')} />;
+        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} />;
       case 'pay-uno':
         
       case 'shop':
@@ -714,73 +715,132 @@ export default function HomePage() {
         return <SettingsContent onBack={() => handleNavigate('menu')} />;
       case 'tokenomics':
         return <TokenomicsContent onBack={() => handleNavigate('menu')} />;
-       case 'multiplayer':
-        return <MultiplayerContent onBack={() => handleNavigate('menu')} />;
+       case 'profile':
+        return <ProfileContent onBack={() => handleNavigate('menu')} />;
       case 'menu':
       default:
         return (
           <>
              
              <div className="w-full flex-1 flex flex-col items-center justify-center pt-3 px-3 pb-3 sm:pt-2 sm:px-2 sm:pb-2">
-                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-3 sm:gap-2 w-full max-w-xs sm:max-w-6xl mx-auto h-full overflow-hidden pt-8 pb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 items-stretch justify-center gap-2 sm:gap-1 lg:gap-2 w-full max-w-xs sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto h-full overflow-y-auto overflow-x-hidden scrollbar-hide pt-4 pb-4 sm:pt-2 sm:pb-2">
                   <div className="animate-fade-in text-center">
-                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider">
+                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
                       <div className="pt-0 sm:pt-1">
-                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-accent uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '1px black' }}>UNO</h1>
                         </div>
                         <div className="relative">
-                           <img src="/uno_icon.png" alt="UNO Game" className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 mx-auto mb-2" />
-                           <img src="/multiplayer_icon.svg" alt="Multiplayer" className="absolute top-0 right-0 w-16 h-auto" />
+                           <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="absolute top-0 right-0 mt-2 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
+                                   PVP LIVE
+                               </div>
+                           </div>
                          </div>
 
-                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider border border-white">
+                        <Button onClick={() => handleNavigate('uno')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider border border-white">
                            Play
                          </Button>
                          </div>
                     </div>
 
                   <div className="animate-fade-in text-center">
-                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                        <div className="pt-0 sm:pt-1">
-                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-purple-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
                         </div>
                         <div className="relative">
-                           <img src="/chess_icon.png" alt="CHESS Game" className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 xl:w-56 xl:h-56 mx-auto mb-2" />
-                           <img src="/multiplayer_icon.svg" alt="Multiplayer" className="absolute top-0 right-0 w-16 h-auto" />
+                           <img src="/chess_icon.png" alt="CHESS Game" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="absolute top-0 right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1" >
+                                   PVP LIVE
+                               </div>
+                           </div>
                          </div>
 
-                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                        <Button onClick={() => handleNavigate('chess')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Play
                           </Button>
                          </div>
                     </div>
                   
                   <div className="animate-fade-in text-center">
-                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
+                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
                        <div className="pt-0 sm:pt-1">
-                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
                         </div>
-                        <img src="/snake_icon.png" alt="SNAKE Game" className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 mb-4 object-contain mx-auto" />
+                        <img src="/snake_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mb-1 object-contain mx-auto" />
 
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
                             Play
                           </Button>
                          </div>
                     </div>
                   
                   <div className="animate-fade-in text-center">
-                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                        <div className="pt-0 sm:pt-1">
-                             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-yellow-500 uppercase tracking-wider mb-0 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
+                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-yellow-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
                         </div>
-                        <img src="/shop_icon.png" alt="Shop" className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 mb-4 object-contain mx-auto" />
+                        <img src="/shop_icon.png" alt="Shop" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mb-1 object-contain mx-auto" />
 
-                        <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                        <Button onClick={() => handleNavigate('shop')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Visit
                           </Button>
                           </div>
                     </div>
 
+                  <div className="animate-fade-in text-center">
+                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:from-blue-500 hover:to-blue-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <div className="pt-0 sm:pt-1">
+                             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-blue-400 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>LEADERBOARD</h1>
+                         </div>
+                         <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+ 
+                         <Button onClick={() => handleNavigate('leaderboard')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                             View
+                           </Button>
+                          </div>
+                     </div>
+
+                  <div className="animate-fade-in text-center">
+                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-pink-600 to-purple-700 text-white shadow-lg hover:from-pink-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <div className="pt-0 sm:pt-1">
+                             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>PROFILE</h1>
+                         </div>
+                         <img src="/uno_icon.png" alt="Profile" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+ 
+                         <Button onClick={() => handleNavigate('profile')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-pink-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-pink-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                             View
+                           </Button>
+                          </div>
+                     </div>
+
+                  <div className="animate-fade-in text-center">
+                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 text-white shadow-lg hover:from-orange-300 hover:to-orange-500 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <div className="pt-0 sm:pt-1">
+                             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>TOKENOMICS</h1>
+                         </div>
+                         <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+ 
+                         <Button onClick={() => handleNavigate('tokenomics')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 text-white rounded-xl shadow-lg hover:from-orange-300 hover:to-orange-500 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                             View
+                           </Button>
+                          </div>
+                     </div>
+
+                  <div className="animate-fade-in text-center">
+                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                        <div className="pt-0 sm:pt-1">
+                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-gray-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SETTINGS</h1>
+                         </div>
+                         <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+ 
+                         <Button onClick={() => handleNavigate('settings')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl shadow-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                             Open
+                           </Button>
+                          </div>
+                     </div>
 
                 </div>
               </div>
@@ -808,7 +868,7 @@ export default function HomePage() {
           case 'shop':
               return 'bg-transparent';
           case 'menu':
-          case 'multiplayer':
+          case 'profile':
           default:
               return 'bg-background';
           case 'leaderboard':

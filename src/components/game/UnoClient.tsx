@@ -150,11 +150,9 @@ type FlyingCard = {
 interface UnoClientProps {
   onGameEnd?: () => void;
   onNavigateToMultiplayer?: () => void;
-  onNavigateToGamble?: () => void;
-  onNavigateToSimpleGamble?: () => void;
 }
 
-export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToGamble, onNavigateToSimpleGamble }: UnoClientProps) => {
+export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps) => {
     const { username, account, getProvider, getSigner } = useWeb3();
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
@@ -674,8 +672,6 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToGamb
                     onGoToMenu={onGameEnd || (() => {})}
                     onStartMultiplayer={handleStartMultiplayer}
                     onStartBonusMode={handleStartBonusMode}
-                    onStartGamble={onNavigateToGamble}
-                    onStartSimpleGamble={onNavigateToSimpleGamble}
                 />
             </div>
         );

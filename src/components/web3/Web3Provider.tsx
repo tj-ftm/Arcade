@@ -32,7 +32,7 @@ interface Web3ContextType {
   getSigner: () => Promise<ethers.JsonRpcSigner | null>;
 }
 
-const Web3Context = createContext<Web3ContextType | undefined>(undefined);
+export const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 const SONIC_NETWORK = {
     chainId: '0x92', // 146
