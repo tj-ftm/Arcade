@@ -54,6 +54,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   const [selectedLobby, setSelectedLobby] = useState<GambleLobby | null>(null);
   const [deploymentStep, setDeploymentStep] = useState<DeploymentStep>('deploying');
   const [deploymentProgress, setDeploymentProgress] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const { account, signer } = useWeb3();
   const { createLobby, joinLobby, onLobbyJoined, startGame } = useFirebaseMultiplayer();
@@ -120,6 +121,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     }
 
     setError('');
+    setIsProcessing(true);
     const lobbyId = `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
     let contractAddress = '';
 
@@ -229,6 +231,8 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       setCreationState('setup');
       setDeploymentStep('deploying');
       setDeploymentProgress('');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -246,6 +250,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     setSelectedLobby(lobby);
     setJoinState('paying');
     setError('');
+    setIsProcessing(true);
 
     try {
       // Initialize contract with the lobby's contract address
@@ -286,6 +291,8 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       console.error('❌ [GAMBLE LOBBY] Failed to join gamble lobby:', error);
       setError(error.message || 'Failed to join gamble lobby');
       setJoinState('idle');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
