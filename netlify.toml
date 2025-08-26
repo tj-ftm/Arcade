@@ -1,7 +1,7 @@
 [build]
   command = "npm run build"
   publish = "./.next"
-  environment = { SECRETS_SCAN_ENABLED = "true", SECRETS_SCAN_OMIT_KEYS = "RPC_URL" }
+  environment = { SECRETS_SCAN_ENABLED = "true" }
 
 [[redirects]]
   from = "/*"
