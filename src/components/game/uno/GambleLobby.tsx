@@ -38,7 +38,7 @@ interface GambleLobbyProps {
   onBackToMenu?: () => void;
 }
 
-type LobbyCreationState = 'setup' | 'deploying' | 'paying_gas' | 'paying_tokens' | 'creating' | 'completed';
+type LobbyCreationState = 'setup' | 'paying_deployment_fee' | 'verifying_payment' | 'deploying' | 'paying_tokens' | 'creating' | 'completed';
 type JoinState = 'idle' | 'paying' | 'waiting' | 'ready';
 type DeploymentStep = 'deploying' | 'confirming' | 'initializing' | 'completed';
 
@@ -55,6 +55,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   const [deploymentStep, setDeploymentStep] = useState<DeploymentStep>('deploying');
   const [deploymentProgress, setDeploymentProgress] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [deploymentTxHash, setDeploymentTxHash] = useState<string>('');
   
   const { account, signer } = useWeb3();
   const { createLobby, joinLobby, onLobbyJoined, startGame } = useFirebaseMultiplayer();
@@ -126,26 +127,38 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     let contractAddress = '';
 
     try {
-      // Step 1: Deploy Smart Contract
+      // Step 1: Pay deployment fee to game wallet
+      setCreationState('paying_deployment_fee');
+      setDeploymentProgress('Paying 0.05 S deployment fee to game wallet...');
+      
+      await unoGambleContract.initialize(signer, '');
+      const deploymentFeeTxHash = await unoGambleContract.payDeploymentFee();
+      setDeploymentTxHash(deploymentFeeTxHash);
+      setCurrentTxHash(deploymentFeeTxHash);
+      
+      // Step 2: Verify payment on blockchain
+      setCreationState('verifying_payment');
+      setDeploymentProgress('Verifying deployment fee payment on blockchain...');
+      
+      const isPaymentValid = await unoGambleContract.verifyDeploymentPayment(deploymentFeeTxHash, account);
+      if (!isPaymentValid) {
+        throw new Error('Deployment fee payment verification failed');
+      }
+      
+      // Step 3: Deploy smart contract
       setCreationState('deploying');
       setDeploymentStep('deploying');
       setDeploymentProgress('Deploying UNO Gamble smart contract...');
       
-      await unoGambleContract.initialize(signer, '');
       contractAddress = await unoGambleContract.deployGameContract();
       
-      setDeploymentStep('confirming');
-      setDeploymentProgress('Waiting for contract deployment confirmation...');
-      
-      // Step 2: Initialize Contract
       setDeploymentStep('initializing');
       setDeploymentProgress('Initializing contract with game parameters...');
       
       await unoGambleContract.initialize(signer, contractAddress);
       
-      // Step 3: Create Game and Pay Gas Fee
-      setCreationState('paying_gas');
-      setDeploymentProgress('Creating game in smart contract (paying gas fee)...');
+      // Step 4: Create game in smart contract
+      setDeploymentProgress('Creating game in smart contract...');
       
       const gameResult = await unoGambleContract.createGame(
         lobbyId,
@@ -156,7 +169,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       
       setCurrentTxHash(gameResult.txHash);
       
-      // Step 4: Approve and Transfer ARC Tokens
+      // Step 5: Pay ARC tokens to deployed contract
       setCreationState('paying_tokens');
       setDeploymentProgress('Approving ARC tokens for transfer...');
       
@@ -165,38 +178,18 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
         setCurrentTxHash(approvalTx);
       }
       
-      setDeploymentProgress('Transferring ARC tokens to contract...');
+      setDeploymentProgress('Paying ARC bet to deployed contract...');
       
-      // Calculate amounts: bet amount to contract, house fee to creator wallet
-      const betAmountWei = ethers.parseEther(betAmount);
-      const houseFeeWei = (betAmountWei * BigInt(5)) / BigInt(100); // 5% house fee
-      const contractAmountWei = betAmountWei - houseFeeWei;
+      // Pay the bet through the smart contract
+      const paymentResult = await unoGambleContract.payBet(lobbyId);
       
-      const arcTokenContract = new ethers.Contract(
-        '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
-        [
-          'function transfer(address to, uint256 amount) external returns (bool)',
-          'function transferFrom(address from, address to, uint256 amount) external returns (bool)'
-        ],
-        signer
-      );
+      if (!paymentResult.success) {
+        throw new Error('ARC payment failed');
+      }
       
-      // Transfer bet amount minus house fee to contract
-      const contractTransferTx = await arcTokenContract.transfer(
-        contractAddress,
-        contractAmountWei
-      );
-      setCurrentTxHash(contractTransferTx.hash);
-      await contractTransferTx.wait();
+      setCurrentTxHash(paymentResult.txHash);
       
-      // Transfer house fee to creator wallet
-      const houseFeeTransferTx = await arcTokenContract.transfer(
-        '0x5AD5aE34265957fB08eA12f77BAFf1200060473e',
-        houseFeeWei
-      );
-      await houseFeeTransferTx.wait();
-      
-      // Step 5: Create Firebase Lobby
+      // Step 6: Create Firebase Lobby
       setCreationState('creating');
       setDeploymentProgress('Creating lobby and waiting for players...');
       
@@ -360,35 +353,45 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
             </>
           )}
           
-          {(creationState === 'deploying' || creationState === 'paying_gas' || creationState === 'paying_tokens') && (
+          {(creationState === 'paying_deployment_fee' || creationState === 'verifying_payment' || creationState === 'deploying' || creationState === 'paying_tokens') && (
             <div className="text-center py-6 sm:py-8">
               <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-3 sm:mb-4 text-yellow-400" />
               
               {/* Deployment Progress */}
               <div className="mb-4 sm:mb-6">
-                <h3 className="text-white font-semibold mb-2 text-sm sm:text-base">
-                  {creationState === 'deploying' && 'Deploying Smart Contract'}
-                  {creationState === 'paying_gas' && 'Creating Game & Paying Gas Fee'}
-                  {creationState === 'paying_tokens' && 'Transferring ARC Tokens'}
-                </h3>
-                
-                {/* Progress Steps */}
-                <div className="flex justify-center items-center space-x-2 sm:space-x-4 mb-3 sm:mb-4">
-                  <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
-                    creationState === 'deploying' ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'
-                  }`} />
-                  <div className="w-4 sm:w-8 h-0.5 bg-white/30" />
-                  <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
-                    creationState === 'paying_gas' ? 'bg-yellow-400 animate-pulse' : 
-                    creationState === 'paying_tokens' ? 'bg-green-400' : 'bg-white/30'
-                  }`} />
-                  <div className="w-4 sm:w-8 h-0.5 bg-white/30" />
-                  <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
-                    creationState === 'paying_tokens' ? 'bg-yellow-400 animate-pulse' : 'bg-white/30'
-                  }`} />
-                </div>
-                
-                <p className="text-white/80 text-xs sm:text-sm mb-2">{deploymentProgress}</p>
+                 <h3 className="text-white font-semibold mb-2 text-sm sm:text-base">
+                   {creationState === 'paying_deployment_fee' && 'Paying Deployment Fee'}
+                   {creationState === 'verifying_payment' && 'Verifying Payment'}
+                   {creationState === 'deploying' && 'Deploying Smart Contract'}
+                   {creationState === 'paying_tokens' && 'Transferring ARC Tokens'}
+                 </h3>
+                 
+                 {/* Progress Steps */}
+                 <div className="flex justify-center items-center space-x-1 sm:space-x-2 mb-3 sm:mb-4">
+                   <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+                     creationState === 'paying_deployment_fee' ? 'bg-yellow-400 animate-pulse' : 
+                     (creationState === 'verifying_payment' || creationState === 'deploying' || creationState === 'paying_tokens') ? 'bg-green-400' : 'bg-white/30'
+                   }`} />
+                   <div className="w-2 sm:w-4 h-0.5 bg-white/30" />
+                   <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+                     creationState === 'verifying_payment' ? 'bg-yellow-400 animate-pulse' : 
+                     (creationState === 'deploying' || creationState === 'paying_tokens') ? 'bg-green-400' : 'bg-white/30'
+                   }`} />
+                   <div className="w-2 sm:w-4 h-0.5 bg-white/30" />
+                   <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+                     creationState === 'deploying' ? 'bg-yellow-400 animate-pulse' : 
+                     creationState === 'paying_tokens' ? 'bg-green-400' : 'bg-white/30'
+                   }`} />
+                   <div className="w-2 sm:w-4 h-0.5 bg-white/30" />
+                   <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+                     creationState === 'paying_tokens' ? 'bg-yellow-400 animate-pulse' : 'bg-white/30'
+                   }`} />
+                 </div>
+                 
+                 {/* Deployment Progress */}
+                  {deploymentProgress && (
+                    <p className="text-white/80 text-xs sm:text-sm mb-2">{deploymentProgress}</p>
+                  )}
               </div>
               
               {/* Transaction Details */}
@@ -411,14 +414,17 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
               
               {/* Step Details */}
               <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-white/60">
+                {creationState === 'paying_deployment_fee' && (
+                  <p>Paying 0.05 S deployment fee to game wallet...</p>
+                )}
+                {creationState === 'verifying_payment' && (
+                  <p>Verifying deployment fee payment on blockchain...</p>
+                )}
                 {creationState === 'deploying' && (
                   <p>Deploying a new smart contract for this game...</p>
                 )}
-                {creationState === 'paying_gas' && (
-                  <p>Creating game in contract and paying 0.05 S gas fee...</p>
-                )}
                 {creationState === 'paying_tokens' && (
-                  <p>Transferring {betAmount} ARC tokens (minus 5% house fee)...</p>
+                  <p>Transferring {betAmount} ARC tokens to contract...</p>
                 )}
               </div>
             </div>

@@ -63,6 +63,81 @@ export class UnoGambleContract {
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
   }
   
+  // Step 1: Pay deployment fee to game wallet
+  async payDeploymentFee(): Promise<string> {
+    if (!this.signer) {
+      throw new Error('Signer not initialized');
+    }
+    
+    try {
+      console.log('💰 [UNO GAMBLE] Paying deployment fee...');
+      
+      const gameWallet = '0x5AD5aE34265957fB08eA12f77BAFf1200060473e';
+      const deploymentFee = ethers.parseEther('0.05'); // 0.05 S
+      
+      const tx = await this.signer.sendTransaction({
+        to: gameWallet,
+        value: deploymentFee,
+        gasLimit: 21000
+      });
+      
+      console.log('📝 [UNO GAMBLE] Deployment fee transaction:', tx.hash);
+      await tx.wait();
+      
+      return tx.hash;
+      
+    } catch (error) {
+      console.error('❌ [UNO GAMBLE] Deployment fee payment failed:', error);
+      throw error;
+    }
+  }
+  
+  // Verify deployment fee payment on blockchain
+  async verifyDeploymentPayment(txHash: string, playerAddress: string): Promise<boolean> {
+    try {
+      console.log('🔍 [UNO GAMBLE] Verifying deployment payment:', txHash);
+      
+      const receipt = await this.provider.getTransactionReceipt(txHash);
+      if (!receipt) {
+        console.log('❌ [UNO GAMBLE] Transaction not found');
+        return false;
+      }
+      
+      const gameWallet = '0x5AD5aE34265957fB08eA12f77BAFf1200060473e';
+      const expectedAmount = ethers.parseEther('0.05');
+      
+      // Get the actual transaction to verify value
+      const tx = await this.provider.getTransaction(txHash);
+      if (!tx) {
+        console.log('❌ [UNO GAMBLE] Transaction details not found');
+        return false;
+      }
+      
+      // Verify transaction details
+      const isValidRecipient = tx.to?.toLowerCase() === gameWallet.toLowerCase();
+      const isValidSender = tx.from?.toLowerCase() === playerAddress.toLowerCase();
+      const isValidAmount = tx.value === expectedAmount;
+      const isSuccessful = receipt.status === 1;
+      
+      const isValid = isValidRecipient && isValidSender && isValidAmount && isSuccessful;
+      
+      console.log('✅ [UNO GAMBLE] Payment verification result:', {
+        isValidRecipient,
+        isValidSender, 
+        isValidAmount: `${ethers.formatEther(tx.value)} S`,
+        expectedAmount: `${ethers.formatEther(expectedAmount)} S`,
+        isSuccessful,
+        isValid
+      });
+      
+      return isValid;
+      
+    } catch (error) {
+      console.error('❌ [UNO GAMBLE] Payment verification failed:', error);
+      return false;
+    }
+  }
+  
   async initialize(signer: ethers.Signer, contractAddress: string) {
     this.signer = signer;
     this.contract = new ethers.Contract(contractAddress, UNO_GAMBLE_ABI, signer);
@@ -71,7 +146,7 @@ export class UnoGambleContract {
     this.arcToken = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, signer);
   }
   
-  // Deploy a new UNO Gamble contract for this game
+  // Deploy a new UNO Gamble contract after payment verification
   async deployGameContract(): Promise<string> {
     if (!this.signer) {
       throw new Error('Signer not initialized');
@@ -109,7 +184,7 @@ export class UnoGambleContract {
     }
   }
   
-  // Create a new gambling game
+  // Create a new gambling game (after deployment fee is verified)
   async createGame(
     gameId: string,
     player1: string,
@@ -125,7 +200,7 @@ export class UnoGambleContract {
       
       const gameIdBytes = ethers.id(gameId); // Convert to bytes32
       const betAmountWei = ethers.parseEther(betAmount);
-      const gasFee = ethers.parseEther('0.05'); // 0.05 S for gas
+      const gasFee = ethers.parseEther('0.05'); // 0.05 S for contract operations
       
       const tx = await this.contract.createGame(
         gameIdBytes,
@@ -133,7 +208,7 @@ export class UnoGambleContract {
         player2,
         betAmountWei,
         gameId, // gameIdString parameter
-        { value: gasFee }
+        { value: gasFee } // Additional 0.05 S to contract for operations
       );
       
       console.log('📝 [UNO GAMBLE] Game creation transaction:', tx.hash);
