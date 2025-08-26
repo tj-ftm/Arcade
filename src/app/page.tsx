@@ -468,6 +468,7 @@ export default function HomePage() {
   const [isUnoHost, setIsUnoHost] = useState(false);
   const [simpleGambleGame, setSimpleGambleGame] = useState<SimpleGambleGame | null>(null);
   const [isSimpleGambleHost, setIsSimpleGambleHost] = useState(false);
+  const [showChessGameLog, setShowChessGameLog] = useState(false);
   const isMobile = useIsMobile();
 
   const handleMintArc = async () => {
@@ -706,6 +707,8 @@ export default function HomePage() {
               lobby={chessLobby}
               isHost={isChessHost}
               onGameEnd={handleChessMultiplayerEnd}
+              showGameLogModal={showChessGameLog}
+              onCloseGameLogModal={() => setShowChessGameLog(false)}
             />
           </div>
         ) : null;
@@ -955,7 +958,12 @@ export default function HomePage() {
                         <div className="hidden md:block">
                             <ConnectWallet />
                         </div>
-                        <MobileSidebar onNavigate={handleNavigate} theme={getSidebarTheme()} />
+                        <MobileSidebar 
+                          onNavigate={handleNavigate} 
+                          theme={getSidebarTheme()}
+                          showGameLogButton={activeView === 'chess-multiplayer-game'}
+                          onShowGameLog={activeView === 'chess-multiplayer-game' ? () => setShowChessGameLog(true) : undefined}
+                        />
                     </div>
                 </div>
             </header>

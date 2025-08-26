@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Chess } from 'chess.js';
 import type { Square, PieceSymbol, Color, Move } from 'chess.js';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, PanelLeft } from 'lucide-react';
+import { RefreshCw, PanelLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { ChessEndGameScreen } from './ChessEndGameScreen';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -34,6 +35,8 @@ interface MultiplayerChessClientProps {
   lobby: Lobby;
   isHost: boolean;
   onGameEnd: () => void;
+  showGameLogModal?: boolean;
+  onCloseGameLogModal?: () => void;
 }
 
 const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPossibleMove }: { 
@@ -69,7 +72,8 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
   );
 };
 
-export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: MultiplayerChessClientProps) => {
+export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogModal = false, onCloseGameLogModal }: MultiplayerChessClientProps) => {
+  const isMobile = useIsMobile();
   console.log('🏁 [MULTIPLAYER CHESS CLIENT] Component initialized with:', {
     lobbyId: lobby.id,
     lobbyStatus: lobby.status,
@@ -349,7 +353,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
       ) : (
         !showEndGameScreen && (
           <>
-            <div className="w-full md:w-80 h-full flex flex-col bg-black/20 backdrop-blur-sm border border-purple-400/30 rounded-lg p-4">
+            {/* Game Info Sidebar - Hidden on mobile */}
+            <div className={cn(
+              "h-full flex flex-col bg-black/20 backdrop-blur-sm border border-purple-400/30 rounded-lg p-4",
+              isMobile ? "hidden" : "w-80"
+            )}>
               <div className="mb-4">
                 <h3 className="text-xl font-bold mb-2">Game Info</h3>
                 <div className="text-sm">
@@ -428,6 +436,63 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd }: Multiplayer
           mintTxHash=""
           tokensEarned={winner === (playerColor === 'w' ? 'White' : 'Black') ? 100 : 0}
         />
+      )}
+
+      {/* Mobile Game Log Modal */}
+      {showGameLogModal && isMobile && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[99999] flex items-center justify-center p-4">
+          <div className="bg-black/40 backdrop-blur-sm border border-purple-400/30 rounded-lg p-6 w-full max-w-md max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Game Info & Log</h3>
+              <Button
+                onClick={onCloseGameLogModal}
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/10"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+            
+            <div className="mb-4">
+              <div className="text-sm">
+                <span className="text-white/70">You are: </span>
+                <span className={cn("font-bold", playerColor === 'w' ? "text-white" : "text-gray-400")}>
+                  {playerColor === 'w' ? 'White' : 'Black'}
+                </span>
+              </div>
+              <div className="text-sm">
+                <span className="text-white/70">Opponent: </span>
+                <span className="font-bold text-white">{opponentName}</span>
+              </div>
+              <div className="text-sm">
+                <span className="text-white/70">Turn: </span>
+                <span className={cn("font-bold", isMyTurn ? "text-green-400" : "text-yellow-400")}>
+                  {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
+                </span>
+              </div>
+            </div>
+            
+            <ScrollArea className="flex-1 mb-4">
+              <div className="flex flex-col gap-2">
+                {gameLog.slice().reverse().map((msg, i) => (
+                  <p key={i} className={cn("text-sm text-white/80 border-b border-white/10 pb-1", i === 0 && "text-white font-bold")}>
+                    {msg}
+                  </p>
+                ))}
+              </div>
+            </ScrollArea>
+            
+            <div className="space-y-2">
+              <Button variant="secondary" className="w-full font-headline text-lg" onClick={handleNewGame}>
+                <RefreshCw className="mr-2 h-5 w-5"/> New Game
+              </Button>
+              <Button variant="destructive" className="w-full font-headline text-lg" onClick={handleLeaveGame}>
+                Leave Game
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

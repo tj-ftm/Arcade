@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Settings, BarChart, Ticket, Coins } from "lucide-react";
+import { Menu, X, Settings, BarChart, Ticket, Coins, FileText } from "lucide-react";
 import { ConnectWallet } from '@/components/web3/ConnectWallet';
 import { cn } from '@/lib/utils';
 
 interface MobileSidebarProps {
   onNavigate: (view: 'leaderboard' | 'settings' | 'tokenomics') => void;
   theme?: string;
-
+  onShowGameLog?: () => void;
+  showGameLogButton?: boolean;
 }
 
-export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
+export function MobileSidebar({ onNavigate, theme, onShowGameLog, showGameLogButton }: MobileSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -99,7 +100,20 @@ export function MobileSidebar({ onNavigate, theme }: MobileSidebarProps) {
               <ConnectWallet />
             </div>
 
-
+            {/* Game Log Button - Only show in chess multiplayer */}
+            {showGameLogButton && onShowGameLog && (
+              <Button
+                onClick={() => {
+                  onShowGameLog();
+                  closeSidebar();
+                }}
+                variant="ghost"
+                className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
+              >
+                <FileText className="mr-3 h-5 w-5" />
+                Game Log
+              </Button>
+            )}
 
             {/* Leaderboard */}
             <Button
