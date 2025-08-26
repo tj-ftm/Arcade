@@ -795,7 +795,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-blue-400 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>LEADERBOARD</h1>
                          </div>
-                         <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                         <img src="/leaderboard_icon.png" alt="Leaderboard" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
  
                          <Button onClick={() => handleNavigate('leaderboard')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
@@ -808,7 +808,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>PROFILE</h1>
                          </div>
-                         <img src="/uno_icon.png" alt="Profile" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                         <img src="/profile_icon.png" alt="Profile" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
  
                          <Button onClick={() => handleNavigate('profile')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-pink-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-pink-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
@@ -821,7 +821,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>TOKENOMICS</h1>
                          </div>
-                         <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                         <img src="/tokenomics_icon.png" alt="Tokenomics" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1 flex items-center justify-center" />
  
                          <Button onClick={() => handleNavigate('tokenomics')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 text-white rounded-xl shadow-lg hover:from-orange-300 hover:to-orange-500 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
@@ -834,7 +834,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-gray-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SETTINGS</h1>
                          </div>
-                         <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                         <img src="/settings_icon.png" alt="Settings" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1 flex items-center justify-center" />
  
                          <Button onClick={() => handleNavigate('settings')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl shadow-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              Open
