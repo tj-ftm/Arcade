@@ -31,6 +31,28 @@ interface Lobby {
   createdAt: any; // Firebase timestamp
 }
 
+interface ChessGameState {
+  gameId: string;
+  player1: {
+    id: string;
+    name: string;
+    color: Color;
+  };
+  player2: {
+    id: string;
+    name: string;
+    color: Color;
+  };
+  currentTurn: Color;
+  activePlayerIndex: number; // 0 for player1, 1 for player2
+  gameLog: string[];
+  fen: string; // Chess position in FEN notation
+  moveCount: number;
+  winner: string | null;
+  gameStartTime: number;
+  lastMoveTime: number;
+}
+
 interface MultiplayerChessClientProps {
   lobby: Lobby;
   isHost: boolean;
@@ -74,7 +96,7 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 
 export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogModal = false, onCloseGameLogModal }: MultiplayerChessClientProps) => {
   const isMobile = useIsMobile();
-  console.log('🏁 [MULTIPLAYER CHESS CLIENT] Component initialized with:', {
+  console.log('🏁 [CHESS MULTIPLAYER] Component initialized with:', {
     lobbyId: lobby.id,
     lobbyStatus: lobby.status,
     player1Id: lobby.player1Id,
@@ -84,7 +106,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     isHost: isHost,
     hasPlayer2: !!lobby.player2Id
   });
-  console.log('🔍 [MULTIPLAYER CHESS CLIENT] Loading condition check:', {
+  console.log('🔍 [CHESS MULTIPLAYER] Loading condition check:', {
     hasNoPlayer2: !lobby.player2Id,
     statusNotPlaying: lobby.status !== 'playing',
     shouldShowLoading: !lobby.player2Id && lobby.status !== 'playing'
@@ -96,16 +118,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   });
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
-  const [gameLog, setGameLog] = useState<string[]>(['Game started!']);
-  const [moveCount, setMoveCount] = useState(0);
-  const [winner, setWinner] = useState<string | null>(null);
+  const [chessGameState, setChessGameState] = useState<ChessGameState | null>(null);
   const [score, setScore] = useState(0);
   const [isLogVisible, setIsLogVisible] = useState(false);
   const [showEndGameScreen, setShowEndGameScreen] = useState(false);
-  const [playerColor, setPlayerColor] = useState<Color>('w');
-  const [isMyTurn, setIsMyTurn] = useState(false);
-  const [opponentName, setOpponentName] = useState('');
-  const [isLoadingGame, setIsLoadingGame] = useState(false); // Start with false, will be set based on lobby status
+  const [isLoadingGame, setIsLoadingGame] = useState(true);
+  const [gameStartTime, setGameStartTime] = useState<number>(0);
   
   const { account, username } = useWeb3();
   const currentUserId = account || `guest-${Date.now()}`;
@@ -123,94 +141,188 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     setBoard(game.board());
   }, [game]);
 
+  // Game initialization logic similar to UNO
   useEffect(() => {
-    console.log('🔄 [MULTIPLAYER CHESS CLIENT] useEffect triggered - checking loading state:', {
-      player2Id: lobby.player2Id,
-      status: lobby.status,
-      hasNoPlayer2: !lobby.player2Id,
-      statusNotPlaying: lobby.status !== 'playing',
-      shouldShowLoading: !lobby.player2Id && lobby.status !== 'playing'
-    });
-    
-    // Always show game interface - initialization will happen in background
-    console.log('🎮 [MULTIPLAYER CHESS CLIENT] Always showing game interface, initialization will happen in background');
-    setIsLoadingGame(false); // Always show game interface
-    
-    // Enhanced debug logging for player assignment
-    console.log('🎮 [CHESS MULTIPLAYER] Player assignment - Player1 (creator):', lobby.player1Id, lobby.player1Name, '| Player2 (joiner):', lobby.player2Id || 'waiting-for-player2', lobby.player2Name || 'Waiting for Player 2...');
-    
-    // Randomly assign colors - host gets random color, guest gets opposite
-    const hostIsWhite = Math.random() < 0.5;
-    const myColor = isHost ? (hostIsWhite ? 'w' : 'b') : (hostIsWhite ? 'b' : 'w');
-
-    console.log('🎨 [CHESS MULTIPLAYER] Color assignment:', {
+    console.log('🔍 [CHESS MULTIPLAYER] Checking initialization conditions:', {
+      hasGameState: !!chessGameState,
       isHost,
-      hostIsWhite,
-      myColor,
-      opponentColor: myColor === 'w' ? 'b' : 'w'
-    });
-
-    setPlayerColor(myColor);
-    setIsMyTurn(myColor === 'w'); // White always starts
-
-    // Set opponent name
-    setOpponentName(isHost ? (lobby.player2Name || 'Player') : lobby.player1Name);
-    
-    console.log('👥 [CHESS MULTIPLAYER] Final player setup:', {
-      myName: isHost ? lobby.player1Name : lobby.player2Name,
-      opponentName: isHost ? (lobby.player2Name || 'Player') : lobby.player1Name,
-      myColor,
-      isMyTurn: myColor === 'w'
+      player2Id: lobby.player2Id,
+      status: lobby.status
     });
     
-    // Listen for opponent moves
-    const unsubscribeOnGameMove = onGameMove((moveData: any) => {
-      if (moveData.type === 'chess-move') {
+    if (!chessGameState) {
+      console.log('🎮 [CHESS MULTIPLAYER] No game state found, initializing game');
+      
+      // Add a delay to ensure Firebase listeners are set up
+      setTimeout(() => {
+        // Check if game state still doesn't exist (no one else initialized it)
+        if (!chessGameState) {
+          console.log('🎮 [CHESS MULTIPLAYER] Initializing game now');
+          initializeChessGame();
+        } else {
+          console.log('🎮 [CHESS MULTIPLAYER] Game state already exists, skipping initialization');
+        }
+      }, 1000); // 1 second delay
+    } else {
+      console.log('✅ [CHESS MULTIPLAYER] Game state already exists');
+    }
+  }, [chessGameState, isHost]);
+
+  // Handle loading state - always show game interface
+  useEffect(() => {
+    console.log('🎮 [CHESS MULTIPLAYER] Always showing game interface, initialization will happen in background');
+    setIsLoadingGame(false); // Always show game interface
+  }, []);
+
+  // Listen for game state updates from opponent
+  useEffect(() => {
+    const unsubscribe = onGameMove((moveData: any) => {
+      console.log('📨 [CHESS MULTIPLAYER] Received move data:', moveData);
+      if (moveData.type === 'chess-init' && moveData.gameState) {
+        console.log('🎮 [CHESS MULTIPLAYER] Receiving initial game state');
+        const receivedGameState = moveData.gameState;
+        setChessGameState(receivedGameState);
+        
+        // Load the game position from FEN
+        game.load(receivedGameState.fen);
+        setBoard(game.board());
+        setIsLoadingGame(false);
+        console.log('🔄 [CHESS MULTIPLAYER] Game state received and applied');
+      } else if (moveData.type === 'chess-update' && moveData.gameState) {
+        console.log('🎮 [CHESS MULTIPLAYER] Receiving game state update');
+        const newGameState = moveData.gameState;
+        setChessGameState(newGameState);
+        
+        // Load the updated position from FEN
+        game.load(newGameState.fen);
+        setBoard(game.board());
+        
+        console.log('🔄 [CHESS MULTIPLAYER] Game state updated');
+      } else if (moveData.type === 'chess-move') {
+        console.log('🎮 [CHESS MULTIPLAYER] Receiving individual move');
         try {
           const move = game.move(moveData.move);
-          if (move) {
+          if (move && chessGameState) {
             setBoard(game.board());
-            setMoveCount(prev => prev + 1);
-            addGameLog(`${opponentName}: ${move.san}`);
-            setIsMyTurn(true); // Now it's my turn
+            
+            // Update game state
+            const newGameState = { ...chessGameState };
+            newGameState.fen = game.fen();
+            newGameState.moveCount += 1;
+            newGameState.currentTurn = game.turn();
+            newGameState.activePlayerIndex = newGameState.activePlayerIndex === 0 ? 1 : 0;
+            newGameState.lastMoveTime = Date.now();
+            
+            const opponentName = isHost ? 
+              (newGameState.player2.name || 'Player 2') : 
+              newGameState.player1.name;
+            newGameState.gameLog.push(`${opponentName}: ${move.san}`);
+            
+            setChessGameState(newGameState);
             checkGameState();
           }
         } catch (error) {
           console.error('Invalid move received:', error);
         }
       } else if (moveData.type === 'game-end') {
-        setWinner(moveData.winner);
+        if (chessGameState) {
+          const newGameState = { ...chessGameState };
+          newGameState.winner = moveData.winner;
+          setChessGameState(newGameState);
+        }
         setShowEndGameScreen(true);
       }
     });
-    return () => {
-      unsubscribeOnGameMove();
+
+    return unsubscribe;
+  }, [onGameMove, isHost, game, chessGameState]);
+
+
+
+  const initializeChessGame = () => {
+    // Randomly assign colors - host gets random color, guest gets opposite
+    const hostIsWhite = Math.random() < 0.5;
+    const player1Color = hostIsWhite ? 'w' : 'b';
+    const player2Color = hostIsWhite ? 'b' : 'w';
+    
+    console.log('🎨 [CHESS MULTIPLAYER] Color assignment:', {
+      isHost,
+      hostIsWhite,
+      player1Color,
+      player2Color
+    });
+
+    // Ensure proper player assignment: lobby creator = player1, joiner = player2
+    const player1 = {
+      id: lobby.player1Id,
+      name: lobby.player1Name,
+      color: player1Color
     };
-  }, [game, lobby, isHost, onGameMove]);
+    
+    const player2 = {
+      id: lobby.player2Id || 'player2',
+      name: lobby.player2Name || 'Player 2',
+      color: player2Color
+    };
+    
+    console.log('🎮 [CHESS MULTIPLAYER] Player assignment - Player1 (creator):', player1.id, player1.name, player1.color, '| Player2 (joiner):', player2.id, player2.name, player2.color);
 
+    const initialGameState: ChessGameState = {
+      gameId: lobby.id,
+      player1,
+      player2,
+      currentTurn: 'w', // White always starts
+      activePlayerIndex: player1Color === 'w' ? 0 : 1, // Player with white pieces starts
+      gameLog: ['Game started!', `${player1Color === 'w' ? player1.name : player2.name} (White) goes first!`],
+      fen: game.fen(),
+      moveCount: 0,
+      winner: null,
+      gameStartTime: Date.now(),
+      lastMoveTime: Date.now()
+    };
 
+    setChessGameState(initialGameState);
+    setGameStartTime(Date.now());
+    
+    // Send initial game state to opponent
+    sendGameMove(lobby.id, {
+      type: 'chess-init',
+      gameState: initialGameState
+    });
+    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent to opponent (player2Id:', lobby.player2Id || 'missing', ')');
+  };
 
   const addGameLog = useCallback((message: string) => {
-    setGameLog(prev => [...prev, message]);
-  }, []);
+    if (chessGameState) {
+      const newGameState = { ...chessGameState };
+      newGameState.gameLog = [...chessGameState.gameLog, message];
+      if (newGameState.gameLog.length > 30) newGameState.gameLog.shift(); // Keep log size manageable
+      setChessGameState(newGameState);
+    }
+  }, [chessGameState]);
 
   const calculateScore = useCallback(() => {
+    if (!chessGameState) return 0;
+    
     let totalScore = 0;
     const currentBoard = game.board();
+    const myColor = isHost ? chessGameState.player1.color : chessGameState.player2.color;
     
     currentBoard.forEach(row => {
       row.forEach(square => {
-        if (square && square.color === playerColor) {
+        if (square && square.color === myColor) {
           totalScore += pieceValues[square.type];
         }
       });
     });
     
-    return totalScore + moveCount * 10;
-  }, [game, moveCount, playerColor]);
+    return totalScore + chessGameState.moveCount * 10;
+  }, [game, chessGameState, isHost]);
 
   const checkGameState = useCallback(() => {
-    if (game.isGameOver()) {
+    if (!chessGameState || game.isGameOver()) {
+      if (!chessGameState) return;
+      
       let gameWinner = null;
       let endMessage = '';
       
@@ -225,34 +337,38 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         gameWinner = 'Draw';
       }
       
-      setWinner(gameWinner);
-      addGameLog(endMessage);
+      // Update game state with winner
+      const newGameState = { ...chessGameState };
+      newGameState.winner = gameWinner;
+      newGameState.gameLog.push(endMessage);
+      setChessGameState(newGameState);
+      
       setScore(calculateScore());
       setShowEndGameScreen(true);
       
       // Record game result in Firebase (only if not a draw)
       if (gameWinner && gameWinner !== 'Draw') {
         const winnerId = gameWinner === 'White' ? 
-          (playerColor === 'w' ? (isHost ? lobby.player1Id : lobby.player2Id!) : (isHost ? lobby.player2Id! : lobby.player1Id)) :
-          (playerColor === 'b' ? (isHost ? lobby.player1Id : lobby.player2Id!) : (isHost ? lobby.player2Id! : lobby.player1Id));
+          (chessGameState.player1.color === 'w' ? chessGameState.player1.id : chessGameState.player2.id) :
+          (chessGameState.player1.color === 'b' ? chessGameState.player1.id : chessGameState.player2.id);
         const winnerName = gameWinner === 'White' ? 
-          (playerColor === 'w' ? (isHost ? lobby.player1Name : lobby.player2Name!) : (isHost ? lobby.player2Name! : lobby.player1Name)) :
-          (playerColor === 'b' ? (isHost ? lobby.player1Name : lobby.player2Name!) : (isHost ? lobby.player2Name! : lobby.player1Name));
+          (chessGameState.player1.color === 'w' ? chessGameState.player1.name : chessGameState.player2.name) :
+          (chessGameState.player1.color === 'b' ? chessGameState.player1.name : chessGameState.player2.name);
         const loserId = gameWinner === 'White' ? 
-          (playerColor === 'w' ? (isHost ? lobby.player2Id! : lobby.player1Id) : (isHost ? lobby.player1Id : lobby.player2Id!)) :
-          (playerColor === 'b' ? (isHost ? lobby.player2Id! : lobby.player1Id) : (isHost ? lobby.player1Id : lobby.player2Id!));
+          (chessGameState.player1.color === 'w' ? chessGameState.player2.id : chessGameState.player1.id) :
+          (chessGameState.player1.color === 'b' ? chessGameState.player2.id : chessGameState.player1.id);
         const loserName = gameWinner === 'White' ? 
-          (playerColor === 'w' ? (isHost ? lobby.player2Name! : lobby.player1Name) : (isHost ? lobby.player1Name : lobby.player2Name!)) :
-          (playerColor === 'b' ? (isHost ? lobby.player2Name! : lobby.player1Name) : (isHost ? lobby.player1Name : lobby.player2Name!));
+          (chessGameState.player1.color === 'w' ? chessGameState.player2.name : chessGameState.player1.name) :
+          (chessGameState.player1.color === 'b' ? chessGameState.player2.name : chessGameState.player1.name);
+        
+        console.log('🏆 [CHESS MULTIPLAYER] Game ended - Winner:', winnerName, 'Loser:', loserName);
         
         // Call endGame to record statistics and cleanup lobby
         endGame(lobby.id, winnerId, winnerName, loserId, loserName);
       } else if (gameWinner === 'Draw') {
         // For draws, we still want to cleanup the lobby but not record win/loss stats
-        // We can call endGame with the same player as both winner and loser to indicate a draw
-        const player1Id = isHost ? lobby.player1Id : lobby.player2Id!;
-        const player1Name = isHost ? lobby.player1Name : lobby.player2Name!;
-        endGame(lobby.id, player1Id, `${player1Name} (Draw)`, player1Id, `${player1Name} (Draw)`);
+        console.log('🤝 [CHESS MULTIPLAYER] Game ended in draw');
+        endGame(lobby.id, chessGameState.player1.id, `${chessGameState.player1.name} (Draw)`, chessGameState.player1.id, `${chessGameState.player1.name} (Draw)`);
       }
       
       // Notify opponent of game end
@@ -261,23 +377,48 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         winner: gameWinner
       });
     }
-  }, [game, addGameLog, calculateScore, lobby.id, sendGameMove, endGame, playerColor, isHost, lobby]);
+  }, [game, chessGameState, calculateScore, lobby.id, sendGameMove, endGame]);
 
   const handleNewGame = useCallback(() => {
+    if (!chessGameState) return;
+    
     game.reset();
     setBoard(game.board());
     setSelectedSquare(null);
     setPossibleMoves([]);
-    setGameLog(['New game started!']);
-    setMoveCount(0);
-    setWinner(null);
     setScore(0);
     setShowEndGameScreen(false);
-    setIsMyTurn(playerColor === 'w'); // White always starts
-  }, [game, playerColor]);
+    
+    // Reset game state
+    const newGameState = { ...chessGameState };
+    newGameState.fen = game.fen();
+    newGameState.moveCount = 0;
+    newGameState.currentTurn = 'w';
+    newGameState.activePlayerIndex = newGameState.player1.color === 'w' ? 0 : 1;
+    newGameState.gameLog = ['New game started!', `${newGameState.player1.color === 'w' ? newGameState.player1.name : newGameState.player2.name} (White) goes first!`];
+    newGameState.winner = null;
+    newGameState.gameStartTime = Date.now();
+    newGameState.lastMoveTime = Date.now();
+    
+    setChessGameState(newGameState);
+    
+    // Send updated game state to opponent
+    sendGameMove(lobby.id, {
+      type: 'chess-update',
+      gameState: newGameState
+    });
+  }, [game, chessGameState, lobby.id, sendGameMove]);
 
   const handleSquareClick = (square: Square) => {
-    if (winner || !isMyTurn || game.turn() !== playerColor) return;
+    if (!chessGameState || chessGameState.winner) return;
+    
+    const myColor = isHost ? chessGameState.player1.color : chessGameState.player2.color;
+    const isMyTurn = (chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost);
+    
+    if (!isMyTurn || game.turn() !== myColor) {
+      console.log('🚫 [CHESS MULTIPLAYER] Not your turn!', { isMyTurn, gameTurn: game.turn(), myColor });
+      return;
+    }
 
     if (selectedSquare) {
       try {
@@ -289,22 +430,35 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
 
         if (move) {
           setBoard(game.board());
-          setMoveCount(prev => prev + 1);
-          addGameLog(`You: ${move.san}`);
-          setIsMyTurn(false); // Now it's opponent's turn
+          
+          // Update game state
+          const newGameState = { ...chessGameState };
+          newGameState.fen = game.fen();
+          newGameState.moveCount += 1;
+          newGameState.currentTurn = game.turn();
+          newGameState.activePlayerIndex = newGameState.activePlayerIndex === 0 ? 1 : 0;
+          newGameState.lastMoveTime = Date.now();
+          
+          const myName = isHost ? newGameState.player1.name : newGameState.player2.name;
+          newGameState.gameLog.push(`${myName}: ${move.san}`);
+          
+          setChessGameState(newGameState);
+          
+          console.log('♟️ [CHESS MULTIPLAYER] Move made:', move.san, 'New turn:', game.turn());
           
           // Send move to opponent
           sendGameMove(lobby.id, {
             type: 'chess-move',
             move: move
-        });
+          });
           
           checkGameState();
         }
       } catch (e) {
+        console.log('❌ [CHESS MULTIPLAYER] Invalid move attempted');
         // Invalid move, maybe they clicked on another of their pieces
         const piece = game.get(square);
-        if (piece && piece.color === playerColor) {
+        if (piece && piece.color === myColor) {
           setSelectedSquare(square);
           const moves = game.moves({ square, verbose: true });
           setPossibleMoves(moves.map(m => m.to));
@@ -316,7 +470,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       }
     } else {
       const piece = game.get(square);
-      if (piece && piece.color === playerColor) {
+      if (piece && piece.color === myColor) {
         setSelectedSquare(square);
         const moves = game.moves({ square, verbose: true });
         setPossibleMoves(moves.map(m => m.to));
@@ -359,28 +513,32 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
               isMobile ? "hidden" : "w-80"
             )}>
               <div className="mb-4">
-                <h3 className="text-xl font-bold mb-2">Game Info</h3>
-                <div className="text-sm">
-                  <span className="text-white/70">You are: </span>
-                  <span className={cn("font-bold", playerColor === 'w' ? "text-white" : "text-gray-400")}>
-                    {playerColor === 'w' ? 'White' : 'Black'}
-                  </span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-white/70">Opponent: </span>
-                  <span className="font-bold">{opponentName}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-white/70">Turn: </span>
-                  <span className={cn("font-bold", isMyTurn ? "text-green-400" : "text-yellow-400")}>
-                    {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
-                  </span>
-                </div>
-              </div>
+              <h3 className="text-xl font-bold mb-2">Game Info</h3>
+              {chessGameState && (
+                <>
+                  <div className="text-sm">
+                    <span className="text-white/70">You are: </span>
+                    <span className={cn("font-bold", (isHost ? chessGameState.player1.color : chessGameState.player2.color) === 'w' ? "text-white" : "text-gray-400")}>
+                      {(isHost ? chessGameState.player1.color : chessGameState.player2.color) === 'w' ? 'White' : 'Black'}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-white/70">Opponent: </span>
+                    <span className="font-bold">{isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-white/70">Turn: </span>
+                    <span className={cn("font-bold", ((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? "text-green-400" : "text-yellow-400")}>
+                      {((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? 'Your turn' : `${isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}'s turn`}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
             
             <ScrollArea className="flex-1">
               <div className="flex flex-col gap-2">
-                {gameLog.slice().reverse().map((msg, i) => (
+                {chessGameState && chessGameState.gameLog.slice().reverse().map((msg, i) => (
                   <p key={i} className={cn("text-sm text-white/80 border-b border-white/10 pb-1", i === 0 && "text-white font-bold")}>
                     {msg}
                   </p>
@@ -421,20 +579,25 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
                 })
               )}
             </div>
-            {game.isCheck() && !winner && <div className="mt-2 text-2xl text-red-500 font-bold animate-pulse">CHECK!</div>}
+            {game.isCheck() && (!chessGameState || !chessGameState.winner) && <div className="mt-2 text-2xl text-red-500 font-bold animate-pulse">CHECK!</div>}
           </div>
         </>
         )
       )}
 
-      {showEndGameScreen && (
+      {showEndGameScreen && chessGameState && (
         <ChessEndGameScreen
           score={score}
           onNewGame={handleNewGame}
           onBackToMenu={handleLeaveGame}
           isMinting={false}
           mintTxHash=""
-          tokensEarned={winner === (playerColor === 'w' ? 'White' : 'Black') ? 100 : 0}
+          tokensEarned={(() => {
+            if (!chessGameState.winner || chessGameState.winner === 'Draw') return 0;
+            const myColor = isHost ? chessGameState.player1.color : chessGameState.player2.color;
+            const didIWin = chessGameState.winner === (myColor === 'w' ? 'White' : 'Black');
+            return didIWin ? 100 : 0;
+          })()}
         />
       )}
 
@@ -455,27 +618,31 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             </div>
             
             <div className="mb-4">
-              <div className="text-sm">
-                <span className="text-white/70">You are: </span>
-                <span className={cn("font-bold", playerColor === 'w' ? "text-white" : "text-gray-400")}>
-                  {playerColor === 'w' ? 'White' : 'Black'}
-                </span>
-              </div>
-              <div className="text-sm">
-                <span className="text-white/70">Opponent: </span>
-                <span className="font-bold text-white">{opponentName}</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-white/70">Turn: </span>
-                <span className={cn("font-bold", isMyTurn ? "text-green-400" : "text-yellow-400")}>
-                  {isMyTurn ? 'Your turn' : `${opponentName}'s turn`}
-                </span>
-              </div>
+              {chessGameState && (
+                <>
+                  <div className="text-sm">
+                    <span className="text-white/70">You are: </span>
+                    <span className={cn("font-bold", (isHost ? chessGameState.player1.color : chessGameState.player2.color) === 'w' ? "text-white" : "text-gray-400")}>
+                      {(isHost ? chessGameState.player1.color : chessGameState.player2.color) === 'w' ? 'White' : 'Black'}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-white/70">Opponent: </span>
+                    <span className="font-bold text-white">{isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-white/70">Turn: </span>
+                    <span className={cn("font-bold", ((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? "text-green-400" : "text-yellow-400")}>
+                      {((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? 'Your turn' : `${isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}'s turn`}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
             
             <ScrollArea className="flex-1 mb-4">
               <div className="flex flex-col gap-2">
-                {gameLog.slice().reverse().map((msg, i) => (
+                {chessGameState && chessGameState.gameLog.slice().reverse().map((msg, i) => (
                   <p key={i} className={cn("text-sm text-white/80 border-b border-white/10 pb-1", i === 0 && "text-white font-bold")}>
                     {msg}
                   </p>
