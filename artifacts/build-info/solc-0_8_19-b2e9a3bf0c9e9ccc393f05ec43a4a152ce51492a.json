@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_19-b2e9a3bf0c9e9ccc393f05ec43a4a152ce51492a",
+  "solcVersion": "0.8.19",
+  "solcLongVersion": "0.8.19+commit.7dd6d404",
+  "userSourceNameMap": {
+    "contracts/UnoGambleSimple.sol": "project/contracts/UnoGambleSimple.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "paris",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/UnoGambleSimple.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\ninterface IERC20 {\n    function transfer(address to, uint256 amount) external returns (bool);\n    function transferFrom(address from, address to, uint256 amount) external returns (bool);\n    function balanceOf(address account) external view returns (uint256);\n    function allowance(address owner, address spender) external view returns (uint256);\n}\n\ncontract UnoGambleSimple {\n    IERC20 public immutable arcToken;\n    address public constant HOUSE_WALLET = 0x5AD5aE34265957fB08eA12f77BAFf1200060473e;\n    address public owner;\n    \n    struct Game {\n        address player1;\n        address player2;\n        uint256 betAmount;\n        uint256 totalPot;\n        address winner;\n        bool isActive;\n        bool isCompleted;\n        uint256 createdAt;\n        string gameId;\n        bool resultVerified;\n    }\n    \n    mapping(bytes32 => Game) public games;\n    mapping(bytes32 => mapping(address => bool)) public playerPaid;\n    \n    uint256 public constant HOUSE_FEE_PERCENT = 5; // 5% house edge\n    uint256 public constant GAS_FEE = 0.05 ether; // 0.05 S for gas fees\n    \n    event GameCreated(bytes32 indexed gameId, address indexed player1, address indexed player2, uint256 betAmount);\n    event PlayerPaid(bytes32 indexed gameId, address indexed player, uint256 amount);\n    event GameStarted(bytes32 indexed gameId);\n    event GameCompleted(bytes32 indexed gameId, address indexed winner, uint256 payout);\n    event GameResultVerified(bytes32 indexed gameId, address indexed winner, string resultData);\n    \n    modifier onlyOwner() {\n        require(msg.sender == owner, \"Not owner\");\n        _;\n    }\n    \n    constructor(address _arcToken) {\n        arcToken = IERC20(_arcToken);\n        owner = msg.sender;\n    }\n    \n    function createGame(\n        bytes32 gameId,\n        address player1,\n        address player2,\n        uint256 betAmount,\n        string memory gameIdString\n    ) external payable {\n        require(msg.value >= GAS_FEE, \"Insufficient gas fee\");\n        require(games[gameId].player1 == address(0), \"Game already exists\");\n        \n        games[gameId] = Game({\n            player1: player1,\n            player2: player2,\n            betAmount: betAmount,\n            totalPot: betAmount * 2,\n            winner: address(0),\n            isActive: true,\n            isCompleted: false,\n            createdAt: block.timestamp,\n            gameId: gameIdString,\n            resultVerified: false\n        });\n        \n        emit GameCreated(gameId, player1, player2, betAmount);\n    }\n    \n    function payBet(bytes32 gameId) external {\n        Game storage game = games[gameId];\n        require(game.isActive, \"Game not active\");\n        require(msg.sender == game.player1 || msg.sender == game.player2, \"Not a player\");\n        require(!playerPaid[gameId][msg.sender], \"Already paid\");\n        \n        require(arcToken.transferFrom(msg.sender, address(this), game.betAmount), \"Transfer failed\");\n        playerPaid[gameId][msg.sender] = true;\n        \n        emit PlayerPaid(gameId, msg.sender, game.betAmount);\n        \n        if (playerPaid[gameId][game.player1] && playerPaid[gameId][game.player2]) {\n            emit GameStarted(gameId);\n        }\n    }\n    \n    function verifyGameResult(\n        bytes32 gameId,\n        address winner,\n        string memory resultData\n    ) external {\n        Game storage game = games[gameId];\n        require(game.isActive, \"Game not active\");\n        require(winner == game.player1 || winner == game.player2, \"Invalid winner\");\n        require(!game.resultVerified, \"Result already verified\");\n        \n        game.resultVerified = true;\n        game.winner = winner;\n        \n        emit GameResultVerified(gameId, winner, resultData);\n        \n        _completeGame(gameId, winner);\n    }\n    \n    function _completeGame(bytes32 gameId, address winner) internal {\n        Game storage game = games[gameId];\n        require(game.isActive, \"Game not active\");\n        require(game.resultVerified, \"Result not verified\");\n        \n        game.isActive = false;\n        game.isCompleted = true;\n        \n        uint256 totalPot = game.totalPot;\n        uint256 houseFee = (totalPot * HOUSE_FEE_PERCENT) / 100;\n        uint256 winnerPayout = totalPot - houseFee;\n        \n        require(arcToken.transfer(winner, winnerPayout), \"Winner payout failed\");\n        require(arcToken.transfer(HOUSE_WALLET, houseFee), \"House fee transfer failed\");\n        \n        emit GameCompleted(gameId, winner, winnerPayout);\n    }\n    \n    function getGame(bytes32 gameId) external view returns (\n        address player1,\n        address player2,\n        uint256 betAmount,\n        uint256 totalPot,\n        address winner,\n        bool isActive,\n        bool isCompleted,\n        uint256 createdAt,\n        string memory gameIdString,\n        bool resultVerified\n    ) {\n        Game storage game = games[gameId];\n        return (\n            game.player1,\n            game.player2,\n            game.betAmount,\n            game.totalPot,\n            game.winner,\n            game.isActive,\n            game.isCompleted,\n            game.createdAt,\n            game.gameId,\n            game.resultVerified\n        );\n    }\n    \n    function hasPlayerPaid(bytes32 gameId, address player) external view returns (bool) {\n        return playerPaid[gameId][player];\n    }\n    \n    function isGameReady(bytes32 gameId) external view returns (bool) {\n        Game storage game = games[gameId];\n        return playerPaid[gameId][game.player1] && playerPaid[gameId][game.player2];\n    }\n}"
+      }
+    }
+  }
+}
