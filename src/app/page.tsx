@@ -102,7 +102,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex flex-col z-10 animate-fade-in overflow-y-auto">
+      <div className="w-full h-full flex flex-col z-10 animate-fade-in">
         <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
           <div className="flex items-center justify-center h-32">
             <div className="text-2xl text-white">Loading leaderboard...</div>
@@ -113,19 +113,14 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col z-10 animate-fade-in overflow-y-auto">
+    <div className="w-full h-full flex flex-col z-10 animate-fade-in">
       {/* Header */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-4xl sm:text-6xl font-headline text-white uppercase tracking-wider mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
-              Leaderboard
-            </h1>
-            <p className="text-white/70 text-xl">Multiplayer game statistics and rankings</p>
-          </div>
-          <Button onClick={onBack} variant="secondary" className="font-headline text-lg">
-            <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
-          </Button>
+        <div className="mb-6">
+          <h1 className="text-4xl sm:text-6xl font-headline text-white uppercase tracking-wider mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
+            Leaderboard
+          </h1>
+          <p className="text-white/70 text-xl">Multiplayer game statistics and rankings</p>
         </div>
 
       </div>
@@ -221,7 +216,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Leaderboard */}
           <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
             <div className="mb-4">
@@ -236,9 +231,9 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                 Rankings based on wins and current win streaks
               </p>
             </div>
-            <div>
+            <div className="min-h-[300px]">
               {leaderboard.length > 0 ? (
-                <ScrollArea className="h-96">
+                <div className="max-h-[300px] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -270,7 +265,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                       ))}
                     </TableBody>
                   </Table>
-                </ScrollArea>
+                </div>
               ) : (
                 <div className="text-center py-12 text-white/60">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -292,9 +287,9 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                 Latest completed multiplayer games
               </p>
             </div>
-            <div>
+            <div className="min-h-[300px]">
               {recentGames.length > 0 ? (
-                <ScrollArea className="h-96">
+                <div className="max-h-[300px] overflow-y-auto">
                   <div className="space-y-3">
                     {recentGames.map((game) => (
                       <div key={game.id} className="bg-black/20 rounded-lg p-4 border border-white/10">
@@ -322,7 +317,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               ) : (
                 <div className="text-center py-12 text-white/60">
                   <Gamepad2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -753,10 +748,11 @@ export default function HomePage() {
       }
   }
   
-  const showMainMenuHeader = activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer';
+  const showMainMenuHeader = activeView === 'menu' || activeView === 'settings' || activeView === 'multiplayer';
   const showMultiplayerHeader = activeView === 'uno-multiplayer' || activeView === 'chess-multiplayer';
   const showShopHeader = activeView === 'shop';
-  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader;
+  const showLeaderboardHeader = activeView === 'leaderboard';
+  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader && !showLeaderboardHeader;
 
   return (
     
@@ -850,6 +846,22 @@ export default function HomePage() {
             </header>
         )}
 
+         {showLeaderboardHeader && (
+             <header className="w-full z-10 animate-fade-in flex-shrink-0 pt-4 sm:pt-4">
+                <div className="flex justify-between items-center p-3 sm:p-2">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
+                        Main Menu
+                    </Button>
+                    <div className="flex items-center gap-2">
+                         <div className="hidden md:block">
+                             <ConnectWallet />
+                         </div>
+                         <MobileSidebar onNavigate={handleNavigate} theme="leaderboard" />
+                     </div>
+                </div>
+            </header>
+        )}
+
          {isGameActive && activeView !== 'platformer' && !showMultiplayerHeader && (
              <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
                 <div className="flex justify-between items-center w-full">
@@ -866,7 +878,7 @@ export default function HomePage() {
             </header>
         )}
         
-        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: showMainMenuHeader || showShopHeader ? '0' : '0', minHeight: 0}}>
+        <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: showMainMenuHeader || showShopHeader || showLeaderboardHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
       </main>
