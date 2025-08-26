@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { ARC_TOKEN_ADDRESS } from '@/types';
 
 // UNO Gamble Smart Contract Interface
 export interface UnoGambleGame {
@@ -61,10 +62,7 @@ export class UnoGambleContract {
     this.contract = new ethers.Contract(contractAddress, UNO_GAMBLE_ABI, signer);
     
     // Initialize ARC token contract
-    const arcTokenAddress = process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS || process.env.TOKEN_CONTRACT_ADDRESS;
-    if (arcTokenAddress) {
-      this.arcToken = new ethers.Contract(arcTokenAddress, ARC_TOKEN_ABI, signer);
-    }
+    this.arcToken = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, signer);
   }
   
   // Deploy a new UNO Gamble contract for this game
@@ -272,15 +270,32 @@ export class UnoGambleContract {
   
   // Get player's ARC token balance
   async getPlayerBalance(playerAddress: string): Promise<string> {
-    if (!this.arcToken) {
-      throw new Error('ARC token contract not initialized');
-    }
-    
     try {
-      const balance = await this.arcToken.balanceOf(playerAddress);
+      // Create a temporary ARC token contract if not initialized
+      let arcTokenContract = this.arcToken;
+      if (!arcTokenContract) {
+        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.soniclabs.com/');
+        arcTokenContract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, provider);
+      }
+      
+      const balance = await arcTokenContract.balanceOf(playerAddress);
       return ethers.formatEther(balance);
     } catch (error) {
       console.error('❌ [UNO GAMBLE] Failed to get player balance:', error);
+      return '0';
+    }
+  }
+  
+  // Static method to get player balance without initialization
+  static async getPlayerBalanceStatic(playerAddress: string): Promise<string> {
+    try {
+      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.soniclabs.com/');
+      const arcTokenContract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, provider);
+      
+      const balance = await arcTokenContract.balanceOf(playerAddress);
+      return ethers.formatEther(balance);
+    } catch (error) {
+      console.error('❌ [UNO GAMBLE] Failed to get player balance (static):', error);
       return '0';
     }
   }

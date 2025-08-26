@@ -9,7 +9,7 @@ import { Plus, Users, ArrowLeft, Coins, Loader2, AlertCircle, CheckCircle } from
 import { MenuLayout } from '@/components/layout/MenuLayout';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
-import { unoGambleContract } from '@/lib/uno-gamble';
+import { unoGambleContract, UnoGambleContract } from '@/lib/uno-gamble';
 
 interface GambleLobby {
   id: string;
@@ -73,8 +73,11 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     try {
       if (!account) return;
       
-      const balance = await unoGambleContract.getPlayerBalance(account);
+      // Use static method to get balance without requiring contract initialization
+      const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
       setPlayerBalance(balance);
+      
+      console.log('💰 [GAMBLE LOBBY] Player balance loaded:', balance, 'ARC');
       
     } catch (error) {
       console.error('❌ [GAMBLE LOBBY] Initialization failed:', error);
