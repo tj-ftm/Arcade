@@ -51,7 +51,7 @@ const Badge = ({ children, variant = 'default' }: { children: React.ReactNode; v
 
 type GameType = 'all' | 'chess' | 'uno';
 
-const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
+const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavigate: (view: View) => void }) => {
   const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [recentGames, setRecentGames] = useState<GameResult[]>([]);
@@ -89,45 +89,42 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
 
   useEffect(() => {
     loadGameStatistics();
-  }, [loadGameStatistics]);
+  }, [loadGameStatistics, selectedGameType]);
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+ 
+
   };
 
-  const formatDate = (timestamp: any): string => {
+   const formatDate = (timestamp: any): string => {
     const date = timestamp?.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (loading) {
-    return (
-      <div className="w-full h-full flex flex-col z-10 animate-fade-in">
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
-          <div className="flex items-center justify-center h-32">
-            <div className="text-2xl text-white">Loading leaderboard...</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full h-full flex flex-col z-10 animate-fade-in">
-      {/* Header */}
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
-        <div className="mb-6">
+    <div className="w-full h-full flex flex-col z-10 animate-fade-in bg-gradient-to-br from-yellow-500 to-yellow-600">
+      <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
+          <div className="flex justify-between items-center w-full">
+              <Button onClick={() => onNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
+                  Main Menu
+              </Button>
+              <div className="flex items-center gap-2">
+                  <ConnectWallet />
+                  <MobileSidebar onNavigate={onNavigate} theme="leaderboard" />
+              </div>
+          </div>
+      </header>
+
+      <div className="flex-1 w-full max-w-7xl mx-auto px-2 md:px-4 lg:px-6 pt-20 pb-8"> {/* Combined header and content container */}
+        <div className="mb-6 text-center">
           <h1 className="text-4xl sm:text-6xl font-headline text-white uppercase tracking-wider mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
             Leaderboard
           </h1>
           <p className="text-white/70 text-xl">Multiplayer game statistics and rankings</p>
         </div>
-
-      </div>
-      
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
         {error && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
             <p className="text-red-200">{error}</p>
@@ -135,7 +132,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
         )}
 
         {/* Game Type Tabs */}
-        <div className="flex bg-black/20 rounded-lg p-1 mb-6 max-w-md">
+        <div className="flex bg-black/20 rounded-lg p-1 mb-6 max-w-md mx-auto">
           {(['all', 'chess', 'uno'] as GameType[]).map((gameType) => (
             <button
               key={gameType}
@@ -154,7 +151,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
         {/* Player Stats Cards */}
         {playerStats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 flex flex-col h-full">
               <div className="mb-4">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <Target className="h-5 w-5" />
@@ -169,7 +166,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
               </div>
             </div>
 
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-2">
               <div className="mb-4">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
@@ -184,7 +181,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
               </div>
             </div>
 
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-2">
               <div className="mb-4">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <Clock className="h-5 w-5" />
@@ -199,7 +196,7 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
               </div>
             </div>
 
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 flex flex-col overflow-y-auto min-w-0">
               <div className="mb-4">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <Trophy className="h-5 w-5" />
@@ -218,9 +215,9 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full overflow-hidden">
           {/* Leaderboard */}
-          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 min-w-0">
             <div className="mb-4">
               <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Trophy className="h-6 w-6" />
@@ -233,36 +230,40 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                 Rankings based on wins and current win streaks
               </p>
             </div>
-            <div className="min-h-[300px]">
-              {leaderboard.length > 0 ? (
-                <div className="max-h-[300px] overflow-y-auto">
+            <div className="flex-1 flex flex-col">
+              {loading ? (
+                <div className="flex items-center justify-center h-32 text-white/60">
+                  <p className="text-lg">Loading Top Players...</p>
+                </div>
+              ) : leaderboard.length > 0 ? (
+                <div className="flex-1 overflow-y-auto overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[50px]">Rank</TableHead>
-                        <TableHead>Player</TableHead>
-                        <TableHead>Wins</TableHead>
-                        <TableHead>Streak</TableHead>
-                        <TableHead>Rate</TableHead>
+                        <TableHead className="w-[50px] text-xs">Rank</TableHead>
+                        <TableHead className="text-xs">Player</TableHead>
+                        <TableHead className="text-xs">Wins</TableHead>
+                        <TableHead className="text-xs">Streak</TableHead>
+                        <TableHead className="text-xs">Rate</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {leaderboard.map((entry) => (
                         <TableRow key={entry.playerId} className={entry.playerId === account ? 'bg-accent/10' : ''}>
-                          <TableCell className="font-bold">
+                          <TableCell className="font-bold text-sm">
                             {entry.rank === 1 && <Trophy className="h-4 w-4 text-yellow-500 inline mr-1" />}
                             {entry.rank}
                           </TableCell>
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium text-sm">
                             {entry.playerId === account ? (username || 'You') : entry.playerName}
                           </TableCell>
-                          <TableCell>{entry.wins}</TableCell>
-                          <TableCell>
+                          <TableCell className="text-sm">{entry.wins}</TableCell>
+                          <TableCell className="text-sm">
                             <Badge variant={entry.winStreak > 5 ? "default" : "secondary"}>
                               {entry.winStreak}
                             </Badge>
                           </TableCell>
-                          <TableCell>{entry.winRate.toFixed(1)}%</TableCell>
+                          <TableCell className="text-sm">{entry.winRate.toFixed(1)}%</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -289,9 +290,13 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
                 Latest completed multiplayer games
               </p>
             </div>
-            <div className="min-h-[300px]">
-              {recentGames.length > 0 ? (
-                <div className="max-h-[300px] overflow-y-auto">
+            <div className="flex-1 flex flex-col">
+              {loading ? (
+                <div className="flex items-center justify-center h-32 text-white/60">
+                  <p className="text-lg">Loading Recent Matches...</p>
+                </div>
+              ) : recentGames.length > 0 ? (
+                <div className="flex-1 overflow-y-auto">
                   <div className="space-y-3">
                     {recentGames.map((game) => (
                       <div key={game.id} className="bg-black/20 rounded-lg p-4 border border-white/10">
@@ -337,13 +342,8 @@ const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
 
 const SettingsContent = ({ onBack }: { onBack: () => void }) => {
   const { toast } = useToast();
-  const { username, setUsername, account } = useWeb3();
-  const [currentUsername, setCurrentUsername] = useState(username);
 
   const handleSave = () => {
-    if(account && currentUsername) {
-      setUsername(currentUsername);
-    }
     toast({
       title: "Settings Saved",
       description: "Your preferences have been updated.",
@@ -352,36 +352,18 @@ const SettingsContent = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div className="w-full h-full max-w-lg z-10 my-auto animate-fade-in overflow-y-auto">
-        <div className="bg-black/50 p-8 rounded-xl">
-          <h1 className="text-6xl font-headline uppercase tracking-wider mb-2 text-accent">Options</h1>
-          <p className="text-white/70 mb-8 text-lg">Adjust your game experience.</p>
-          
+    <div className="w-full h-full flex flex-col z-10 animate-fade-in bg-gradient-to-br from-yellow-500 to-yellow-600">
+      
+
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8"> {/* Combined header and content container */}
+        <div className="mb-6 text-center">
+          <h1 className="text-4xl sm:text-6xl font-headline text-white uppercase tracking-wider mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
+            Settings
+          </h1>
+          <p className="text-white/70 text-xl">Adjust your game experience.</p>
+        </div>
+        <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-8">
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="username" className="text-xl">Username</Label>
-              <Input 
-                id="username"
-                className="w-[180px] rounded-md"
-                value={currentUsername || ""}
-                onChange={(e) => setCurrentUsername(e.target.value)}
-                placeholder="Enter a cool name..."
-                disabled={!account}
-              />
-            </div>
-             <div className="flex items-center justify-between">
-              <Label htmlFor="difficulty" className="text-xl">Difficulty</Label>
-              <Select defaultValue="medium">
-                <SelectTrigger id="difficulty" className="w-[180px] rounded-md">
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="flex items-center justify-between">
               <Label htmlFor="music" className="text-xl">Background Music</Label>
@@ -403,6 +385,7 @@ const SettingsContent = ({ onBack }: { onBack: () => void }) => {
           </div>
         </div>
       </div>
+    </div>
   );
 };
 
@@ -682,7 +665,7 @@ export default function HomePage() {
           </div>
         ) : null;
       case 'leaderboard':
-        return <LeaderboardContent onBack={() => handleNavigate('menu')} />;
+        return <LeaderboardContent onBack={() => handleNavigate('menu')} onNavigate={handleNavigate} />;
       case 'settings':
         return <SettingsContent onBack={() => handleNavigate('menu')} />;
       case 'tokenomics':
@@ -702,7 +685,7 @@ export default function HomePage() {
                             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                         </div>
                         <div className="relative">
-                           <img src="/arcade_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
+                           <img src="/uno_icon.png" alt="UNO Game" className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 mx-auto mb-2" />
                            <img src="/multiplayer_icon.svg" alt="Multiplayer" className="absolute top-0 right-0 w-16 h-auto" />
                          </div>
 
@@ -718,7 +701,7 @@ export default function HomePage() {
                             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
                         </div>
                         <div className="relative">
-                           <img src="/arcade_icon.png" alt="CHESS Game" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
+                           <img src="/chess_icon.png" alt="CHESS Game" className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 xl:w-56 xl:h-56 mx-auto mb-2" />
                            <img src="/multiplayer_icon.svg" alt="Multiplayer" className="absolute top-0 right-0 w-16 h-auto" />
                          </div>
 
@@ -733,7 +716,7 @@ export default function HomePage() {
                        <div className="pt-0 sm:pt-1">
                             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
                         </div>
-                        <img src="/arcade_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
+                        <img src="/snake_icon.png" alt="SNAKE Game" className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 mb-4 object-contain mx-auto" />
 
                         <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
                             Play
@@ -746,7 +729,7 @@ export default function HomePage() {
                        <div className="pt-0 sm:pt-1">
                              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-yellow-500 uppercase tracking-wider mb-0 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
                         </div>
-                        <img src="/arcade_icon.png" alt="Shop" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
+                        <img src="/shop_icon.png" alt="Shop" className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 mb-4 object-contain mx-auto" />
 
                         <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Visit
@@ -781,18 +764,21 @@ export default function HomePage() {
           case 'shop':
               return 'bg-transparent';
           case 'menu':
-          case 'leaderboard':
-          case 'settings':
           case 'multiplayer':
           default:
               return 'bg-background';
+          case 'leaderboard':
+          case 'settings':
+              return 'bg-gradient-to-br from-yellow-500 to-yellow-600';
+
       }
   }
   
-  const showMainMenuHeader = activeView === 'menu' || activeView === 'settings' || activeView === 'multiplayer';
+  const showMainMenuHeader = activeView === 'menu' || activeView === 'multiplayer';
   const showMultiplayerHeader = activeView === 'uno-multiplayer' || activeView === 'chess-multiplayer';
   const showShopHeader = activeView === 'shop';
   const showLeaderboardHeader = activeView === 'leaderboard';
+  const showTokenomicsHeader = activeView === 'tokenomics';
   const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader && !showLeaderboardHeader;
 
   return (
@@ -887,21 +873,7 @@ export default function HomePage() {
             </header>
         )}
 
-         {showLeaderboardHeader && (
-             <header className="w-full z-10 animate-fade-in flex-shrink-0 pt-4 sm:pt-4">
-                <div className="flex justify-between items-center p-3 sm:p-2">
-                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
-                        Main Menu
-                    </Button>
-                    <div className="flex items-center gap-2">
-                         <div className="hidden md:block">
-                             <ConnectWallet />
-                         </div>
-                         <MobileSidebar onNavigate={handleNavigate} theme="leaderboard" />
-                     </div>
-                </div>
-            </header>
-        )}
+
 
          {isGameActive && activeView !== 'platformer' && !showMultiplayerHeader && (
              <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
