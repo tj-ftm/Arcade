@@ -1,4 +1,4 @@
-import { ArrowLeft, Ticket, Eye, X } from "lucide-react";
+import { ArrowLeft, Ticket, Eye, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useWeb3 } from "@/components/web3/Web3Provider";
@@ -12,12 +12,157 @@ interface NFT {
   metadata: any;
 }
 
+interface ImageLoadState {
+  [key: string]: {
+    loading: boolean;
+    loaded: boolean;
+    error: boolean;
+    url?: string;
+  };
+}
+
 const ShopContent = ({ onBack }: { onBack: () => void }) => {
   const { account } = useWeb3();
   const [showNFTModal, setShowNFTModal] = useState(false);
   const [ownedNFTs, setOwnedNFTs] = useState<NFT[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoadStates, setImageLoadStates] = useState<ImageLoadState>({});
+
+  // Cache images in localStorage
+  const cacheImage = (url: string, base64Data: string) => {
+    try {
+      const cacheKey = `nft_image_${btoa(url).replace(/[^a-zA-Z0-9]/g, '')}`;
+      localStorage.setItem(cacheKey, base64Data);
+      localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
+    } catch (error) {
+      console.warn('Failed to cache image:', error);
+    }
+  };
+
+  // Get cached image from localStorage
+  const getCachedImage = (url: string): string | null => {
+    try {
+      const cacheKey = `nft_image_${btoa(url).replace(/[^a-zA-Z0-9]/g, '')}`;
+      const timestamp = localStorage.getItem(`${cacheKey}_timestamp`);
+      
+      // Cache expires after 24 hours
+      if (timestamp && Date.now() - parseInt(timestamp) < 24 * 60 * 60 * 1000) {
+        return localStorage.getItem(cacheKey);
+      } else {
+        // Remove expired cache
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem(`${cacheKey}_timestamp`);
+      }
+    } catch (error) {
+      console.warn('Failed to get cached image:', error);
+    }
+    return null;
+  };
+
+  // Convert image URL to base64 and cache it
+  const fetchAndCacheImage = async (url: string): Promise<string> => {
+    try {
+      // Check cache first
+      const cached = getCachedImage(url);
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch image and convert to base64
+      const response = await fetch(url, { mode: 'cors' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          cacheImage(url, base64);
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Failed to fetch and cache image:', error);
+      throw error;
+    }
+  };
+
+  // Extract image URL from various possible fields in PaintSwap API response
+  const extractImageUrl = (nftData: any, fetchedMetadata: any): string | null => {
+    // Try multiple possible image URL fields
+    const possibleImageFields = [
+      nftData.image,
+      nftData.imageUrl,
+      nftData.image_url,
+      nftData.thumbnail,
+      nftData.metadata?.image,
+      nftData.metadata?.imageUrl,
+      nftData.metadata?.image_url,
+      fetchedMetadata?.image,
+      fetchedMetadata?.imageUrl,
+      fetchedMetadata?.image_url,
+      // PaintSwap specific fields
+      nftData.cachedFileUrl,
+      nftData.cached_file_url,
+      nftData.fileUrl,
+      nftData.file_url,
+      // Try nested structures
+      nftData.nft?.image,
+      nftData.nft?.imageUrl,
+      nftData.nft?.cached_file_url
+    ];
+
+    for (const field of possibleImageFields) {
+      if (field && typeof field === 'string') {
+        let imageUrl = field;
+        
+        // Handle IPFS URLs
+        if (imageUrl.startsWith('ipfs://')) {
+          imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        }
+        
+        // Validate URL format
+        try {
+          new URL(imageUrl);
+          return imageUrl;
+        } catch {
+          // Invalid URL, continue to next field
+          continue;
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  // Handle image loading for individual NFTs
+  const handleImageLoad = async (nftKey: string, imageUrl: string) => {
+    if (!imageUrl || imageLoadStates[nftKey]?.loaded || imageLoadStates[nftKey]?.loading) {
+      return;
+    }
+
+    setImageLoadStates(prev => ({
+      ...prev,
+      [nftKey]: { loading: true, loaded: false, error: false }
+    }));
+
+    try {
+      const cachedImage = await fetchAndCacheImage(imageUrl);
+      setImageLoadStates(prev => ({
+        ...prev,
+        [nftKey]: { loading: false, loaded: true, error: false, url: cachedImage }
+      }));
+    } catch (error) {
+      console.error(`Failed to load image for NFT ${nftKey}:`, error);
+      setImageLoadStates(prev => ({
+        ...prev,
+        [nftKey]: { loading: false, loaded: false, error: true }
+      }));
+    }
+  };
 
   // Function to fetch metadata from IPFS/HTTP URL
   const fetchMetadataFromURI = async (tokenURI: string) => {
@@ -113,17 +258,8 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
           console.log(`Metadata object:`, nftData.metadata);
         }
         
-        // Debug image URL extraction with enhanced fallback
-        let imageUrl = nftData.image || nftData.imageUrl || nftData.image_url || nftData.thumbnail || nftData.metadata?.image;
-        
-        // If no direct image URL, try fetched metadata
-        if (!imageUrl && fetchedMetadata) {
-          imageUrl = fetchedMetadata.image || fetchedMetadata.imageUrl || fetchedMetadata.image_url;
-          // Handle IPFS image URLs
-          if (imageUrl && imageUrl.startsWith('ipfs://')) {
-            imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
-          }
-        }
+        // Extract image URL using the enhanced extraction function
+        const imageUrl = extractImageUrl(nftData, fetchedMetadata);
         
         console.log(`Final Image URL for NFT ${index}:`, imageUrl);
         console.log(`Available image fields:`, {
@@ -131,8 +267,14 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
           imageUrl: nftData.imageUrl,
           image_url: nftData.image_url,
           thumbnail: nftData.thumbnail,
+          cachedFileUrl: nftData.cachedFileUrl,
+          cached_file_url: nftData.cached_file_url,
+          fileUrl: nftData.fileUrl,
+          file_url: nftData.file_url,
           metadataImage: nftData.metadata?.image,
-          fetchedImage: fetchedMetadata?.image
+          fetchedImage: fetchedMetadata?.image,
+          nftImage: nftData.nft?.image,
+          nftCachedFileUrl: nftData.nft?.cached_file_url
         });
         
         return {
@@ -146,6 +288,14 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       }));
       
       setOwnedNFTs(nfts);
+      
+      // Start loading images for NFTs that have image URLs
+      nfts.forEach((nft, index) => {
+        if (nft.image && nft.image !== placeholderImage) {
+          const nftKey = `${nft.contractAddress}-${nft.tokenId}-${index}`;
+          handleImageLoad(nftKey, nft.image);
+        }
+      });
     } catch (err) {
       console.error("Error fetching NFTs:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch NFTs");
@@ -292,38 +442,54 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
               
               {!loading && !error && ownedNFTs.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {ownedNFTs.map((nft, index) => (
-                    <div key={`${nft.contractAddress}-${nft.tokenId}-${index}`} className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300">
-                      <div className="aspect-square bg-gray-700 flex items-center justify-center">
-                        {nft.image ? (
-                          <img 
-                            src={nft.image} 
-                            alt={nft.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
-                            }}
-                          />
-                        ) : (
-                          <div className="text-gray-500 text-center p-4">
-                            <div className="w-16 h-16 bg-gray-600 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                              <span className="text-2xl">🖼️</span>
+                  {ownedNFTs.map((nft, index) => {
+                    const nftKey = `${nft.contractAddress}-${nft.tokenId}-${index}`;
+                    const imageState = imageLoadStates[nftKey];
+                    const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
+                    
+                    return (
+                      <div key={nftKey} className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300">
+                        <div className="aspect-square bg-gray-700 flex items-center justify-center relative">
+                          {/* Loading state */}
+                          {imageState?.loading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
+                              <div className="text-center">
+                                <Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto mb-2" />
+                                <p className="text-sm text-gray-400">Loading image...</p>
+                              </div>
                             </div>
-                            <p className="text-sm">No Image</p>
+                          )}
+                          
+                          {/* Loaded image */}
+                          {imageState?.loaded && imageState.url && (
+                            <img 
+                              src={imageState.url}
+                              alt={nft.name}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                          
+                          {/* Error state or no image */}
+                          {(!imageState || imageState.error || (!imageState.loading && !imageState.loaded)) && (
+                            <div className="text-gray-500 text-center p-4">
+                              <div className="w-16 h-16 bg-gray-600 rounded-lg mx-auto mb-2 flex items-center justify-center">
+                                <span className="text-2xl">🖼️</span>
+                              </div>
+                              <p className="text-sm">{imageState?.error ? 'Failed to load' : 'No Image'}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-4">
+                          <h3 className="text-white font-semibold text-lg mb-2 truncate">{nft.name}</h3>
+                          <p className="text-gray-400 text-sm mb-2 line-clamp-2">{nft.description}</p>
+                          <div className="text-xs text-gray-500">
+                            <p className="truncate">Token ID: {nft.tokenId}</p>
+                            <p className="truncate">Contract: {nft.contractAddress}</p>
                           </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-white font-semibold text-lg mb-2 truncate">{nft.name}</h3>
-                        <p className="text-gray-400 text-sm mb-2 line-clamp-2">{nft.description}</p>
-                        <div className="text-xs text-gray-500">
-                          <p className="truncate">Token ID: {nft.tokenId}</p>
-                          <p className="truncate">Contract: {nft.contractAddress}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
