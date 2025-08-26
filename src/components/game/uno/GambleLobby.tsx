@@ -10,6 +10,7 @@ import { MenuLayout } from '@/components/layout/MenuLayout';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { unoGambleContract, UnoGambleContract } from '@/lib/uno-gamble';
+import { simpleGambleContract, SimpleGambleManager, SimpleGambleGame, S_FEE, HOUSE_FEE_PERCENT } from '@/lib/simple-gamble';
 import { ethers } from 'ethers';
 
 interface GambleLobby {
@@ -34,6 +35,7 @@ interface GambleLobby {
 
 interface GambleLobbyProps {
   gameType: 'chess' | 'uno';
+  mode?: 'simple' | 'advanced'; // simple = direct payments, advanced = smart contracts
   onStartGame?: (lobby: GambleLobby, isHost: boolean) => void;
   onBackToMenu?: () => void;
 }
@@ -42,10 +44,11 @@ type LobbyCreationState = 'setup' | 'paying_deployment_fee' | 'verifying_payment
 type JoinState = 'idle' | 'joining_lobby' | 'approving_tokens' | 'paying_tokens' | 'verifying_payment' | 'waiting_for_game' | 'ready';
 type DeploymentStep = 'deploying' | 'confirming' | 'initializing' | 'completed';
 
-export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobbyProps) {
+export function GambleLobby({ gameType, mode = 'advanced', onStartGame, onBackToMenu }: GambleLobbyProps) {
   const [activeTab, setActiveTab] = useState('browse');
   const [betAmount, setBetAmount] = useState('1');
   const [playerBalance, setPlayerBalance] = useState('0');
+  const [playerSBalance, setPlayerSBalance] = useState('0'); // For simple mode
   const [creationState, setCreationState] = useState<LobbyCreationState>('setup');
   const [joinState, setJoinState] = useState<JoinState>('idle');
   const [currentTxHash, setCurrentTxHash] = useState('');
@@ -107,11 +110,16 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   
   // Listen for gamble lobbies
   useEffect(() => {
-    const gambleLobbiesFiltered = lobbies.filter(lobby => 
-      (lobby as GambleLobby).isGamble === true
-    ) as GambleLobby[];
+    const gambleLobbiesFiltered = lobbies.filter(lobby => {
+      const gambleLobby = lobby as GambleLobby & { isSimpleGamble?: boolean };
+      if (mode === 'simple') {
+        return gambleLobby.isSimpleGamble === true;
+      } else {
+        return gambleLobby.isGamble === true && !gambleLobby.isSimpleGamble;
+      }
+    }) as GambleLobby[];
     setGambleLobbies(gambleLobbiesFiltered);
-  }, [lobbies]);
+  }, [lobbies, mode]);
 
   // Periodic balance refresh when on create lobby tab
   useEffect(() => {
@@ -128,8 +136,21 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     try {
       if (!account) return;
       
-      const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
-      setPlayerBalance(balance);
+      if (mode === 'simple') {
+        const signer = await getSigner();
+        if (!signer) return;
+        
+        await simpleGambleContract.initialize(signer);
+        
+        const sBalance = await simpleGambleContract.getSBalance(account);
+        const arcBalance = await simpleGambleContract.getARCBalance(account);
+        
+        setPlayerSBalance(sBalance);
+        setPlayerBalance(arcBalance);
+      } else {
+        const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
+        setPlayerBalance(balance);
+      }
       
     } catch (error) {
       console.error('❌ [GAMBLE LOBBY] Initialization failed:', error);
@@ -141,10 +162,53 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     if (!account) return;
     
     try {
-      const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
-      setPlayerBalance(balance);
+      if (mode === 'simple') {
+        const sBalance = await simpleGambleContract.getSBalance(account);
+        const arcBalance = await simpleGambleContract.getARCBalance(account);
+        setPlayerSBalance(sBalance);
+        setPlayerBalance(arcBalance);
+      } else {
+        const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
+        setPlayerBalance(balance);
+      }
     } catch (error) {
       console.error('❌ [GAMBLE LOBBY] Balance refresh failed:', error);
+    }
+  };
+
+  const handleCreateSimpleGambleLobby = async (lobbyId: string) => {
+    try {
+      // Create game in memory
+      const game = SimpleGambleManager.createGame(lobbyId, account, account.slice(0, 8) + '...', betAmount);
+      setCreatedLobby(game as any);
+      
+      // Create Firebase lobby
+      const gambleLobbyData = {
+        id: lobbyId,
+        isGamble: true,
+        isSimpleGamble: true,
+        betAmount,
+        player1Paid: false,
+        player2Paid: false
+      };
+      
+      await createLobby(
+        gameType,
+        account.slice(0, 8) + '...',
+        account,
+        gambleLobbyData
+      );
+      
+      setCreationState('waiting_for_player');
+      setDeploymentStep('completed');
+      setDeploymentProgress('Simple gamble lobby created! Waiting for second player to join...');
+      
+    } catch (error: any) {
+      console.error('❌ [SIMPLE GAMBLE] Failed to create lobby:', error);
+      setError(error.message || 'Failed to create simple gamble lobby');
+      setCreationState('setup');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -165,12 +229,20 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       return;
     }
 
+    if (mode === 'simple' && parseFloat(S_FEE) > parseFloat(playerSBalance)) {
+      setError(`Insufficient S balance. Need ${S_FEE} S for fees`);
+      return;
+    }
+
     setError('');
     setIsProcessing(true);
-    const lobbyId = `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
+    const lobbyId = mode === 'simple' ? `SIMPLE-GAMBLE-${gameType.toUpperCase()}-${Date.now()}` : `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
     let contractAddress = '';
 
     try {
+      if (mode === 'simple') {
+        return handleCreateSimpleGambleLobby(lobbyId);
+      }
       // Step 1: Pay deployment fee to game wallet
       setCreationState('paying_deployment_fee');
       setDeploymentProgress('Paying 0.05 S deployment fee to game wallet...');
@@ -294,6 +366,74 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     }
   };
 
+  const handleJoinSimpleGambleLobby = async (lobby: GambleLobby) => {
+    try {
+      // Step 1: Join Firebase lobby
+      setDeploymentProgress('Joining lobby...');
+      await joinLobby(lobby.id, account.slice(0, 8) + '...', account);
+      
+      // Step 2: Join game in memory
+      SimpleGambleManager.joinGame(lobby.id, account, account.slice(0, 8) + '...');
+      
+      // Step 3: Pay S fee
+      setJoinState('paying_tokens');
+      setDeploymentProgress(`Paying ${S_FEE} S fee...`);
+      
+      const sResult = await simpleGambleContract.paySFee();
+      if (!sResult.success) {
+        throw new Error(sResult.error || 'S payment failed');
+      }
+      
+      setCurrentTxHash(sResult.txHash);
+      SimpleGambleManager.updatePaymentStatus(lobby.id, account, 'S', sResult.txHash);
+      
+      // Step 4: Approve and pay ARC
+      setJoinState('verifying_payment');
+      setDeploymentProgress('Approving ARC tokens...');
+      
+      const approveResult = await simpleGambleContract.approveARC(lobby.betAmount);
+      if (!approveResult.success) {
+        throw new Error(approveResult.error || 'ARC approval failed');
+      }
+      
+      if (approveResult.txHash) {
+        setCurrentTxHash(approveResult.txHash);
+      }
+      
+      setDeploymentProgress(`Paying ${lobby.betAmount} ARC bet...`);
+      
+      const arcResult = await simpleGambleContract.payARCBet(lobby.betAmount);
+      if (!arcResult.success) {
+        throw new Error(arcResult.error || 'ARC payment failed');
+      }
+      
+      setCurrentTxHash(arcResult.txHash);
+      SimpleGambleManager.updatePaymentStatus(lobby.id, account, 'ARC', arcResult.txHash);
+      
+      // Step 5: Update lobby with payment status
+      setJoinState('waiting_for_game');
+      setDeploymentProgress('Payment completed! Waiting for game to start...');
+      
+      const updatedLobbyData = {
+        player2Paid: true,
+        player2TxHash: arcResult.txHash
+      };
+      
+      await joinLobby(lobby.id, account.slice(0, 8) + '...', account, updatedLobbyData);
+      
+      setJoinState('ready');
+      await refreshBalance();
+      
+    } catch (error: any) {
+      console.error('❌ [SIMPLE GAMBLE] Failed to join lobby:', error);
+      setError(error.message || 'Failed to join simple gamble lobby');
+      setJoinState('idle');
+      setDeploymentProgress('');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleJoinGambleLobby = async (lobby: GambleLobby) => {
     if (!account) {
       setError('Please connect your wallet');
@@ -311,12 +451,20 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       return;
     }
 
+    if (mode === 'simple' && parseFloat(S_FEE) > parseFloat(playerSBalance)) {
+      setError(`Insufficient S balance. Need ${S_FEE} S for fees`);
+      return;
+    }
+
     setSelectedLobby(lobby);
     setJoinState('joining_lobby');
     setError('');
     setIsProcessing(true);
 
     try {
+      if (mode === 'simple') {
+        return handleJoinSimpleGambleLobby(lobby);
+      }
       // Step 1: Join the Firebase lobby first
       setDeploymentProgress('Joining lobby...');
       await joinLobby(lobby.id, account.slice(0, 8) + '...', account);
@@ -789,9 +937,11 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       <div className="bg-black/50 rounded-xl p-2 sm:p-4 md:p-6 flex-1 max-h-[95vh] overflow-hidden relative z-10">
         <div className="text-center mb-2 sm:mb-4">
           <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-1 sm:mb-2 text-yellow-400" style={{ WebkitTextStroke: '1px black', textShadow: '0 0 20px rgba(255, 255, 0, 0.3)' }}>
-            {gameType.toUpperCase()} GAMBLE
+            {gameType.toUpperCase()} {mode === 'simple' ? 'SIMPLE GAMBLE' : 'GAMBLE'}
           </h1>
-          <p className="text-white/70 text-sm sm:text-base md:text-lg">High-stakes gaming with ARC tokens</p>
+          <p className="text-white/70 text-sm sm:text-base md:text-lg">
+            {mode === 'simple' ? 'Direct wallet payments • No smart contracts • Instant payouts' : 'High-stakes gaming with ARC tokens'}
+          </p>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">

@@ -651,6 +651,7 @@ export default function HomePage() {
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
             <GambleLobby
               gameType="uno"
+              mode="advanced"
               onStartGame={handleUnoGambleStart}
               onBackToMenu={() => handleNavigate('menu')}
             />
@@ -669,8 +670,9 @@ export default function HomePage() {
       case 'uno-simple-gamble':
         return (
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
-            <SimpleGambleLobby
+            <GambleLobby
               gameType="uno"
+              mode="simple"
               onStartGame={handleSimpleGambleStart}
               onBackToMenu={() => handleNavigate('menu')}
             />
