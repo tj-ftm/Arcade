@@ -124,6 +124,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   const [showEndGameScreen, setShowEndGameScreen] = useState(false);
   const [isLoadingGame, setIsLoadingGame] = useState(true);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
+  const [turnMessage, setTurnMessage] = useState<string | null>(null);
   
   const { account, username } = useWeb3();
   const currentUserId = account || `guest-${Date.now()}`;
@@ -174,6 +175,16 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     setIsLoadingGame(false); // Always show game interface
   }, []);
 
+  // Auto-clear turn messages
+  useEffect(() => {
+    if (turnMessage) {
+      const timer = setTimeout(() => {
+        setTurnMessage(null);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [turnMessage]);
+
   // Listen for game state updates from opponent
   useEffect(() => {
     const unsubscribe = onGameMove((moveData: any) => {
@@ -187,6 +198,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         game.load(receivedGameState.fen);
         setBoard(game.board());
         setIsLoadingGame(false);
+        
+        // Show initial turn message
+        const isMyTurn = (receivedGameState.activePlayerIndex === 0 && isHost) || (receivedGameState.activePlayerIndex === 1 && !isHost);
+        const currentPlayerName = receivedGameState.players[receivedGameState.activePlayerIndex].name;
+        setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
+        
         console.log('🔄 [CHESS MULTIPLAYER] Game state received and applied');
       } else if (moveData.type === 'chess-update' && moveData.gameState) {
         console.log('🎮 [CHESS MULTIPLAYER] Receiving game state update');
@@ -219,6 +236,10 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             newGameState.gameLog.push(`${opponentName}: ${move.san}`);
             
             setChessGameState(newGameState);
+            
+            // Show turn message - now it's my turn
+            setTurnMessage("Your Turn!");
+            
             checkGameState();
           }
         } catch (error) {
@@ -236,8 +257,6 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
 
     return unsubscribe;
   }, [onGameMove, isHost, game, chessGameState]);
-
-
 
   const initializeChessGame = () => {
     // Randomly assign colors - host gets random color, guest gets opposite
@@ -284,6 +303,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     setChessGameState(initialGameState);
     setGameStartTime(Date.now());
     
+    // Show initial turn message
+    const isMyTurn = (initialGameState.activePlayerIndex === 0 && isHost) || (initialGameState.activePlayerIndex === 1 && !isHost);
+    const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
+    setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
+    
     // Send initial game state to opponent
     sendGameMove(lobby.id, {
       type: 'chess-init',
@@ -320,21 +344,29 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   }, [game, chessGameState, isHost]);
 
   const checkGameState = useCallback(() => {
-    if (!chessGameState || game.isGameOver()) {
-      if (!chessGameState) return;
-      
+    if (!chessGameState) return;
+    
+    // Check for check condition
+    if (game.isCheck() && !game.isGameOver()) {
+      setTurnMessage("CHECK!");
+    }
+    
+    if (game.isGameOver()) {
       let gameWinner = null;
       let endMessage = '';
       
       if (game.isCheckmate()) {
         gameWinner = game.turn() === 'w' ? 'Black' : 'White';
         endMessage = `Checkmate! ${gameWinner} wins!`;
+        setTurnMessage(`CHECKMATE! ${gameWinner} Wins!`);
       } else if (game.isDraw()) {
         endMessage = 'Game ended in a draw!';
         gameWinner = 'Draw';
+        setTurnMessage("DRAW!");
       } else if (game.isStalemate()) {
         endMessage = 'Stalemate! Game is a draw!';
         gameWinner = 'Draw';
+        setTurnMessage("STALEMATE!");
       }
       
       // Update game state with winner
@@ -344,7 +376,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       setChessGameState(newGameState);
       
       setScore(calculateScore());
-      setShowEndGameScreen(true);
+      
+      // Delay showing end game screen to show the final message
+      setTimeout(() => {
+        setShowEndGameScreen(true);
+      }, 2000);
       
       // Record game result in Firebase (only if not a draw)
       if (gameWinner && gameWinner !== 'Draw') {
@@ -417,6 +453,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     
     if (!isMyTurn || game.turn() !== myColor) {
       console.log('🚫 [CHESS MULTIPLAYER] Not your turn!', { isMyTurn, gameTurn: game.turn(), myColor });
+      setTurnMessage("Not your turn!");
       return;
     }
 
@@ -445,6 +482,10 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
           setChessGameState(newGameState);
           
           console.log('♟️ [CHESS MULTIPLAYER] Move made:', move.san, 'New turn:', game.turn());
+          
+          // Show turn message - now it's opponent's turn
+          const opponentName = isHost ? (newGameState.player2.name || 'Player 2') : newGameState.player1.name;
+          setTurnMessage(`${opponentName}'s Turn!`);
           
           // Send move to opponent
           sendGameMove(lobby.id, {
@@ -557,32 +598,86 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
           </div>
 
           <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative mt-4 md:mt-0">
+            {/* Top Player Name Tag */}
+            {chessGameState && (
+              <div className={cn(
+                "mb-4 px-6 py-3 rounded-full border-2 transition-all duration-300",
+                ((chessGameState.activePlayerIndex === 0 && !isHost) || (chessGameState.activePlayerIndex === 1 && isHost)) 
+                  ? "bg-yellow-400/20 border-yellow-400 shadow-[0_0_20px_5px] shadow-yellow-400/50" 
+                  : "bg-gray-600/20 border-gray-400"
+              )}>
+                <h3 className="text-xl font-bold text-white text-center">
+                  {isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}
+                  <span className="text-sm ml-2 opacity-70">
+                    ({isHost ? (chessGameState.player2.color === 'w' ? 'White' : 'Black') : (chessGameState.player1.color === 'w' ? 'White' : 'Black')})
+                  </span>
+                </h3>
+              </div>
+            )}
+            
             <div className="w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
-              {board.map((row, rowIndex) =>
-                row.map((piece, colIndex) => {
-                  const square = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}` as Square;
-                  const isLight = (rowIndex + colIndex) % 2 === 0;
-                  const isSelected = selectedSquare === square;
-                  const isPossibleMove = possibleMoves.includes(square);
-                  
-                  return (
-                    <ChessSquare
-                      key={square}
-                      piece={piece}
-                      square={square}
-                      isLight={isLight}
-                      onSquareClick={handleSquareClick}
-                      isSelected={isSelected}
-                      isPossibleMove={isPossibleMove}
-                    />
-                  );
-                })
-              )}
+              {(() => {
+                // Determine if board should be flipped (black player sees their pieces at bottom)
+                const shouldFlipBoard = chessGameState && (isHost ? chessGameState.player1.color === 'b' : chessGameState.player2.color === 'b');
+                
+                const boardToRender = shouldFlipBoard ? [...board].reverse() : board;
+                
+                return boardToRender.map((row, rowIndex) =>
+                  (shouldFlipBoard ? [...row].reverse() : row).map((piece, colIndex) => {
+                    // Calculate square coordinates based on board orientation
+                    const actualRowIndex = shouldFlipBoard ? 7 - rowIndex : rowIndex;
+                    const actualColIndex = shouldFlipBoard ? 7 - colIndex : colIndex;
+                    const square = `${String.fromCharCode(97 + actualColIndex)}${8 - actualRowIndex}` as Square;
+                    const isLight = (actualRowIndex + actualColIndex) % 2 === 0;
+                    const isSelected = selectedSquare === square;
+                    const isPossibleMove = possibleMoves.includes(square);
+                    
+                    return (
+                      <ChessSquare
+                        key={square}
+                        piece={piece}
+                        square={square}
+                        isLight={isLight}
+                        onSquareClick={handleSquareClick}
+                        isSelected={isSelected}
+                        isPossibleMove={isPossibleMove}
+                      />
+                    );
+                  })
+                );
+              })()}
             </div>
-            {game.isCheck() && (!chessGameState || !chessGameState.winner) && <div className="mt-2 text-2xl text-red-500 font-bold animate-pulse">CHECK!</div>}
+            
+            {/* Bottom Player Name Tag */}
+            {chessGameState && (
+              <div className={cn(
+                "mt-4 px-6 py-3 rounded-full border-2 transition-all duration-300",
+                ((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) 
+                  ? "bg-yellow-400/20 border-yellow-400 shadow-[0_0_20px_5px] shadow-yellow-400/50" 
+                  : "bg-gray-600/20 border-gray-400"
+              )}>
+                <h3 className="text-xl font-bold text-white text-center">
+                  {isHost ? chessGameState.player1.name : (chessGameState.player2.name || 'Player 2')}
+                  <span className="text-sm ml-2 opacity-70">
+                    ({isHost ? (chessGameState.player1.color === 'w' ? 'White' : 'Black') : (chessGameState.player2.color === 'w' ? 'White' : 'Black')})
+                  </span>
+                </h3>
+              </div>
+            )}
           </div>
         </>
         )
+      )}
+
+      {/* Turn Message Overlay */}
+      {turnMessage && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center animate-message pointer-events-none">
+          <div className="bg-black/50 p-4 md:p-8 rounded-xl backdrop-blur-sm">
+            <h2 className="text-4xl md:text-6xl text-white font-headline uppercase tracking-wider text-center" style={{ WebkitTextStroke: '2px black' }}>
+              {turnMessage}
+            </h2>
+          </div>
+        </div>
       )}
 
       {showEndGameScreen && chessGameState && (
