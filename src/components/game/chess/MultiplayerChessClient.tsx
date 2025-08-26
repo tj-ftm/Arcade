@@ -214,7 +214,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         game.load(newGameState.fen);
         setBoard(game.board());
         
-        console.log('🔄 [CHESS MULTIPLAYER] Game state updated');
+        // Show turn message based on updated game state
+        const isMyTurn = (newGameState.activePlayerIndex === 0 && isHost) || (newGameState.activePlayerIndex === 1 && !isHost);
+        const currentPlayerName = newGameState.activePlayerIndex === 0 ? newGameState.player1.name : newGameState.player2.name;
+        setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
+        
+        console.log('🔄 [CHESS MULTIPLAYER] Game state updated and synchronized');
       } else if (moveData.type === 'chess-move') {
         console.log('🎮 [CHESS MULTIPLAYER] Receiving individual move');
         try {
@@ -490,10 +495,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
           const opponentName = isHost ? (newGameState.player2.name || 'Player 2') : newGameState.player1.name;
           setTurnMessage(`${opponentName}'s Turn!`);
           
-          // Send move to opponent
+          // Send updated game state to opponent (robust synchronization like UNO)
           sendGameMove(lobby.id, {
-            type: 'chess-move',
-            move: move
+            type: 'chess-update',
+            gameState: newGameState,
+            move: move // Include move for logging
           });
           
           checkGameState();
@@ -604,21 +610,21 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             {/* Top Player Name Tag */}
             {chessGameState && (
               <div className={cn(
-                "mb-4 px-6 py-3 rounded-full border-2 transition-all duration-300",
+                "mb-2 md:mb-4 px-3 md:px-6 py-1 md:py-3 rounded-full border-2 transition-all duration-300",
                 ((chessGameState.activePlayerIndex === 0 && !isHost) || (chessGameState.activePlayerIndex === 1 && isHost))
                   ? "bg-yellow-400/20 border-yellow-400 shadow-[0_0_20px_5px] shadow-yellow-400/50" 
                   : "bg-gray-600/20 border-gray-400"
               )}>
-                <h3 className="text-xl font-bold text-white text-center">
+                <h3 className="text-sm md:text-xl font-bold text-white text-center">
                   {isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}
-                  <span className="text-sm ml-2 opacity-70">
-                    ({isHost ? (chessGameState.player2.color === 'w' ? 'White' : 'Black') : (chessGameState.player1.color === 'w' ? 'White' : 'Black')})
+                  <span className="text-xs md:text-sm ml-1 md:ml-2 opacity-70">
+                    ({isHost ? (chessGameState.player2.color === 'w' ? 'W' : 'B') : (chessGameState.player1.color === 'w' ? 'W' : 'B')})
                   </span>
                 </h3>
               </div>
             )}
             
-            <div className="w-full max-w-[90vw] sm:max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
+            <div className="w-full max-w-[100vw] sm:max-w-[90vw] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
               {(() => {
                 // Determine if board should be flipped (player with black pieces sees their pieces at bottom)
                 const myColor = chessGameState ? (isHost ? chessGameState.player1.color : chessGameState.player2.color) : 'w';
@@ -660,15 +666,15 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             {/* Bottom Player Name Tag */}
             {chessGameState && (
               <div className={cn(
-                "mt-4 px-6 py-3 rounded-full border-2 transition-all duration-300",
+                "mt-2 md:mt-4 px-3 md:px-6 py-1 md:py-3 rounded-full border-2 transition-all duration-300",
                 ((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost))
                   ? "bg-yellow-400/20 border-yellow-400 shadow-[0_0_20px_5px] shadow-yellow-400/50" 
                   : "bg-gray-600/20 border-gray-400"
               )}>
-                <h3 className="text-xl font-bold text-white text-center">
+                <h3 className="text-sm md:text-xl font-bold text-white text-center">
                   {isHost ? chessGameState.player1.name : (chessGameState.player2.name || 'Player 2')}
-                  <span className="text-sm ml-2 opacity-70">
-                    ({isHost ? (chessGameState.player1.color === 'w' ? 'White' : 'Black') : (chessGameState.player2.color === 'w' ? 'White' : 'Black')})
+                  <span className="text-xs md:text-sm ml-1 md:ml-2 opacity-70">
+                    ({isHost ? (chessGameState.player1.color === 'w' ? 'W' : 'B') : (chessGameState.player2.color === 'w' ? 'W' : 'B')})
                   </span>
                 </h3>
               </div>
