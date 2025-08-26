@@ -38,7 +38,7 @@ interface GambleLobbyProps {
   onBackToMenu?: () => void;
 }
 
-type LobbyCreationState = 'setup' | 'paying_deployment_fee' | 'verifying_payment' | 'deploying' | 'paying_tokens' | 'creating' | 'completed';
+type LobbyCreationState = 'setup' | 'paying_deployment_fee' | 'verifying_payment' | 'deploying' | 'paying_tokens' | 'creating' | 'waiting_for_player' | 'both_players_ready' | 'completed';
 type JoinState = 'idle' | 'paying' | 'waiting' | 'ready';
 type DeploymentStep = 'deploying' | 'confirming' | 'initializing' | 'completed';
 
@@ -56,9 +56,10 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   const [deploymentProgress, setDeploymentProgress] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [deploymentTxHash, setDeploymentTxHash] = useState<string>('');
+  const [createdLobby, setCreatedLobby] = useState<GambleLobby | null>(null);
   
   const { account, getSigner } = useWeb3();
-  const { createLobby, joinLobby, onLobbyJoined, startGame } = useFirebaseMultiplayer();
+  const { createLobby, joinLobby, onLobbyJoined, startGame, lobbies } = useFirebaseMultiplayer();
   
   const currentUserId = account || `guest-${Date.now()}`;
 
@@ -71,9 +72,30 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
 
   // Listen for lobby updates
   useEffect(() => {
-    // TODO: Set up Firebase listener for gamble lobbies
-    // This would filter lobbies where isGamble === true
-  }, []);
+    // Monitor created lobby for second player joining and payment
+    if (createdLobby && creationState === 'waiting_for_player') {
+      const currentLobby = lobbies.find(l => l.id === createdLobby.id) as GambleLobby;
+      if (currentLobby && currentLobby.player2Id && currentLobby.player2Paid) {
+        setCreationState('both_players_ready');
+        setDeploymentProgress('Both players ready! Starting game...');
+        
+        // Start the game after a short delay
+        setTimeout(() => {
+          if (onStartGame) {
+            onStartGame(currentLobby, true); // true = isHost
+          }
+        }, 2000);
+      }
+    }
+  }, [lobbies, createdLobby, creationState, onStartGame]);
+  
+  // Listen for gamble lobbies
+  useEffect(() => {
+    const gambleLobbiesFiltered = lobbies.filter(lobby => 
+      (lobby as GambleLobby).isGamble === true
+    ) as GambleLobby[];
+    setGambleLobbies(gambleLobbiesFiltered);
+  }, [lobbies]);
 
   // Periodic balance refresh when on create lobby tab
   useEffect(() => {
@@ -203,7 +225,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
         player1Paid: true,
         player2Paid: false,
         contractDeployed: true,
-        player1TxHash: gameResult.txHash
+        player1TxHash: paymentResult.txHash
       };
       
       const lobby = await createLobby(
@@ -213,9 +235,10 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
         gambleLobbyData
       );
       
-      setCreationState('completed');
+      setCreatedLobby(lobby as GambleLobby);
+      setCreationState('waiting_for_player');
       setDeploymentStep('completed');
-      setDeploymentProgress('Lobby created successfully! Waiting for players...');
+      setDeploymentProgress('Lobby created successfully! Waiting for second player to join...');
       
       // Refresh balance after successful payment
       await refreshBalance();
@@ -274,19 +297,21 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       setCurrentTxHash(paymentResult.txHash);
       setJoinState('waiting');
       
-      // Join the Firebase lobby
-      await joinLobby(lobby.id, account.slice(0, 8) + '...', account);
+      // Join the Firebase lobby with payment status
+      const updatedLobbyData = {
+        player2Paid: true,
+        player2TxHash: paymentResult.txHash
+      };
+      
+      await joinLobby(lobby.id, account.slice(0, 8) + '...', account, updatedLobbyData);
       
       setJoinState('ready');
       
       // Refresh balance after successful payment
       await refreshBalance();
       
-      // Check if both players have paid and start the game
-      const isGameReady = await unoGambleContract.isGameReady(lobby.id);
-      if (isGameReady && onStartGame) {
-        onStartGame(lobby, false); // false = not host
-      }
+      // The game will start automatically when both players are ready
+      // This is handled by the useEffect monitoring lobby changes
       
     } catch (error: any) {
       console.error('❌ [GAMBLE LOBBY] Failed to join gamble lobby:', error);
@@ -443,6 +468,45 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
               <Loader2 className="w-16 h-16 text-yellow-400 mx-auto animate-spin" />
               <h3 className="text-xl text-white">Creating Lobby...</h3>
               <p className="text-white/70">Setting up your gamble lobby</p>
+            </div>
+          )}
+          
+          {creationState === 'waiting_for_player' && (
+            <div className="text-center space-y-4">
+              <div className="animate-pulse">
+                <Users className="w-16 h-16 text-yellow-400 mx-auto" />
+              </div>
+              <h3 className="text-xl text-white">Lobby Created!</h3>
+              <p className="text-white/70">Waiting for second player to join and pay...</p>
+              <div className="bg-yellow-600/20 rounded-lg p-4 border border-yellow-400/30">
+                <p className="text-yellow-400 font-semibold">Lobby ID: {createdLobby?.id}</p>
+                <p className="text-white/70 text-sm">Bet Amount: {betAmount} ARC each</p>
+                <p className="text-white/70 text-sm">Contract: {createdLobby?.contractAddress?.slice(0, 10)}...</p>
+              </div>
+              {currentTxHash && (
+                <div className="text-center">
+                  <p className="text-white/70 text-sm">Your Payment Transaction:</p>
+                  <a 
+                    href={`https://sonicscan.org/tx/${currentTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline text-sm break-all"
+                  >
+                    {currentTxHash}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {creationState === 'both_players_ready' && (
+            <div className="text-center space-y-4">
+              <CheckCircle className="w-16 h-16 text-green-400 mx-auto" />
+              <h3 className="text-xl text-white">Both Players Ready!</h3>
+              <p className="text-white/70">Starting UNO Gamble game...</p>
+              <div className="animate-pulse bg-green-600/20 rounded-lg p-4 border border-green-400/30">
+                <p className="text-green-400 font-semibold">🎮 Loading Game...</p>
+              </div>
             </div>
           )}
           
