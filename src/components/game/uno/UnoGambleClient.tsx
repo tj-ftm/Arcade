@@ -33,7 +33,7 @@ interface UnoGambleClientProps {
 type GambleState = 'setup' | 'waiting_payment' | 'payment_progress' | 'ready_to_play' | 'playing' | 'completed';
 
 export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientProps) => {
-  const { account, signer } = useWeb3();
+  const { account, getSigner } = useWeb3();
   const [gambleState, setGambleState] = useState<GambleState>('setup');
   const [betAmount, setBetAmount] = useState<string>('1');
   const [contractAddress, setContractAddress] = useState<string>('');
@@ -51,10 +51,10 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
 
   // Initialize contract and check player balance
   useEffect(() => {
-    if (account && signer) {
-      initializeGambling();
+    if (account) {
+      refreshBalance();
     }
-  }, [account, signer]);
+  }, [account]);
 
   // Poll for payment status
   useEffect(() => {
@@ -66,7 +66,10 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
 
   const initializeGambling = async () => {
     try {
-      if (!account || !signer) return;
+      if (!account) return;
+      
+      const signer = await getSigner();
+      if (!signer) return;
       
       // Get player's ARC balance
       const balance = await unoGambleContract.getPlayerBalance(account);
@@ -87,8 +90,14 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
   };
 
   const createGamblingGame = async () => {
-    if (!account || !signer || !lobby.player2Id) {
+    if (!account || !lobby.player2Id) {
       setError('Missing required information');
+      return;
+    }
+
+    const signer = await getSigner();
+    if (!signer) {
+      setError('Failed to get wallet signer');
       return;
     }
 
@@ -125,8 +134,14 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
   };
 
   const payBet = async () => {
-    if (!account || !signer) {
+    if (!account) {
       setError('Wallet not connected');
+      return;
+    }
+
+    const signer = await getSigner();
+    if (!signer) {
+      setError('Failed to get wallet signer');
       return;
     }
 
@@ -201,8 +216,16 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
     loserName: string;
     loserAddress: string;
   }) => {
-    if (!gameResult || !signer || !lobby.contractAddress) {
+    if (!gameResult || !lobby.contractAddress) {
       console.error('❌ [UNO GAMBLE] Missing game result or contract info');
+      setGambleState('completed');
+      onGameEnd();
+      return;
+    }
+
+    const signer = await getSigner();
+    if (!signer) {
+      console.error('❌ [UNO GAMBLE] Failed to get wallet signer');
       setGambleState('completed');
       onGameEnd();
       return;

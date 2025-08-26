@@ -57,17 +57,17 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   const [isProcessing, setIsProcessing] = useState(false);
   const [deploymentTxHash, setDeploymentTxHash] = useState<string>('');
   
-  const { account, signer } = useWeb3();
+  const { account, getSigner } = useWeb3();
   const { createLobby, joinLobby, onLobbyJoined, startGame } = useFirebaseMultiplayer();
   
   const currentUserId = account || `guest-${Date.now()}`;
 
   // Initialize and get player balance
   useEffect(() => {
-    if (account && signer) {
+    if (account) {
       initializeGambling();
     }
-  }, [account, signer]);
+  }, [account]);
 
   // Listen for lobby updates
   useEffect(() => {
@@ -111,8 +111,14 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   };
 
   const handleCreateGambleLobby = async () => {
-    if (!account || !signer) {
+    if (!account) {
       setError('Please connect your wallet');
+      return;
+    }
+
+    const signer = await getSigner();
+    if (!signer) {
+      setError('Failed to get wallet signer');
       return;
     }
 
@@ -230,8 +236,14 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   };
 
   const handleJoinGambleLobby = async (lobby: GambleLobby) => {
-    if (!account || !signer) {
+    if (!account) {
       setError('Please connect your wallet');
+      return;
+    }
+
+    const signer = await getSigner();
+    if (!signer) {
+      setError('Failed to get wallet signer');
       return;
     }
 
