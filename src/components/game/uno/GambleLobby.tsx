@@ -73,20 +73,12 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     try {
       if (!account) return;
       
-      console.log('🔄 [GAMBLE LOBBY] Initializing gambling for account:', account);
-      console.log('🔄 [GAMBLE LOBBY] Using ARC token address: 0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d');
-      
-      // Use static method to get balance without requiring contract initialization
       const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
       setPlayerBalance(balance);
       
-      console.log('💰 [GAMBLE LOBBY] Player balance loaded:', balance, 'ARC');
-      console.log('💰 [GAMBLE LOBBY] Balance comparison - Current:', balance, 'Bet:', betAmount);
-      
     } catch (error) {
       console.error('❌ [GAMBLE LOBBY] Initialization failed:', error);
-      console.error('❌ [GAMBLE LOBBY] Error details:', error);
-      setError('Failed to initialize gambling system: ' + (error as Error).message);
+      setError('Failed to initialize gambling system');
     }
   };
   
@@ -94,10 +86,8 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     if (!account) return;
     
     try {
-      console.log('🔄 [GAMBLE LOBBY] Refreshing balance for:', account);
       const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
       setPlayerBalance(balance);
-      console.log('💰 [GAMBLE LOBBY] Balance refreshed:', balance, 'ARC');
     } catch (error) {
       console.error('❌ [GAMBLE LOBBY] Balance refresh failed:', error);
     }
@@ -118,8 +108,6 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     setError('');
 
     try {
-      console.log('💰 [GAMBLE LOBBY] Host paying bet amount:', betAmount);
-      
       // Deploy contract first
       const contractAddress = await unoGambleContract.deployGameContract();
       await unoGambleContract.initialize(signer, contractAddress);
@@ -127,7 +115,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       // Create temporary lobby ID
       const lobbyId = `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
       
-      // Create the gambling game in smart contract
+      // Create the gambling game in smart contract (includes 0.05 S gas fee)
       const gameResult = await unoGambleContract.createGame(
         lobbyId,
         account,
@@ -137,10 +125,10 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       
       setCurrentTxHash(gameResult.txHash);
       
-      // Approve and pay the bet
+      // Approve and pay the bet (ARC tokens)
       const approvalTx = await unoGambleContract.approveTokens(betAmount);
       if (approvalTx) {
-        console.log('🔓 [GAMBLE LOBBY] Tokens approved:', approvalTx);
+        setCurrentTxHash(approvalTx);
       }
       
       const paymentResult = await unoGambleContract.payBet(lobbyId);
@@ -171,7 +159,9 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       );
       
       setCreationState('completed');
-      console.log('✅ [GAMBLE LOBBY] Gamble lobby created successfully:', lobby);
+      
+      // Refresh balance after successful payment
+      await refreshBalance();
       
     } catch (error: any) {
       console.error('❌ [GAMBLE LOBBY] Failed to create gamble lobby:', error);
@@ -196,8 +186,6 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     setError('');
 
     try {
-      console.log('💰 [GAMBLE LOBBY] Player joining and paying bet:', lobby.betAmount);
-      
       // Initialize contract with the lobby's contract address
       if (lobby.contractAddress) {
         await unoGambleContract.initialize(signer, lobby.contractAddress);
@@ -207,7 +195,6 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       const approvalTx = await unoGambleContract.approveTokens(lobby.betAmount);
       if (approvalTx) {
         setCurrentTxHash(approvalTx);
-        console.log('🔓 [GAMBLE LOBBY] Tokens approved:', approvalTx);
       }
       
       const paymentResult = await unoGambleContract.payBet(lobby.id);
@@ -220,13 +207,18 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       setJoinState('waiting');
       
       // Join the Firebase lobby
-      await joinLobby(lobby.id);
-      
-      // Update lobby with player 2 payment info
-      // TODO: Update Firebase lobby with player2Paid: true, player2TxHash
+      await joinLobby(lobby.id, account.slice(0, 8) + '...', account);
       
       setJoinState('ready');
-      console.log('✅ [GAMBLE LOBBY] Successfully joined gamble lobby');
+      
+      // Refresh balance after successful payment
+      await refreshBalance();
+      
+      // Check if both players have paid and start the game
+      const isGameReady = await unoGambleContract.isGameReady(lobby.id);
+      if (isGameReady && onStartGame) {
+        onStartGame(lobby, false); // false = not host
+      }
       
     } catch (error: any) {
       console.error('❌ [GAMBLE LOBBY] Failed to join gamble lobby:', error);
@@ -249,29 +241,15 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
             <>
               <div>
                 <label className="block text-white mb-2 font-semibold">Bet Amount (ARC)</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    value={betAmount}
-                    onChange={(e) => {
-                      setBetAmount(e.target.value);
-                      // Refresh balance when bet amount changes
-                      setTimeout(refreshBalance, 100);
-                    }}
-                    min="0.1"
-                    step="0.1"
-                    className="bg-black/30 border-yellow-400/30 text-white text-lg flex-1"
-                    placeholder="Enter bet amount"
-                  />
-                  <Button
-                    onClick={refreshBalance}
-                    variant="outline"
-                    size="sm"
-                    className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
-                  >
-                    🔄
-                  </Button>
-                </div>
+                <Input
+                  type="number"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value)}
+                  min="0.1"
+                  step="0.1"
+                  className="bg-black/30 border-yellow-400/30 text-white text-lg"
+                  placeholder="Enter bet amount"
+                />
               </div>
               
               <div className="bg-yellow-600/20 rounded-lg p-4 border border-yellow-400/30">
@@ -281,15 +259,6 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
                   <p>• Total Pot: {(parseFloat(betAmount) * 2).toFixed(2)} ARC</p>
                   <p>• Winner Gets: {((parseFloat(betAmount) * 2) * 0.95).toFixed(2)} ARC (after 5% house fee)</p>
                   <p>• Gas Fee: 0.05 S (paid by lobby creator)</p>
-                </div>
-              </div>
-              
-              <div className="bg-blue-600/20 rounded-lg p-3 border border-blue-400/30">
-                <h4 className="text-blue-400 font-semibold mb-1 text-sm">Debug Info</h4>
-                <div className="text-xs text-white/70 space-y-1">
-                  <p>• Contract: 0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d</p>
-                  <p>• Account: {account?.slice(0, 8)}...{account?.slice(-6)}</p>
-                  <p>• Balance Check: {parseFloat(betAmount) <= parseFloat(playerBalance) ? '✅ Sufficient' : '❌ Insufficient'}</p>
                 </div>
               </div>
               
