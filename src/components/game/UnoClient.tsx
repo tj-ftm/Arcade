@@ -20,18 +20,33 @@ const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'S
 
 const createDeck = (): UnoCard[] => {
   const deck: UnoCard[] = [];
+  
+  // Number cards: 76 total (19 per color × 4 colors)
   for (const color of colors) {
+    // One 0 card per color
     deck.push({ color, value: '0' });
-    for (let i = 0; i < 2; i++) {
-      for (const value of values.slice(1)) {
-        deck.push({ color, value });
-      }
+    
+    // Two copies of each 1-9 per color
+    for (let num = 1; num <= 9; num++) {
+      deck.push({ color, value: num.toString() });
+      deck.push({ color, value: num.toString() });
     }
+    
+    // Action cards: 2 of each per color (Skip, Reverse, Draw Two)
+    deck.push({ color, value: 'Skip' });
+    deck.push({ color, value: 'Skip' });
+    deck.push({ color, value: 'Reverse' });
+    deck.push({ color, value: 'Reverse' });
+    deck.push({ color, value: 'Draw Two' });
+    deck.push({ color, value: 'Draw Two' });
   }
+  
+  // Wild cards: 8 total (4 Wild + 4 Wild Draw Four)
   for (let i = 0; i < 4; i++) {
     deck.push({ color: 'Wild', value: 'Wild' });
     deck.push({ color: 'Wild', value: 'Draw Four' });
   }
+  
   return deck;
 };
 
@@ -171,6 +186,10 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
     const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
     const [paymentTxHash, setPaymentTxHash] = useState<string>('');
     const [hasWon, setHasWon] = useState<boolean>(false);
+    const [playerCalledUno, setPlayerCalledUno] = useState(false);
+    const [botCalledUno, setBotCalledUno] = useState(false);
+    const [showUnoButton, setShowUnoButton] = useState(false);
+
 
     const playerHandRef = useRef<HTMLDivElement>(null);
 
@@ -275,6 +294,39 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
             return { ...prev, gameLog: newLog };
         });
     }
+    
+    const handleUnoCall = () => {
+        setPlayerCalledUno(true);
+        setShowUnoButton(false);
+        addGameLog('You called UNO!');
+        setTurnMessage('UNO called!');
+    };
+    
+    const checkUnoPenalty = (playerId: string) => {
+        if (!gameState) return;
+        
+        const player = gameState.players.find(p => p.id === playerId);
+        if (!player || player.hand.length !== 1) return;
+        
+        const calledUno = playerId === 'player' ? playerCalledUno : botCalledUno;
+        if (!calledUno) {
+            // Player didn't call UNO - penalty: draw 2 cards
+            setGameState(prev => {
+                if (!prev) return null;
+                const newState = { ...prev };
+                const penaltyPlayer = newState.players.find(p => p.id === playerId);
+                if (penaltyPlayer && newState.deck.length >= 2) {
+                    const drawnCards = newState.deck.splice(0, 2);
+                    penaltyPlayer.hand = [...penaltyPlayer.hand, ...drawnCards];
+                    addGameLog(`${penaltyPlayer.name} didn't call UNO and draws 2 penalty cards!`);
+                    setTurnMessage('UNO penalty: +2 cards!');
+                }
+                return newState;
+            });
+        }
+    };
+    
+
 
     const handleNewGame = useCallback((bonusMode = false) => {
         let deck = shuffleDeck(createDeck());
@@ -289,10 +341,35 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         const botHand = dealHand();
 
         let topCard = deck.pop()!;
-        while(topCard.color === 'Wild') { // First card can't be a wild card
+        // Handle special starting cards according to official UNO rules
+        while(topCard.value === 'Draw Four') { // Wild Draw Four is invalid starter
             deck.push(topCard);
             deck = shuffleDeck(deck);
             topCard = deck.pop()!;
+        }
+        
+        // Handle special starting card effects
+        let initialActivePlayer = 0; // Player starts by default
+        let initialGameLog = [bonusMode ? 'Bonus Game started.' : 'Game started.'];
+        
+        if (topCard.value === 'Skip') {
+            initialActivePlayer = 1; // Skip first player (player), bot goes first
+            initialGameLog.push('Starting card is Skip - Player skipped, Bot\'s turn!');
+        } else if (topCard.value === 'Reverse') {
+            // With 2 players, Reverse acts as Skip
+            initialActivePlayer = 1; // Skip first player (player), bot goes first  
+            initialGameLog.push('Starting card is Reverse - Player skipped, Bot\'s turn!');
+        } else if (topCard.value === 'Draw Two') {
+            // First player draws 2 and loses turn
+            const drawnCards = deck.splice(0, 2);
+            playerHand.push(...drawnCards);
+            initialActivePlayer = 1; // Bot goes first
+            initialGameLog.push('Starting card is Draw Two - Player draws 2 cards and is skipped, Bot\'s turn!');
+        } else if (topCard.value === 'Wild') {
+            // First player chooses color (we'll set it to the card's color for now)
+            initialGameLog.push('Starting card is Wild - Player\'s turn to choose color!');
+        } else {
+            initialGameLog.push('Your turn!');
         }
 
         setGameState({
@@ -303,12 +380,12 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
             playerHand: playerHand,
             deck,
             discardPile: [topCard],
-            activePlayerIndex: 0,
-            activeColor: topCard.color,
+            activePlayerIndex: initialActivePlayer,
+            activeColor: topCard.color === 'Wild' ? 'Red' : topCard.color, // Default Wild to Red
             winner: null,
             isReversed: false,
             direction: 'clockwise',
-            gameLog: [bonusMode ? 'Bonus Game started. Your turn!' : 'Game started. Your turn!'],
+            gameLog: initialGameLog,
         });
         setGameStartTime(Date.now());
         setTurnMessage("Your Turn!");
@@ -320,6 +397,9 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
         setPaymentTxHash('');
         setIsVerifyingPayment(false);
         setHasWon(false);
+        setPlayerCalledUno(false);
+        setBotCalledUno(false);
+        setShowUnoButton(false);
     }, [username]);
 
     const handleBonusPayment = async () => {
@@ -495,6 +575,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
 
         setTimeout(() => {
             if (card.color === 'Wild') {
+
                 setShowColorPicker(true);
             } else {
                 playCard(card, gameState!.activeColor);
@@ -537,6 +618,19 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                 addGameLog(`${currentPlayer.name} wins!`);
                 return newState;
             }
+            
+            // Check for UNO call requirement
+            if (currentPlayer.hand.length === 1) {
+                if (currentPlayer.id === 'player' && !playerCalledUno) {
+                    // Player has 1 card but didn't call UNO - show UNO button
+                    setShowUnoButton(true);
+                } else if (currentPlayer.id === 'bot' && !botCalledUno) {
+                    // Bot automatically calls UNO
+                    setBotCalledUno(true);
+                    addGameLog('Bot calls UNO!');
+                    setTurnMessage('Bot calls UNO!');
+                }
+            }
 
             // Handle card actions
             let tempNextPlayerIndex = nextPlayer(newState);
@@ -560,7 +654,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                            const card = newState.deck.pop();
                            if(card) opponent.hand.push(card);
                         }
-                         const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew 4 cards.`;
+                        const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew 4 cards.`;
                         addGameLog(msg);
                         setTurnMessage(msg);
                         tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex }); // Skip opponent's turn
@@ -574,18 +668,29 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                         break;
                     }
                     case 'Reverse': {
-                        newState.isReversed = !newState.isReversed;
-                        addGameLog(`Play direction was reversed.`);
-                        setTurnMessage("Direction Reversed!");
-                        const direction = newState.isReversed ? -1 : 1;
-                        let nextIndex = (newState.activePlayerIndex + direction) % newState.players.length;
-                        if (nextIndex < 0) nextIndex = newState.players.length - 1;
-                        tempNextPlayerIndex = nextIndex;
+                        // With 2 players, Reverse acts as Skip
+                        if (newState.players.length === 2) {
+                            const msg = `${opponent.id === 'player' ? 'You are' : 'Bot is'} skipped by Reverse.`;
+                            addGameLog(msg);
+                            setTurnMessage("Reverse = Skip!");
+                            tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex });
+                        } else {
+                            // With 3+ players, actually reverse direction
+                            newState.isReversed = !newState.isReversed;
+                            addGameLog(`Play direction was reversed.`);
+                            setTurnMessage("Direction Reversed!");
+                            const direction = newState.isReversed ? -1 : 1;
+                            let nextIndex = (newState.activePlayerIndex + direction) % newState.players.length;
+                            if (nextIndex < 0) nextIndex = newState.players.length - 1;
+                            tempNextPlayerIndex = nextIndex;
+                        }
                         break;
                     }
                 }
             }
             
+            // Apply action card effects
+            handleAction(card.value);
 
             newState.activePlayerIndex = tempNextPlayerIndex;
 
@@ -801,7 +906,19 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer }: UnoClientProps
                         )
                         )}
                     </div>
-                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", activePlayerIndex === 0 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
+                     <div className="flex items-center gap-4">
+                        <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", activePlayerIndex === 0 && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
+                        {showUnoButton && (
+                            <Button 
+                                onClick={handleUnoCall}
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded-full text-lg animate-pulse"
+                                size="lg"
+                            >
+                                UNO!
+                            </Button>
+                        )}
+
+                    </div>
                 </div>
             </div>
 

@@ -41,18 +41,33 @@ const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'S
 
 const createDeck = (): UnoCard[] => {
   const deck: UnoCard[] = [];
+  
+  // Number cards: 76 total (19 per color × 4 colors)
   for (const color of colors) {
+    // One 0 card per color
     deck.push({ color, value: '0' });
-    for (let i = 0; i < 2; i++) {
-      for (const value of values.slice(1)) {
-        deck.push({ color, value });
-      }
+    
+    // Two copies of each 1-9 per color
+    for (let num = 1; num <= 9; num++) {
+      deck.push({ color, value: num.toString() });
+      deck.push({ color, value: num.toString() });
     }
+    
+    // Action cards: 2 of each per color (Skip, Reverse, Draw Two)
+    deck.push({ color, value: 'Skip' });
+    deck.push({ color, value: 'Skip' });
+    deck.push({ color, value: 'Reverse' });
+    deck.push({ color, value: 'Reverse' });
+    deck.push({ color, value: 'Draw Two' });
+    deck.push({ color, value: 'Draw Two' });
   }
+  
+  // Wild cards: 8 total (4 Wild + 4 Wild Draw Four)
   for (let i = 0; i < 4; i++) {
     deck.push({ color: 'Wild', value: 'Wild' });
     deck.push({ color: 'Wild', value: 'Draw Four' });
   }
+  
   return deck;
 };
 
@@ -172,6 +187,9 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const { username, account } = useWeb3();
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
+    const [playerCalledUno, setPlayerCalledUno] = useState(false);
+    const [opponentCalledUno, setOpponentCalledUno] = useState(false);
+    const [showUnoButton, setShowUnoButton] = useState(false);
     const [flyingCard, setFlyingCard] = useState<FlyingCard | null>(null);
     const [turnMessage, setTurnMessage] = useState<string | null>(null);
     const [isLogVisible, setIsLogVisible] = useState(false);
@@ -281,16 +299,37 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         const deck = shuffleDeck(createDeck());
         const player1Hand = deck.splice(0, 7);
         const player2Hand = deck.splice(0, 7);
-        const topCard = deck.splice(0, 1)[0];
+        let topCard = deck.splice(0, 1)[0];
         
-        // Ensure starting card is not a wild card
-        while (topCard.color === 'Wild') {
+        // Handle special starting cards according to official UNO rules
+        while(topCard.value === 'Draw Four') { // Wild Draw Four is invalid starter
             deck.push(topCard);
-            const newTopCard = deck.splice(0, 1)[0];
-            if (newTopCard) {
-                topCard.color = newTopCard.color;
-                topCard.value = newTopCard.value;
-            }
+            deck.splice(0, 0, ...shuffleDeck(deck.splice(0)));
+            topCard = deck.splice(0, 1)[0];
+        }
+        
+        // Handle special starting card effects
+        let initialActivePlayer = 0; // Player1 starts by default
+        let initialGameLog = ['Game started.'];
+        
+        if (topCard.value === 'Skip') {
+            initialActivePlayer = 1; // Skip first player, player2 goes first
+            initialGameLog.push('Starting card is Skip - Player1 skipped, Player2\'s turn!');
+        } else if (topCard.value === 'Reverse') {
+            // With 2 players, Reverse acts as Skip
+            initialActivePlayer = 1; // Skip first player, player2 goes first  
+            initialGameLog.push('Starting card is Reverse - Player1 skipped, Player2\'s turn!');
+        } else if (topCard.value === 'Draw Two') {
+            // First player draws 2 and loses turn
+            const drawnCards = deck.splice(0, 2);
+            player1Hand.push(...drawnCards);
+            initialActivePlayer = 1; // Player2 goes first
+            initialGameLog.push('Starting card is Draw Two - Player1 draws 2 cards and is skipped, Player2\'s turn!');
+        } else if (topCard.value === 'Wild') {
+            // First player chooses color (default to Red for multiplayer)
+            initialGameLog.push('Starting card is Wild - Player1\'s turn!');
+        } else {
+            initialGameLog.push('Player1\'s turn!');
         }
 
         // Ensure proper player assignment: lobby creator = player1, joiner = player2
@@ -315,12 +354,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             playerHand: player1Hand,
             deck: deck,
             discardPile: [topCard],
-            activePlayerIndex: 0,
-            activeColor: topCard.color,
+            activePlayerIndex: initialActivePlayer,
+            activeColor: topCard.color === 'Wild' ? 'Red' : topCard.color, // Default Wild to Red
             winner: null,
             isReversed: false,
             direction: 'clockwise',
-            gameLog: ['Game started!']
+            gameLog: initialGameLog
         };
 
         setGameState(initialGameState);
@@ -374,6 +413,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                             setTurnMessage(`Color changed to ${moveData.colorChanged.newColor}!`);
                         }, 1600); // Show after turn message
                     }
+                }
+            } else if (moveData.type === 'uno-call') {
+                if (gameState) {
+                    const newGameState = { ...gameState };
+                    newGameState.gameLog = [...gameState.gameLog, `${moveData.playerName} calls UNO!`];
+                    setGameState(newGameState);
+                    setTurnMessage(`${moveData.playerName} calls UNO!`);
+                    setOpponentCalledUno(true);
                 }
             }
         });
@@ -495,14 +542,35 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             }, 2000); // Delay to show winner screen first
         }
         
+        // Check for UNO call requirement
+         if (currentPlayer.hand.length === 1) {
+             const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
+             if (isMyTurn && !playerCalledUno) {
+                 // Player has 1 card but didn't call UNO - show UNO button
+                 setShowUnoButton(true);
+             } else if (!isMyTurn && !opponentCalledUno) {
+                 // Opponent automatically calls UNO
+                 setOpponentCalledUno(true);
+                 newGameState.gameLog.push(`${currentPlayer.name} calls UNO!`);
+                 setTurnMessage(`${currentPlayer.name} calls UNO!`);
+             }
+         }
+        
         // Handle special cards
         let nextPlayerIndex = gameState.activePlayerIndex;
         if (card.value === 'Skip') {
             nextPlayerIndex = (nextPlayerIndex + 1) % 2;
             newGameState.gameLog.push(`${gameState.players[nextPlayerIndex].name} was skipped!`);
         } else if (card.value === 'Reverse') {
-            newGameState.isReversed = !gameState.isReversed;
-            newGameState.gameLog.push('Direction reversed!');
+            // With 2 players, Reverse acts as Skip
+            if (newGameState.players.length === 2) {
+                nextPlayerIndex = (nextPlayerIndex + 1) % 2;
+                newGameState.gameLog.push(`${gameState.players[nextPlayerIndex].name} was skipped by Reverse!`);
+            } else {
+                // With 3+ players, actually reverse direction
+                newGameState.isReversed = !gameState.isReversed;
+                newGameState.gameLog.push('Direction reversed!');
+            }
         } else if (card.value === 'Draw Two') {
             const targetPlayerIndex = (nextPlayerIndex + 1) % 2;
             const targetPlayer = { ...newGameState.players[targetPlayerIndex] };
@@ -600,11 +668,32 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         });
     };
 
+    const handleCallUno = () => {
+        setPlayerCalledUno(true);
+        setShowUnoButton(false);
+        setTurnMessage("UNO!");
+        
+        if (gameState) {
+            const newGameState = { ...gameState };
+            newGameState.gameLog = [...gameState.gameLog, `${username} calls UNO!`];
+            setGameState(newGameState);
+            
+            sendGameMove(lobby.id, {
+                type: 'uno-call',
+                playerId: account,
+                playerName: username
+            });
+        }
+    };
+
     const handleNewGame = () => {
         setGameState(null);
         setShowEndGameScreen(false);
         setHasWon(false);
         setIsLoadingGame(true);
+        setPlayerCalledUno(false);
+        setOpponentCalledUno(false);
+        setShowUnoButton(false);
         if (isHost) {
             initializeGame();
         }
@@ -831,6 +920,18 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 />
             )}
             
+            {/* UNO Call Button */}
+            {showUnoButton && (
+                <div className="absolute bottom-32 md:bottom-40 left-1/2 transform -translate-x-1/2 z-30">
+                    <Button 
+                        onClick={handleCallUno}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-xl md:text-2xl px-6 md:px-8 py-3 md:py-4 rounded-full animate-pulse shadow-lg"
+                    >
+                        CALL UNO!
+                    </Button>
+                </div>
+            )}
+
             {/* Color Picker Modal */}
             {showColorPicker && (
                  <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-20">

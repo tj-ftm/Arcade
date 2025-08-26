@@ -147,14 +147,14 @@ export const GameLayout = () => {
         <GameRulesModal
           gameName="UNO"
           rules={[
-            "Each player is dealt 7 cards.",
-            "Match the top card of the discard pile by color or number.",
-            "Action cards (Skip, Reverse, Draw Two) add twists.",
-            "Wild cards can change the color.",
-            "Say 'UNO' when you have one card left.",
-            "First player to empty their hand wins the round.",
-            "Points are scored by cards left in opponents' hands.",
-            "First player to 500 points wins the game."
+            "🎯 OBJECTIVE: Be the first to play all your cards",
+            "🃏 SETUP: Each player gets 7 cards, flip top card to start",
+            "📜 PLAYING: Match by color, number, or symbol. Wild cards can be played anytime",
+            "⚡ ACTION CARDS: Skip (next player loses turn), Reverse (changes direction), Draw Two (+2 cards)",
+            "🌟 WILD CARDS: Wild (choose color), Wild Draw Four (+4 cards, choose color)",
+            "🛑 UNO RULE: Call 'UNO' when you have 1 card left or draw 2 penalty cards",
+            "🔄 SPECIAL: With 2 players, Reverse acts as Skip",
+            "🏆 WINNING: First player to empty their hand wins the round"
           ]}
           onClose={() => setShowUnoRules(false)}
           onStartGame={() => {
