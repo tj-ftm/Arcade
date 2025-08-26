@@ -1,421 +1,338 @@
 
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2 } from "lucide-react";
-
-// Game Clients
-import { UnoClient } from '@/components/game/UnoClient';
-import { SnakeClient } from '@/components/game/SnakeClient';
-import { ChessClient } from '@/components/game/ChessClient';
-import { PlatformerClient } from '@/components/game/PlatformerClient';
-
-// Page-like components
-import { ConnectWallet } from '@/components/web3/ConnectWallet';
+import { ArrowLeft, Trophy, Target, Clock, TrendingUp, Users, Gamepad2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResult } from '@/lib/game-statistics';
 import { useWeb3 } from "@/components/web3/Web3Provider";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
-
-
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'platformer' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno';
-
-// --- Replicated Page Components ---
-
-const LeaderboardContent = ({ onBack }: { onBack: () => void }) => {
-  const { username, account } = useWeb3();
-
-  const initialLeaderboardData = [
-    { rank: 1, name: "UNO King", wins: 250, winStreak: 25 },
-    { rank: 2, name: "Card Shark", wins: 220, winStreak: 15 },
-    { rank: 3, name: "Wildcard Willy", wins: 205, winStreak: 18 },
-    { rank: 4, name: "Draw 4 Dana", wins: 190, winStreak: 12 },
-    { rank: 5, name: "Reverse Queen", wins: 180, winStreak: 20 },
-    { rank: 6, name: "Skipper", wins: 150, winStreak: 9 },
-    { rank: 7, name: "UNO-it-All", wins: 142, winStreak: 8 },
-    { rank: 8, name: "Lucky Linda", wins: 130, winStreak: 7 },
-    { rank: 9, name: "Card Master", wins: 121, winStreak: 6 },
-    { rank: 10, name: "Joey", wins: 110, winStreak: 5 },
-  ];
-
-  const leaderboardData = [...initialLeaderboardData];
-  const playerInLeaderboard = leaderboardData.find(p => p.rank === 10);
-
-  if (account && playerInLeaderboard) {
-    playerInLeaderboard.name = username || "You";
-  }
-
-  return (
-    <div className="w-full max-w-full px-2 z-10 animate-fade-in my-auto">
-      <div className="bg-black/50 p-2 rounded-xl">
-        <h1 className="text-xl sm:text-2xl font-headline text-center uppercase tracking-wider mb-2 text-accent">Leaderboard</h1>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b-primary/50">
-                <TableHead className="w-[40px] text-accent text-xs sm:text-sm py-1">Rank</TableHead>
-                <TableHead className="text-accent text-xs sm:text-sm py-1">Player</TableHead>
-                <TableHead className="text-accent text-xs sm:text-sm py-1">Win Streak</TableHead>
-                <TableHead className="text-right text-accent text-xs sm:text-sm py-1">Total Wins</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leaderboardData.map((player) => (
-                <TableRow key={player.rank} className="font-medium hover:bg-accent/10 border-b-0 text-xs sm:text-sm">
-                  <TableCell className="text-sm sm:text-base text-primary font-bold py-1">{player.rank}</TableCell>
-                  <TableCell className="py-1">{player.name}</TableCell>
-                  <TableCell className="text-center py-1">{player.winStreak}</TableCell>
-                  <TableCell className="text-right font-bold text-white py-1">{player.wins.toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="mt-2 flex justify-center">
-            <Button onClick={onBack} variant="secondary" className="font-headline text-sm py-1 px-3">
-              <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SettingsContent = ({ onBack }: { onBack: () => void }) => {
-  const { toast } = useToast();
-  const { username, setUsername, account } = useWeb3();
-  const [currentUsername, setCurrentUsername] = useState(username);
-
-  const handleSave = () => {
-    if(account && currentUsername) {
-      setUsername(currentUsername);
-    }
-    toast({
-      title: "Settings Saved",
-      description: "Your preferences have been updated.",
-    });
-    onBack();
-  };
-
-  return (
-    <div className="w-full max-w-lg z-10 my-auto animate-fade-in">
-        <div className="bg-black/50 p-8 rounded-xl">
-          <h1 className="text-6xl font-headline uppercase tracking-wider mb-2 text-accent">Options</h1>
-          <p className="text-white/70 mb-8 text-lg">Adjust your game experience.</p>
-          
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="username" className="text-xl">Username</Label>
-              <Input 
-                id="username"
-                className="w-[180px] rounded-md"
-                value={currentUsername || ""}
-                onChange={(e) => setCurrentUsername(e.target.value)}
-                placeholder="Enter a cool name..."
-                disabled={!account}
-              />
-            </div>
-             <div className="flex items-center justify-between">
-              <Label htmlFor="difficulty" className="text-xl">Difficulty</Label>
-              <Select defaultValue="medium">
-                <SelectTrigger id="difficulty" className="w-[180px] rounded-md">
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="quality" className="text-xl">Graphics Quality</Label>
-              <Select defaultValue="high">
-                <SelectTrigger id="quality" className="w-[180px] rounded-md">
-                  <SelectValue placeholder="Select quality" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="effects" className="text-xl">Particle Effects</Label>
-              <Switch id="effects" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="music" className="text-xl">Background Music</Label>
-              <Switch id="music" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="sfx" className="text-xl">Sound Effects</Label>
-              <Switch id="sfx" defaultChecked />
-            </div>
-          </div>
-
-          <div className="mt-8 flex justify-between items-center">
-            <Button onClick={onBack} variant="ghost" className="rounded-lg font-headline text-lg">
-                <ArrowLeft className="mr-2 h-5 w-5" /> Back
-            </Button>
-            <Button onClick={handleSave} className="rounded-lg font-headline text-lg">
-              <Save className="mr-2 h-5 w-5" /> Save
-            </Button>
-          </div>
-        </div>
-      </div>
-  );
-};
-
-const MultiplayerContent = ({ onBack }: { onBack: () => void }) => {
-    const [isSearching, setIsSearching] = useState(false);
-
-    const handleFindMatch = () => {
-        setIsSearching(true);
-        setTimeout(() => {
-        setIsSearching(false);
-        }, 5000);
-    };
-    return (
-        <div className="w-full max-w-md z-10 text-center my-auto animate-fade-in">
-            <div className="bg-black/50 p-8 rounded-xl">
-            <h1 className="text-6xl font-headline uppercase tracking-wider mb-2 text-accent">Multiplayer</h1>
-            <p className="text-white/70 mb-8 text-lg">Challenge players from around the world!</p>
-
-            <div className="space-y-6">
-                {isSearching ? (
-                <div className="flex flex-col items-center space-y-4">
-                    <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                    <p className="text-xl font-semibold">Searching for opponent...</p>
-                    <p className="text-md text-muted-foreground">Pairing you with a worthy adversary.</p>
-                    <Progress value={33} className="w-full animate-pulse" />
-                </div>
-                ) : (
-                <div className="flex flex-col items-center space-y-4">
-                    <Users className="h-24 w-24 text-primary" />
-                    <p className="text-xl">Ready to play?</p>
-                    <Button size="lg" onClick={handleFindMatch} className="w-full h-16 text-2xl font-headline rounded-lg">
-                    Find Match
-                    </Button>
-                     <Button onClick={onBack} variant="secondary" className="w-full font-headline text-lg">
-                        <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
-                    </Button>
-                </div>
-                )}
-            </div>
-            </div>
-        </div>
-    );
-}
-
-const UnoStartScreen = ({ onFreePlay, onPaidPlay }: { onFreePlay: () => void, onPaidPlay: () => void }) => (
-     <div className="w-full max-w-md z-10 text-center my-auto animate-fade-in">
-        <div className="bg-black/50 p-8 rounded-xl flex flex-col items-center">
-            <h1 className="text-8xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO</h1>
-            <p className="text-white/70 mt-1 mb-8 text-lg">The classic card game!</p>
-            <div className="flex flex-col gap-4 w-full">
-                <Button size="lg" onClick={onFreePlay} className="w-full h-16 text-2xl font-headline rounded-lg">
-                    <Play className="mr-4" /> Free Play
-                </Button>
-                <Button size="lg" onClick={onPaidPlay} className="w-full h-16 text-2xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
-                    <Ticket className="mr-4" /> Pay & Play (0.1 S)
-                </Button>
-            </div>
-        </div>
-    </div>
+// Simplified UI components for consistency
+const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-black/30 rounded-lg p-4 ${className}`}>{children}</div>
+);
+const CardHeader = ({ children }: { children: React.ReactNode }) => <div className="mb-4">{children}</div>;
+const CardTitle = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <h3 className={`text-xl font-semibold text-white ${className}`}>{children}</h3>
+);
+const CardDescription = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-sm text-white/70">{children}</p>
+);
+const CardContent = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+const Badge = ({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'secondary' | 'outline' }) => (
+  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+    variant === 'outline' ? 'border border-white/30 text-white/80' :
+    variant === 'secondary' ? 'bg-gray-600 text-white' :
+    'bg-blue-600 text-white'
+  }`}>{children}</span>
 );
 
+type GameType = 'all' | 'chess' | 'uno';
 
-// --- Main App Component ---
+interface LeaderboardPageProps {
+  onBack?: () => void;
+}
 
-export default function LeaderboardHome() {
-  const [activeView, setActiveView] = useState<View>('menu');
-  const [gameKey, setGameKey] = useState(0); // Used to reset game state
-
-  const handleNavigate = (view: View) => {
-    setGameKey(prev => prev + 1); // Increment key to force re-mount of game components
-    setActiveView(view);
-  };
+const LeaderboardPage = ({ onBack }: LeaderboardPageProps) => {
+  const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [recentGames, setRecentGames] = useState<GameResult[]>([]);
+  const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  const handleGameEnd = useCallback(() => {
-    setActiveView('menu');
-  }, []);
+  const { account, username } = useWeb3();
 
-  const renderContent = () => {
-    switch (activeView) {
-      case 'uno':
-        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} />;
-      case 'pay-uno':
-        
-      case 'snake':
-        return <SnakeClient key={gameKey} />;
-      case 'chess':
-        return <ChessClient key={gameKey} />;
-      case 'platformer':
-        return <PlatformerClient key={gameKey} />;
-      case 'leaderboard':
-        return <LeaderboardContent onBack={() => handleNavigate('menu')} />;
-      case 'settings':
-        return <SettingsContent onBack={() => handleNavigate('menu')} />;
-       case 'multiplayer':
-        return <MultiplayerContent onBack={() => handleNavigate('menu')} />;
-      case 'menu':
-      default:
-        return (
-          <>
-             <div className="w-full flex-1 flex flex-col items-center justify-center z-10">
-                <div className="flex flex-row flex-wrap items-center justify-center gap-4">
-                  <div className="w-full max-w-xs animate-fade-in text-center">
-                    <div className="bg-black/50 p-6 rounded-xl h-[320px] flex flex-col justify-center">
-                      <h1 className="text-5xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
-                      <p className="text-white/70 mt-1 mb-6 text-base">The classic card game!</p>
-                      <div className="flex flex-col gap-4">
-                        <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full text-xl h-14 bg-primary hover:bg-primary/90 rounded-lg font-headline group">
-                           <Swords className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Single Player
-                        </Button>
-                        <Button onClick={() => handleNavigate('multiplayer')} variant="default" size="lg" className="w-full text-xl h-14 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group">
-                           <Users className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Multiplayer
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+  const loadGameStatistics = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Load leaderboard
+      const gameTypeFilter = selectedGameType === 'all' ? undefined : selectedGameType;
+      const leaderboardData = await GameStatistics.getLeaderboard(gameTypeFilter, 10);
+      setLeaderboard(leaderboardData);
 
-                  <div className="w-full max-w-xs animate-fade-in text-center">
-                    <div className="bg-black/50 p-6 rounded-xl h-[320px] flex flex-col justify-center">
-                       <h1 className="text-5xl font-headline text-green-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>SNAKE</h1>
-                       <p className="text-white/70 mt-1 mb-6 text-base">The retro classic!</p>
-                         <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full text-xl h-14 bg-green-600 hover:bg-green-500 rounded-lg font-headline group">
-                           <Gamepad2 className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play Snake
-                         </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="w-full max-w-xs animate-fade-in text-center">
-                    <div className="bg-black/50 p-6 rounded-xl h-[320px] flex flex-col justify-center">
-                       <h1 className="text-5xl font-headline text-purple-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>CHESS</h1>
-                       <p className="text-white/70 mt-1 mb-6 text-base">The classic strategy game!</p>
-                        <div className="flex flex-col gap-4">
-                         <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full text-xl h-14 bg-purple-600 hover:bg-purple-500 rounded-lg font-headline group">
-                           <BrainCircuit className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Single Player
-                         </Button>
-                        <Button onClick={() => handleNavigate('multiplayer')} variant="default" size="lg" className="w-full text-xl h-14 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group">
-                           <Users className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Multiplayer
-                        </Button>
-                       </div>
-                    </div>
-                  </div>
+      // Load recent games
+      const recentGamesData = await GameStatistics.getRecentGames(20);
+      setRecentGames(recentGamesData);
 
-                  <div className="w-full max-w-xs animate-fade-in text-center">
-                    <div className="bg-black/50 p-6 rounded-xl h-[320px] flex flex-col justify-center">
-                       <h1 className="text-5xl font-headline text-orange-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>PLATFORMER</h1>
-                       <p className="text-white/70 mt-1 mb-6 text-base">A classic 2D adventure!</p>
-                         <Button onClick={() => handleNavigate('platformer')} variant="default" size="lg" className="w-full text-xl h-14 bg-orange-600 hover:bg-orange-500 rounded-lg font-headline group">
-                           <Mountain className="mr-4 text-primary-foreground/70 group-hover:text-white transition-colors" /> Play
-                         </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-               <div className="w-full max-w-4xl z-10 flex justify-center mt-8">
-                  <div className="mt-4 grid grid-cols-1 gap-4 w-full max-w-md">
-                      <Button onClick={() => handleNavigate('leaderboard')} variant="secondary" size="lg" className="w-full text-lg sm:text-xl h-12 sm:h-14 rounded-lg font-headline group">
-                        <BarChart className="mr-3 text-secondary-foreground/70 group-hover:text-secondary-foreground transition-colors" /> Leaderboard
-                      </Button>
-                  </div>
-              </div>
-          </>
-        );
+      // Load player stats for current user (if available)
+      if (account) {
+        const playerStatsData = await GameStatistics.getPlayerStats(account, username);
+        setPlayerStats(playerStatsData);
+      }
+    } catch (error) {
+      console.error('Error loading game statistics:', error);
+      setError('Failed to load game statistics');
+    } finally {
+      setLoading(false);
     }
+  }, [selectedGameType, account, username]);
+
+  useEffect(() => {
+    loadGameStatistics();
+  }, [loadGameStatistics]);
+
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatDate = (timestamp: any): string => {
+    const date = timestamp?.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getBackgroundClass = () => {
-      switch(activeView) {
-          case 'uno':
-          case 'pay-uno':
-              return 'bg-red-900';
-          case 'snake':
-              return 'bg-gray-900';
-          case 'chess':
-              return 'bg-purple-900/50';
-          case 'platformer':
-              return 'bg-blue-900'; // Platformer manages its own complex background
-          case 'menu':
-          case 'leaderboard':
-          case 'settings':
-          case 'multiplayer':
-          default:
-              return 'bg-background';
-      }
+    return "min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900";
+  };
+
+  if (loading) {
+    return (
+      <div className={getBackgroundClass()}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="bg-black/50 p-8 rounded-xl">
+            <div className="flex items-center justify-center h-32">
+              <div className="text-2xl text-white">Loading leaderboard...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
-  
-  const showHeader = activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer';
-  const showGenericHeader = !showHeader && activeView !== 'platformer'; // Platformer has no top header
 
   return (
-      <main className={`flex min-h-screen flex-col items-center justify-center p-2 sm:p-4 md:p-8 overflow-hidden relative ${getBackgroundClass()}`}>
-        {activeView === 'menu' || activeView === 'leaderboard' || activeView === 'settings' || activeView === 'multiplayer' ? (
-             <>
-              <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
-              
-              <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent"></div>
-            </>
-        ) : activeView === 'uno' ? (
-             <>
-                <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 z-0"></div>
-                
-            </>
-        ) : activeView === 'snake' ? (
-            <>
-                <div className="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-900 via-gray-700 to-black z-0"></div>
-                
-            </>
-        ) : activeView === 'chess' ? (
-             <>
-                <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 z-0"></div>
-                
-            </>
-        ) : null}
-
-        
-        {showHeader && (
-             <header className="w-full z-10 animate-fade-in self-start">
-                <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
-                    <button onClick={() => handleNavigate('menu')}>
-                        <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
-                        Sonic <span className="text-primary">Arcade</span>
-                        </div>
-                    </button>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                        <Button onClick={() => handleNavigate('settings')} variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
-                            <Settings />
-                        </Button>
-                        <ConnectWallet />
-                    </div>
-                </div>
-            </header>
-        )}
-
-        {showGenericHeader && (
-             <header className="absolute top-5 left-0 w-full z-20 p-2 sm:p-4">
-                <div className="flex justify-between items-center w-full">
-                    <Button onClick={() => handleNavigate('menu')} variant="secondary" className="font-headline text-2xl">
-                        Main Menu
-                    </Button>
-                    <ConnectWallet />
-                </div>
-            </header>
-        )}
-        
-        <div className="flex-1 w-full flex items-center justify-center">
-            {renderContent()}
+    <div className={getBackgroundClass()}>
+      <div className="container mx-auto px-4 py-8 min-h-screen">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-6xl font-headline text-accent uppercase tracking-wider mb-2" style={{ WebkitTextStroke: '4px black' }}>
+              Leaderboard
+            </h1>
+            <p className="text-white/70 text-xl">Multiplayer game statistics and rankings</p>
+          </div>
+          {onBack && (
+            <Button onClick={onBack} variant="secondary" className="font-headline text-lg">
+              <ArrowLeft className="mr-2 h-5 w-5" /> Back to Menu
+            </Button>
+          )}
         </div>
-      </main>
+
+        {error && (
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
+            <p className="text-red-200">{error}</p>
+          </div>
+        )}
+
+        {/* Game Type Tabs */}
+        <div className="flex bg-black/20 rounded-lg p-1 mb-6 max-w-md">
+          {(['all', 'chess', 'uno'] as GameType[]).map((gameType) => (
+            <button
+              key={gameType}
+              onClick={() => setSelectedGameType(gameType)}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                selectedGameType === gameType
+                  ? 'bg-accent text-black'
+                  : 'text-white/70 hover:text-white hover:bg-black/30'
+              }`}
+            >
+              {gameType === 'all' ? 'All Games' : gameType.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Player Stats Cards */}
+        {playerStats && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Target className="h-5 w-5" />
+                  Total Games
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-accent">{playerStats.totalGames}</div>
+                <p className="text-sm text-white/70">
+                  {playerStats.wins} wins, {playerStats.losses} losses
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <TrendingUp className="h-5 w-5" />
+                  Win Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-accent">{playerStats.winRate.toFixed(1)}%</div>
+                <p className="text-sm text-white/70">
+                  Current streak: {playerStats.currentWinStreak}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-5 w-5" />
+                  Avg Game Time
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-accent">{formatDuration(Math.round(playerStats.averageGameDuration))}</div>
+                <p className="text-sm text-white/70">
+                  Longest streak: {playerStats.longestWinStreak}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Trophy className="h-5 w-5" />
+                  Best Game
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold text-accent">
+                  Chess: {playerStats.gamesPerType.chess.wins}/{playerStats.gamesPerType.chess.games}
+                </div>
+                <div className="text-lg font-bold text-accent">
+                  UNO: {playerStats.gamesPerType.uno.wins}/{playerStats.gamesPerType.uno.games}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Leaderboard */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-6 w-6" />
+                Top Players
+                {selectedGameType !== 'all' && (
+                  <Badge variant="outline">{selectedGameType.toUpperCase()}</Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Rankings based on wins and current win streaks
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {leaderboard.length > 0 ? (
+                <ScrollArea className="h-96">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">Rank</TableHead>
+                        <TableHead>Player</TableHead>
+                        <TableHead>Wins</TableHead>
+                        <TableHead>Streak</TableHead>
+                        <TableHead>Rate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaderboard.map((entry) => (
+                        <TableRow key={entry.playerId} className={entry.playerId === account ? 'bg-accent/10' : ''}>
+                          <TableCell className="font-bold">
+                            {entry.rank === 1 && <Trophy className="h-4 w-4 text-yellow-500 inline mr-1" />}
+                            {entry.rank}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {entry.playerId === account ? (username || 'You') : entry.playerName}
+                          </TableCell>
+                          <TableCell>{entry.wins}</TableCell>
+                          <TableCell>
+                            <Badge variant={entry.winStreak > 5 ? "default" : "secondary"}>
+                              {entry.winStreak}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{entry.winRate.toFixed(1)}%</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-12 text-white/60">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No multiplayer games recorded yet</p>
+                  <p className="text-sm">Play some multiplayer games to see rankings!</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Games / Match History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gamepad2 className="h-6 w-6" />
+                Recent Matches
+              </CardTitle>
+              <CardDescription>
+                Latest completed multiplayer games
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentGames.length > 0 ? (
+                <ScrollArea className="h-96">
+                  <div className="space-y-3">
+                    {recentGames.map((game) => (
+                      <div key={game.id} className="bg-black/20 rounded-lg p-4 border border-white/10">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{game.gameType.toUpperCase()}</Badge>
+                            <span className="text-sm text-white/70">{formatDate(game.gameEndTime)}</span>
+                          </div>
+                          <span className="text-sm text-white/70">{formatDuration(game.gameDuration)}</span>
+                        </div>
+                        <div className="text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className={game.winnerId === game.player1Id ? 'text-green-400 font-medium' : 'text-white/70'}>
+                              {game.player1Name}
+                            </span>
+                            <span className="text-white/50">vs</span>
+                            <span className={game.winnerId === game.player2Id ? 'text-green-400 font-medium' : 'text-white/70'}>
+                              {game.player2Name}
+                            </span>
+                          </div>
+                          <div className="text-center mt-1">
+                            <span className="text-accent font-medium">Winner: {game.winnerName}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-12 text-white/60">
+                  <Gamepad2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No recent games found</p>
+                  <p className="text-sm">Start playing multiplayer games to see match history!</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
+};
+
+export default function LeaderboardHome() {
+  const handleBack = () => {
+    window.location.href = '/';
+  };
+
+  return <LeaderboardPage onBack={handleBack} />;
 }
