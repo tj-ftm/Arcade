@@ -218,6 +218,9 @@ export function GambleLobby({ gameType, mode = 'advanced', onStartGame, onBackTo
       return;
     }
 
+    // Ensure balances are up-to-date before proceeding
+    await refreshBalance();
+
     const signer = await getSigner();
     if (!signer) {
       setError('Failed to get wallet signer');
@@ -236,6 +239,9 @@ export function GambleLobby({ gameType, mode = 'advanced', onStartGame, onBackTo
 
     setError('');
     setIsProcessing(true);
+
+    // Ensure balances are up-to-date before proceeding
+    await refreshBalance();
     const lobbyId = mode === 'simple' ? `SIMPLE-GAMBLE-${gameType.toUpperCase()}-${Date.now()}` : `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
     let contractAddress = '';
 
@@ -352,8 +358,7 @@ export function GambleLobby({ gameType, mode = 'advanced', onStartGame, onBackTo
       setDeploymentStep('completed');
       setDeploymentProgress('Lobby created successfully! Waiting for second player to join...');
       
-      // Refresh balance after successful payment
-      await refreshBalance();
+
       
     } catch (error: any) {
       console.error('❌ [GAMBLE LOBBY] Failed to create gamble lobby:', error);
@@ -439,6 +444,9 @@ export function GambleLobby({ gameType, mode = 'advanced', onStartGame, onBackTo
       setError('Please connect your wallet');
       return;
     }
+
+    // Ensure balances are up-to-date before proceeding
+    await refreshBalance();
 
     const signer = await getSigner();
     if (!signer) {
@@ -573,7 +581,7 @@ export function GambleLobby({ gameType, mode = 'advanced', onStartGame, onBackTo
       setJoinState('ready');
       
       // Refresh balance after successful payment
-      await refreshBalance();
+       await refreshBalance();
       
       // The game will start automatically when both players are ready
       // This is handled by the useEffect monitoring lobby changes

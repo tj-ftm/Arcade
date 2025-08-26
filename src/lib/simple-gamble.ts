@@ -38,7 +38,7 @@ export interface PaymentStatus {
 }
 
 const GAME_WALLET_ADDRESS = '0x5AD5aE34265957fB08eA12f77BAFf1200060473e';
-const ARC_TOKEN_ADDRESS = '0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f';
+const ARC_TOKEN_ADDRESS = '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d';
 const S_FEE = '0.05'; // 0.05 S fee per player
 const HOUSE_FEE_PERCENT = 5; // 5% house edge
 

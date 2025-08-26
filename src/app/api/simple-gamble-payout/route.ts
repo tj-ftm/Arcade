@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 // Simple gamble payout API - handles winner payouts directly from game wallet
 
 const HOUSE_FEE_PERCENT = 5;
-const ARC_TOKEN_ADDRESS = '0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f';
+const ARC_TOKEN_ADDRESS = '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d';
 
 // ARC Token ABI
 const ARC_TOKEN_ABI = [
