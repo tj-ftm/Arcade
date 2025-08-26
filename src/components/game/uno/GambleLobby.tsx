@@ -321,14 +321,43 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       setDeploymentProgress('Joining lobby...');
       await joinLobby(lobby.id, account.slice(0, 8) + '...', account);
       
-      // Step 2: Initialize contract with the lobby's contract address
+      // Step 2: Initialize contract and update player2
       setJoinState('approving_tokens');
-      setDeploymentProgress('Initializing contract connection...');
+      setDeploymentProgress('Adding you as player2 to the game...');
       
       if (!lobby.contractAddress) {
         throw new Error('Contract address not found for this lobby');
       }
       
+      // Update player2 in the contract
+      const updateResponse = await fetch('/api/update-player2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contractAddress: lobby.contractAddress,
+          gameId: lobby.id,
+          player2Address: account
+        })
+      });
+      
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Failed to add player2 to game');
+      }
+      
+      const updateResult = await updateResponse.json();
+      console.log('✅ [GAMBLE LOBBY] Player2 update result:', updateResult);
+      
+      // If a new game was created, update the lobby ID
+      let gameIdToUse = lobby.id;
+      if (updateResult.newGameId) {
+        gameIdToUse = updateResult.newGameId;
+        console.log('🔄 [GAMBLE LOBBY] Using new game ID:', gameIdToUse);
+      }
+      
+      setDeploymentProgress('Initializing contract connection...');
       await unoGambleContract.initialize(signer, lobby.contractAddress);
       
       // Step 3: Approve tokens
@@ -351,7 +380,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       
       while (retryCount < maxRetries) {
         try {
-          paymentResult = await unoGambleContract.payBet(lobby.id);
+          paymentResult = await unoGambleContract.payBet(gameIdToUse);
           if (paymentResult.success) {
             break;
           }
@@ -675,14 +704,14 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
             Gamble Lobbies
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="h-full">
           {gambleLobbies.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-white/70 text-lg">No gamble lobbies available</p>
               <p className="text-white/50 text-sm mt-2">Create one to start gambling!</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
               {gambleLobbies.map((lobby) => (
                 <Card key={lobby.id} className="bg-black/30 border-yellow-400/20">
                   <CardContent className="p-4">

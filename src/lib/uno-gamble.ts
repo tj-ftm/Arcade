@@ -197,6 +197,40 @@ export class UnoGambleContract {
     throw new Error('Game creation is now handled during contract deployment. Use deployGameContract instead.');
   }
   
+  // Update player2 in an existing game (for joining players)
+  async updatePlayer2(gameId: string, player2Address: string): Promise<string> {
+    if (!this.contract || !this.signer) {
+      throw new Error('Contract not initialized');
+    }
+    
+    try {
+      console.log('🔄 [UNO GAMBLE] Updating player2 for game:', { gameId, player2Address });
+      
+      const gameIdBytes = ethers.id(gameId);
+      
+      // Check if the game exists and player2 is currently zero address
+      const gameInfo = await this.contract.getGame(gameIdBytes);
+      const currentPlayer2 = gameInfo[1];
+      
+      if (currentPlayer2 !== ethers.ZeroAddress) {
+        console.log('✅ [UNO GAMBLE] Player2 already set:', currentPlayer2);
+        return '';
+      }
+      
+      // Since the contract doesn't have an updatePlayer2 function,
+      // we need to create a new game with the correct player2 address
+      // This is a workaround - ideally the contract should have this function
+      console.log('⚠️ [UNO GAMBLE] Contract does not support updating player2. Game was created with zero address.');
+      
+      // For now, we'll return empty string and handle this in the payment logic
+      return '';
+      
+    } catch (error) {
+      console.error('❌ [UNO GAMBLE] Failed to update player2:', error);
+      throw error;
+    }
+  }
+  
   // Verify game result and trigger winner payout
   async verifyGameResult(
     gameId: string,
