@@ -732,7 +732,7 @@ export default function HomePage() {
                         <div className="relative">
                            <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
                            <div className="absolute inset-0 flex items-center justify-center">
-                               <div className="absolute top-0 right-0 mt-2 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
+                               <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
                                    PVP LIVE
                                </div>
                            </div>
@@ -752,7 +752,7 @@ export default function HomePage() {
                         <div className="relative">
                            <img src="/chess_icon.png" alt="CHESS Game" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1" />
                            <div className="absolute inset-0 flex items-center justify-center">
-                               <div className="absolute top-0 right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1" >
+                               <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1" >
                                    PVP LIVE
                                </div>
                            </div>
@@ -782,7 +782,7 @@ export default function HomePage() {
                        <div className="pt-0 sm:pt-1">
                              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-yellow-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
                         </div>
-                        <img src="/shop_icon.png" alt="Shop" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mb-1 object-contain mx-auto" />
+                        <img src="/shop_icon.png" alt="Shop" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto" />
 
                         <Button onClick={() => handleNavigate('shop')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Visit
@@ -795,7 +795,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-blue-400 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>LEADERBOARD</h1>
                          </div>
-                         <img src="/leaderboard_icon.png" alt="Leaderboard" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                         <img src="/leaderboard_icon.png" alt="Leaderboard" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1" />
  
                          <Button onClick={() => handleNavigate('leaderboard')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
@@ -808,7 +808,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>PROFILE</h1>
                          </div>
-                         <img src="/profile_icon.png" alt="Profile" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                         <img src="/profile_icon.png" alt="Profile" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1" />
  
                          <Button onClick={() => handleNavigate('profile')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-pink-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-pink-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
@@ -821,7 +821,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>TOKENOMICS</h1>
                          </div>
-                         <img src="/tokenomics_icon.png" alt="Tokenomics" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1 flex items-center justify-center" />
+                         <img src="/tokenomics_icon.png" alt="Tokenomics" className="w-24 h-16 sm:w-28 sm:h-20 lg:w-32 lg:h-24 xl:w-36 xl:h-28 mx-auto mb-1 flex items-center justify-center" />
  
                          <Button onClick={() => handleNavigate('tokenomics')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 text-white rounded-xl shadow-lg hover:from-orange-300 hover:to-orange-500 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
