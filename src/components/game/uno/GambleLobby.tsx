@@ -73,15 +73,33 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     try {
       if (!account) return;
       
+      console.log('🔄 [GAMBLE LOBBY] Initializing gambling for account:', account);
+      console.log('🔄 [GAMBLE LOBBY] Using ARC token address: 0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d');
+      
       // Use static method to get balance without requiring contract initialization
       const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
       setPlayerBalance(balance);
       
       console.log('💰 [GAMBLE LOBBY] Player balance loaded:', balance, 'ARC');
+      console.log('💰 [GAMBLE LOBBY] Balance comparison - Current:', balance, 'Bet:', betAmount);
       
     } catch (error) {
       console.error('❌ [GAMBLE LOBBY] Initialization failed:', error);
-      setError('Failed to initialize gambling system');
+      console.error('❌ [GAMBLE LOBBY] Error details:', error);
+      setError('Failed to initialize gambling system: ' + (error as Error).message);
+    }
+  };
+  
+  const refreshBalance = async () => {
+    if (!account) return;
+    
+    try {
+      console.log('🔄 [GAMBLE LOBBY] Refreshing balance for:', account);
+      const balance = await UnoGambleContract.getPlayerBalanceStatic(account);
+      setPlayerBalance(balance);
+      console.log('💰 [GAMBLE LOBBY] Balance refreshed:', balance, 'ARC');
+    } catch (error) {
+      console.error('❌ [GAMBLE LOBBY] Balance refresh failed:', error);
     }
   };
 
@@ -231,24 +249,47 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
             <>
               <div>
                 <label className="block text-white mb-2 font-semibold">Bet Amount (ARC)</label>
-                <Input
-                  type="number"
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(e.target.value)}
-                  min="0.1"
-                  step="0.1"
-                  className="bg-black/30 border-yellow-400/30 text-white text-lg"
-                  placeholder="Enter bet amount"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    value={betAmount}
+                    onChange={(e) => {
+                      setBetAmount(e.target.value);
+                      // Refresh balance when bet amount changes
+                      setTimeout(refreshBalance, 100);
+                    }}
+                    min="0.1"
+                    step="0.1"
+                    className="bg-black/30 border-yellow-400/30 text-white text-lg flex-1"
+                    placeholder="Enter bet amount"
+                  />
+                  <Button
+                    onClick={refreshBalance}
+                    variant="outline"
+                    size="sm"
+                    className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+                  >
+                    🔄
+                  </Button>
+                </div>
               </div>
               
               <div className="bg-yellow-600/20 rounded-lg p-4 border border-yellow-400/30">
                 <h3 className="text-yellow-400 font-semibold mb-2">Gambling Details</h3>
                 <div className="text-sm text-white/80 space-y-1">
-                  <p>• Your ARC Balance: {playerBalance} ARC</p>
+                  <p>• Your ARC Balance: <span className="font-bold text-yellow-300">{playerBalance} ARC</span></p>
                   <p>• Total Pot: {(parseFloat(betAmount) * 2).toFixed(2)} ARC</p>
                   <p>• Winner Gets: {((parseFloat(betAmount) * 2) * 0.95).toFixed(2)} ARC (after 5% house fee)</p>
                   <p>• Gas Fee: 0.05 S (paid by lobby creator)</p>
+                </div>
+              </div>
+              
+              <div className="bg-blue-600/20 rounded-lg p-3 border border-blue-400/30">
+                <h4 className="text-blue-400 font-semibold mb-1 text-sm">Debug Info</h4>
+                <div className="text-xs text-white/70 space-y-1">
+                  <p>• Contract: 0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d</p>
+                  <p>• Account: {account?.slice(0, 8)}...{account?.slice(-6)}</p>
+                  <p>• Balance Check: {parseFloat(betAmount) <= parseFloat(playerBalance) ? '✅ Sufficient' : '❌ Insufficient'}</p>
                 </div>
               </div>
               
