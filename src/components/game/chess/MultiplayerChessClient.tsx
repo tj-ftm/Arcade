@@ -75,7 +75,7 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
   return (
     <div
       className={cn(
-        "aspect-square flex items-center justify-center text-4xl md:text-5xl lg:text-6xl cursor-pointer border border-purple-300/20 transition-all duration-200",
+        "w-full h-full aspect-square flex items-center justify-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl cursor-pointer transition-all duration-200",
         isLight ? "bg-purple-200/80" : "bg-purple-800/80",
         isSelected && "ring-4 ring-yellow-400 bg-yellow-200/50",
         isPossibleMove && "ring-2 ring-green-400 bg-green-200/30",
@@ -200,9 +200,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         setIsLoadingGame(false);
         
         // Show initial turn message
-        const myColor = isHost ? receivedGameState.player1.color : receivedGameState.player2.color;
-        const isMyTurn = myColor === receivedGameState.currentTurn;
-        const currentPlayerName = receivedGameState.currentTurn === receivedGameState.player1.color ? receivedGameState.player1.name : receivedGameState.player2.name;
+        const isMyTurn = (receivedGameState.activePlayerIndex === 0 && isHost) || (receivedGameState.activePlayerIndex === 1 && !isHost);
+        const currentPlayerName = receivedGameState.activePlayerIndex === 0 ? receivedGameState.player1.name : receivedGameState.player2.name;
         setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
         
         console.log('🔄 [CHESS MULTIPLAYER] Game state received and applied');
@@ -228,8 +227,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             newGameState.fen = game.fen();
             newGameState.moveCount += 1;
             newGameState.currentTurn = game.turn();
-            // Update activePlayerIndex based on whose turn it is now
-            newGameState.activePlayerIndex = game.turn() === newGameState.player1.color ? 0 : 1;
+            // Switch to next player (UNO-style)
+            newGameState.activePlayerIndex = newGameState.activePlayerIndex === 0 ? 1 : 0;
             newGameState.lastMoveTime = Date.now();
             
             const opponentName = isHost ? 
@@ -293,7 +292,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       player1,
       player2,
       currentTurn: 'w', // White always starts
-      activePlayerIndex: 0, // Always start with player1 (host), regardless of color
+      activePlayerIndex: player1Color === 'w' ? 0 : 1, // Player with white pieces starts
       gameLog: ['Game started!', `${player1Color === 'w' ? player1.name : player2.name} (White) goes first!`],
       fen: game.fen(),
       moveCount: 0,
@@ -306,8 +305,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     setGameStartTime(Date.now());
     
     // Show initial turn message
-    const myColor = isHost ? player1Color : player2Color;
-    const isMyTurn = myColor === 'w'; // White always starts
+    const isMyTurn = (initialGameState.activePlayerIndex === 0 && isHost) || (initialGameState.activePlayerIndex === 1 && !isHost);
     const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
     setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
     
@@ -451,12 +449,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   const handleSquareClick = (square: Square) => {
     if (!chessGameState || chessGameState.winner) return;
     
-    const myColor = isHost ? chessGameState.player1.color : chessGameState.player2.color;
-    const currentTurn = game.turn(); // 'w' or 'b'
-    const isMyTurn = myColor === currentTurn;
+    // Use UNO-style turn validation with activePlayerIndex
+    const isMyTurn = (chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost);
     
     if (!isMyTurn) {
-      console.log('🚫 [CHESS MULTIPLAYER] Not your turn!', { currentTurn, myColor, isMyTurn });
+      console.log('🚫 [CHESS MULTIPLAYER] Not your turn!', { activePlayerIndex: chessGameState.activePlayerIndex, isHost, isMyTurn });
       setTurnMessage("Not your turn!");
       return;
     }
@@ -477,8 +474,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
           newGameState.fen = game.fen();
           newGameState.moveCount += 1;
           newGameState.currentTurn = game.turn();
-          // Update activePlayerIndex based on whose turn it is now
-          newGameState.activePlayerIndex = game.turn() === newGameState.player1.color ? 0 : 1;
+          // Switch to next player (UNO-style)
+          newGameState.activePlayerIndex = newGameState.activePlayerIndex === 0 ? 1 : 0;
           newGameState.lastMoveTime = Date.now();
           
           const myName = isHost ? newGameState.player1.name : newGameState.player2.name;
@@ -574,8 +571,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
                   </div>
                   <div className="text-sm">
                     <span className="text-white/70">Turn: </span>
-                    <span className={cn("font-bold", (isHost ? chessGameState.player1.color : chessGameState.player2.color) === game.turn() ? "text-green-400" : "text-yellow-400")}>
-                      {(isHost ? chessGameState.player1.color : chessGameState.player2.color) === game.turn() ? 'Your turn' : `${isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}'s turn`}
+                    <span className={cn("font-bold", ((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? "text-green-400" : "text-yellow-400")}>
+                      {((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? 'Your turn' : `${isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}'s turn`}
                     </span>
                   </div>
                 </>
@@ -607,7 +604,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             {chessGameState && (
               <div className={cn(
                 "mb-4 px-6 py-3 rounded-full border-2 transition-all duration-300",
-                (isHost ? chessGameState.player2.color : chessGameState.player1.color) === game.turn()
+                ((chessGameState.activePlayerIndex === 0 && !isHost) || (chessGameState.activePlayerIndex === 1 && isHost))
                   ? "bg-yellow-400/20 border-yellow-400 shadow-[0_0_20px_5px] shadow-yellow-400/50" 
                   : "bg-gray-600/20 border-gray-400"
               )}>
@@ -620,7 +617,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
               </div>
             )}
             
-            <div className="w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
+            <div className="w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
               {(() => {
                 // Determine if board should be flipped (player with black pieces sees their pieces at bottom)
                 const myColor = chessGameState ? (isHost ? chessGameState.player1.color : chessGameState.player2.color) : 'w';
@@ -663,7 +660,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             {chessGameState && (
               <div className={cn(
                 "mt-4 px-6 py-3 rounded-full border-2 transition-all duration-300",
-                (isHost ? chessGameState.player1.color : chessGameState.player2.color) === game.turn()
+                ((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost))
                   ? "bg-yellow-400/20 border-yellow-400 shadow-[0_0_20px_5px] shadow-yellow-400/50" 
                   : "bg-gray-600/20 border-gray-400"
               )}>
@@ -737,11 +734,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
                     <span className="font-bold text-white">{isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}</span>
                   </div>
                   <div className="text-sm">
-                     <span className="text-white/70">Turn: </span>
-                     <span className={cn("font-bold", (isHost ? chessGameState.player1.color : chessGameState.player2.color) === game.turn() ? "text-green-400" : "text-yellow-400")}>
-                       {(isHost ? chessGameState.player1.color : chessGameState.player2.color) === game.turn() ? 'Your turn' : `${isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}'s turn`}
-                     </span>
-                   </div>
+                      <span className="text-white/70">Turn: </span>
+                      <span className={cn("font-bold", ((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? "text-green-400" : "text-yellow-400")}>
+                        {((chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost)) ? 'Your turn' : `${isHost ? (chessGameState.player2.name || 'Player 2') : chessGameState.player1.name}'s turn`}
+                      </span>
+                    </div>
                 </>
               )}
             </div>
