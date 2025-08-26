@@ -451,6 +451,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     
     // Use UNO-style turn validation with activePlayerIndex
     const isMyTurn = (chessGameState.activePlayerIndex === 0 && isHost) || (chessGameState.activePlayerIndex === 1 && !isHost);
+    const myColor = isHost ? chessGameState.player1.color : chessGameState.player2.color;
     
     if (!isMyTurn) {
       console.log('🚫 [CHESS MULTIPLAYER] Not your turn!', { activePlayerIndex: chessGameState.activePlayerIndex, isHost, isMyTurn });
@@ -617,7 +618,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
               </div>
             )}
             
-            <div className="w-full max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
+            <div className="w-full max-w-[90vw] sm:max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
               {(() => {
                 // Determine if board should be flipped (player with black pieces sees their pieces at bottom)
                 const myColor = chessGameState ? (isHost ? chessGameState.player1.color : chessGameState.player2.color) : 'w';
