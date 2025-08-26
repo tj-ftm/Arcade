@@ -39,7 +39,7 @@ interface GambleLobbyProps {
 }
 
 type LobbyCreationState = 'setup' | 'paying_deployment_fee' | 'verifying_payment' | 'deploying' | 'paying_tokens' | 'creating' | 'waiting_for_player' | 'both_players_ready' | 'completed';
-type JoinState = 'idle' | 'paying' | 'waiting' | 'ready';
+type JoinState = 'idle' | 'joining_lobby' | 'approving_tokens' | 'paying_tokens' | 'verifying_payment' | 'waiting_for_game' | 'ready';
 type DeploymentStep = 'deploying' | 'confirming' | 'initializing' | 'completed';
 
 export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobbyProps) {
@@ -72,7 +72,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
 
   // Listen for lobby updates
   useEffect(() => {
-    // Monitor created lobby for second player joining and payment
+    // Monitor created lobby for second player joining and payment (HOST)
     if (createdLobby && creationState === 'waiting_for_player') {
       const currentLobby = lobbies.find(l => l.id === createdLobby.id) as GambleLobby;
       if (currentLobby && currentLobby.player2Id && currentLobby.player2Paid) {
@@ -87,7 +87,23 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
         }, 2000);
       }
     }
-  }, [lobbies, createdLobby, creationState, onStartGame]);
+    
+    // Monitor joined lobby for game start (JOINER)
+    if (selectedLobby && joinState === 'waiting_for_game') {
+      const currentLobby = lobbies.find(l => l.id === selectedLobby.id) as GambleLobby;
+      if (currentLobby && currentLobby.player1Paid && currentLobby.player2Paid) {
+        setJoinState('ready');
+        setDeploymentProgress('Both players ready! Starting game...');
+        
+        // Start the game after a short delay
+        setTimeout(() => {
+          if (onStartGame) {
+            onStartGame(currentLobby, false); // false = not host
+          }
+        }, 2000);
+      }
+    }
+  }, [lobbies, createdLobby, selectedLobby, creationState, joinState, onStartGame]);
   
   // Listen for gamble lobbies
   useEffect(() => {
@@ -272,37 +288,61 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     }
 
     setSelectedLobby(lobby);
-    setJoinState('paying');
+    setJoinState('joining_lobby');
     setError('');
     setIsProcessing(true);
 
     try {
-      // Initialize contract with the lobby's contract address
-      if (lobby.contractAddress) {
-        await unoGambleContract.initialize(signer, lobby.contractAddress);
+      // Step 1: Join the Firebase lobby first
+      setDeploymentProgress('Joining lobby...');
+      await joinLobby(lobby.id, account.slice(0, 8) + '...', account);
+      
+      // Step 2: Initialize contract with the lobby's contract address
+      setJoinState('approving_tokens');
+      setDeploymentProgress('Initializing contract connection...');
+      
+      if (!lobby.contractAddress) {
+        throw new Error('Contract address not found for this lobby');
       }
       
-      // Approve and pay the bet
+      await unoGambleContract.initialize(signer, lobby.contractAddress);
+      
+      // Step 3: Approve tokens
+      setDeploymentProgress(`Approving ${lobby.betAmount} ARC tokens for transfer...`);
       const approvalTx = await unoGambleContract.approveTokens(lobby.betAmount);
       if (approvalTx) {
         setCurrentTxHash(approvalTx);
       }
       
+      // Step 4: Pay the bet
+      setJoinState('paying_tokens');
+      setDeploymentProgress(`Paying ${lobby.betAmount} ARC bet to contract...`);
+      
       const paymentResult = await unoGambleContract.payBet(lobby.id);
       
       if (!paymentResult.success) {
-        throw new Error('Payment failed');
+        throw new Error('ARC payment to contract failed');
       }
       
       setCurrentTxHash(paymentResult.txHash);
-      setJoinState('waiting');
       
-      // Join the Firebase lobby with payment status
+      // Step 5: Verify payment
+      setJoinState('verifying_payment');
+      setDeploymentProgress('Verifying payment on blockchain...');
+      
+      // Wait a moment for blockchain confirmation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 6: Update lobby with payment status
+      setJoinState('waiting_for_game');
+      setDeploymentProgress('Payment verified! Waiting for game to start...');
+      
       const updatedLobbyData = {
         player2Paid: true,
         player2TxHash: paymentResult.txHash
       };
       
+      // Update the lobby with payment status
       await joinLobby(lobby.id, account.slice(0, 8) + '...', account, updatedLobbyData);
       
       setJoinState('ready');
@@ -317,6 +357,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
       console.error('❌ [GAMBLE LOBBY] Failed to join gamble lobby:', error);
       setError(error.message || 'Failed to join gamble lobby');
       setJoinState('idle');
+      setDeploymentProgress('');
     } finally {
       setIsProcessing(false);
     }
@@ -374,6 +415,55 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
                   Insufficient ARC balance
                 </div>
               )}
+          
+          {/* Join Progress Display */}
+          {joinState !== 'idle' && selectedLobby && (
+            <div className="mt-6">
+              <Card className="bg-black/50 border-yellow-400/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-yellow-400">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Joining {selectedLobby.player1Name}'s Lobby
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center space-y-4">
+                    <div className="bg-yellow-600/20 rounded-lg p-4 border border-yellow-400/30">
+                      <p className="text-yellow-400 font-semibold">Bet Amount: {selectedLobby.betAmount} ARC</p>
+                      <p className="text-white/70 text-sm">Total Pot: {(parseFloat(selectedLobby.betAmount) * 2).toFixed(2)} ARC</p>
+                      <p className="text-white/70 text-sm">Contract: {selectedLobby.contractAddress?.slice(0, 10)}...</p>
+                    </div>
+                    
+                    {deploymentProgress && (
+                      <div className="bg-blue-600/20 rounded-lg p-3 border border-blue-400/30">
+                        <p className="text-blue-400 text-sm">{deploymentProgress}</p>
+                      </div>
+                    )}
+                    
+                    {currentTxHash && (
+                      <div className="text-center">
+                        <p className="text-white/70 text-sm">Transaction:</p>
+                        <a 
+                          href={`https://sonicscan.org/tx/${currentTxHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline text-sm break-all"
+                        >
+                          {currentTxHash}
+                        </a>
+                      </div>
+                    )}
+                    
+                    {error && (
+                      <div className="bg-red-600/20 rounded-lg p-3 border border-red-400/30">
+                        <p className="text-red-400 text-sm">{error}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
               
               <Button
                 onClick={handleCreateGambleLobby}
@@ -560,13 +650,25 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
                         ) : (
                           <Button
                             onClick={() => handleJoinGambleLobby(lobby)}
-                            disabled={joinState === 'paying' || joinState === 'waiting'}
+                            disabled={joinState !== 'idle' && selectedLobby?.id === lobby.id}
                             className="bg-yellow-600 hover:bg-yellow-500 text-black font-bold"
                           >
-                            {joinState === 'paying' && selectedLobby?.id === lobby.id ? (
-                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Paying...</>
-                            ) : joinState === 'waiting' && selectedLobby?.id === lobby.id ? (
-                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Joining...</>
+                            {selectedLobby?.id === lobby.id ? (
+                              joinState === 'joining_lobby' ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Joining Lobby...</>
+                              ) : joinState === 'approving_tokens' ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Approving Tokens...</>
+                              ) : joinState === 'paying_tokens' ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Paying ARC...</>
+                              ) : joinState === 'verifying_payment' ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</>
+                              ) : joinState === 'waiting_for_game' ? (
+                                <><CheckCircle className="mr-2 h-4 w-4" /> Waiting for Game...</>
+                              ) : joinState === 'ready' ? (
+                                <><CheckCircle className="mr-2 h-4 w-4" /> Ready!</>
+                              ) : (
+                                `Join & Pay ${lobby.betAmount} ARC`
+                              )
                             ) : (
                               `Join & Pay ${lobby.betAmount} ARC`
                             )}
