@@ -9,9 +9,10 @@ interface UnoStartScreenProps {
   onStartMultiplayer: () => void;
   onStartBonusMode: () => void;
   onStartGamble?: () => void;
+  onStartSimpleGamble?: () => void;
 }
 
-export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBonusMode, onStartGamble }: UnoStartScreenProps) => {
+export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBonusMode, onStartGamble, onStartSimpleGamble }: UnoStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
@@ -47,6 +48,16 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, on
           <Play className="mr-4 h-8 w-8" />
           Bonus Mode (0.1 S)
         </Button>
+        {onStartSimpleGamble && (
+          <Button 
+            size="lg" 
+            onClick={onStartSimpleGamble}
+            className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-2 border-blue-400/30"
+          >
+            <Coins className="mr-4 h-8 w-8" />
+            Simple Gamble
+          </Button>
+        )}
         {onStartGamble && (
           <Button 
             size="lg" 
@@ -54,7 +65,7 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, on
             className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white border-2 border-orange-400/30"
           >
             <Coins className="mr-4 h-8 w-8" />
-            UNO Gamble
+            Advanced Gamble
           </Button>
         )}
         {/* Rewards Info */}
