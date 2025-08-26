@@ -205,10 +205,13 @@ export class UnoGambleContract {
       const betAmountWei = ethers.parseEther(betAmount);
       const gasFee = ethers.parseEther('0.05'); // 0.05 S for contract operations
       
+      // Use zero address if player2 is empty or invalid
+      const player2Address = player2 && player2.trim() !== '' ? player2 : ethers.ZeroAddress;
+      
       const tx = await this.contract.createGame(
         gameIdBytes,
         player1,
-        player2,
+        player2Address,
         betAmountWei,
         gameId, // gameIdString parameter
         { value: gasFee } // Additional 0.05 S to contract for operations
