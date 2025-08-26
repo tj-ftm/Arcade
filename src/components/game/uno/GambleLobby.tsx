@@ -151,29 +151,25 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
         throw new Error('Deployment fee payment verification failed');
       }
       
-      // Step 3: Deploy smart contract
+      // Step 3: Deploy smart contract and create game via game wallet
       setCreationState('deploying');
       setDeploymentStep('deploying');
-      setDeploymentProgress('Deploying UNO Gamble smart contract...');
+      setDeploymentProgress('Game wallet deploying UNO Gamble smart contract...');
       
-      contractAddress = await unoGambleContract.deployGameContract();
-      
-      setDeploymentStep('initializing');
-      setDeploymentProgress('Initializing contract with game parameters...');
-      
-      await unoGambleContract.initialize(signer, contractAddress);
-      
-      // Step 4: Create game in smart contract
-      setDeploymentProgress('Creating game in smart contract...');
-      
-      const gameResult = await unoGambleContract.createGame(
-        lobbyId,
+      contractAddress = await unoGambleContract.deployGameContract(
+        deploymentFeeTxHash,
         account,
-        '', // Player 2 will be set when someone joins
+        lobbyId,
         betAmount
       );
       
-      setCurrentTxHash(gameResult.txHash);
+      setDeploymentStep('initializing');
+      setDeploymentProgress('Initializing contract connection...');
+      
+      await unoGambleContract.initialize(signer, contractAddress);
+      
+      // Game creation is now handled by the deployment API
+      setDeploymentProgress('Game created in smart contract by game wallet...');
       
       // Step 5: Pay ARC tokens to deployed contract
       setCreationState('paying_tokens');

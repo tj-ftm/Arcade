@@ -105,29 +105,24 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
     setError('');
 
     try {
-      console.log('🎮 [UNO GAMBLE] Creating gambling game...');
+      console.log('🎮 [UNO GAMBLE] Initializing existing gambling game...');
       
-      // Deploy new contract for this game
-      const newContractAddress = await unoGambleContract.deployGameContract();
-      await unoGambleContract.initialize(signer, newContractAddress);
+      // For existing lobbies, the contract should already be deployed
+      if (!lobby.contractAddress) {
+        throw new Error('Contract address not found for this lobby');
+      }
       
-      // Create the gambling game
-      const result = await unoGambleContract.createGame(
-        lobby.id,
-        lobby.player1Id,
-        lobby.player2Id,
-        betAmount
-      );
+      // Initialize connection to existing contract
+      await unoGambleContract.initialize(signer, lobby.contractAddress);
       
-      setContractAddress(result.contractAddress);
-      setCurrentTxHash(result.txHash);
+      setContractAddress(lobby.contractAddress);
       setGambleState('waiting_payment');
       
-      console.log('✅ [UNO GAMBLE] Game created successfully:', result);
+      console.log('✅ [UNO GAMBLE] Connected to existing game contract:', lobby.contractAddress);
       
     } catch (error: any) {
-      console.error('❌ [UNO GAMBLE] Game creation failed:', error);
-      setError(error.message || 'Failed to create gambling game');
+      console.error('❌ [UNO GAMBLE] Game initialization failed:', error);
+      setError(error.message || 'Failed to initialize gambling game');
     } finally {
       setIsProcessing(false);
     }

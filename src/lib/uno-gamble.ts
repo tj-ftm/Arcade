@@ -150,36 +150,33 @@ export class UnoGambleContract {
     this.arcToken = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, signer);
   }
   
-  // Deploy a new UNO Gamble contract after payment verification
-  async deployGameContract(): Promise<string> {
-    if (!this.signer) {
-      throw new Error('Signer not initialized');
-    }
-    
+  // Deploy a new UNO Gamble contract via game wallet API after payment verification
+  async deployGameContract(txHash: string, playerAddress: string, gameId: string, betAmount: string): Promise<string> {
     try {
-      console.log('🚀 [UNO GAMBLE] Deploying new contract...');
+      console.log('🚀 [UNO GAMBLE] Requesting contract deployment from game wallet...');
       
-      // Create contract factory with updated ABI
-      const contractFactory = new ethers.ContractFactory(
-        UNO_GAMBLE_ABI,
-        UNO_GAMBLE_BYTECODE,
-        this.signer
-      );
-      
-      console.log('⏳ [UNO GAMBLE] Deploying contract with ARC token:', ARC_TOKEN_ADDRESS);
-      
-      // Deploy the contract
-      const contract = await contractFactory.deploy(ARC_TOKEN_ADDRESS, {
-        gasLimit: 2000000
+      const response = await fetch('/api/deploy-contract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          txHash,
+          playerAddress,
+          gameId,
+          betAmount
+        })
       });
       
-      console.log('⏳ [UNO GAMBLE] Waiting for deployment confirmation...');
-      await contract.waitForDeployment();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Contract deployment failed');
+      }
       
-      const contractAddress = await contract.getAddress();
-      console.log('✅ [UNO GAMBLE] Contract deployed to:', contractAddress);
+      const result = await response.json();
+      console.log('✅ [UNO GAMBLE] Contract deployed by game wallet:', result.contractAddress);
       
-      return contractAddress;
+      return result.contractAddress;
       
     } catch (error) {
       console.error('❌ [UNO GAMBLE] Contract deployment failed:', error);
@@ -187,49 +184,17 @@ export class UnoGambleContract {
     }
   }
   
-  // Create a new gambling game (after deployment fee is verified)
+  // Game creation is now handled by the deploy-contract API endpoint
+  // This method is kept for compatibility but redirects to the new flow
   async createGame(
     gameId: string,
     player1: string,
     player2: string,
     betAmount: string
   ): Promise<GameCreationResult> {
-    if (!this.contract || !this.signer) {
-      throw new Error('Contract not initialized');
-    }
-    
-    try {
-      console.log('🎮 [UNO GAMBLE] Creating game:', { gameId, player1, player2, betAmount });
-      
-      const gameIdBytes = ethers.id(gameId); // Convert to bytes32
-      const betAmountWei = ethers.parseEther(betAmount);
-      const gasFee = ethers.parseEther('0.05'); // 0.05 S for contract operations
-      
-      // Use zero address if player2 is empty or invalid
-      const player2Address = player2 && player2.trim() !== '' ? player2 : ethers.ZeroAddress;
-      
-      const tx = await this.contract.createGame(
-        gameIdBytes,
-        player1,
-        player2Address,
-        betAmountWei,
-        gameId, // gameIdString parameter
-        { value: gasFee } // Additional 0.05 S to contract for operations
-      );
-      
-      console.log('📝 [UNO GAMBLE] Game creation transaction:', tx.hash);
-      await tx.wait();
-      
-      return {
-        gameId,
-        contractAddress: await this.contract.getAddress(),
-        txHash: tx.hash
-      };
-      
-    } catch (error) {
-      console.error('❌ [UNO GAMBLE] Game creation failed:', error);
-      throw error;
-    }
+    // Game creation is now part of the deployment process
+    // This should not be called directly anymore
+    throw new Error('Game creation is now handled during contract deployment. Use deployGameContract instead.');
   }
   
   // Verify game result and trigger winner payout

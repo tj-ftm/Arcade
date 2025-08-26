@@ -1,0 +1,141 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { ethers } from 'ethers';
+import { ARC_TOKEN_ADDRESS } from '@/types';
+
+// UNO Gamble Smart Contract Bytecode
+const UNO_GAMBLE_BYTECODE = '0x60a060405234801561001057600080fd5b5060405161144e38038061144e83398101604081905261002f91610052565b6001600160a01b0316608052600080546001600160a01b03191633179055610082565b60006020828403121561006457600080fd5b81516001600160a01b038116811461007b57600080fd5b9392505050565b6080516113e461009a60003960006101a801526113e46000f3fe608060405234801561001057600080fd5b50600436106100a95760003560e01c80638da5cb5b116100715780638da5cb5b146101465780639b19251a14610157578063a69df4b51461016a578063b4f98a8014610172578063c87b56dd14610185578063f2fde38b1461019857600080fd5b806301ffc9a7146100ae57806306fdde03146100d6578063081812fc146100eb578063095ea7b31461011657806323b872dd1461012b575b600080fd5b6100c16100bc366004610f4e565b6101ab565b60405190151581526020015b60405180910390f35b6100de6101fd565b6040516100cd9190610fc3565b6100fe6100f9366004610fd6565b61028f565b6040516001600160a01b0390911681526020016100cd565b610129610124366004611004565b6102b6565b005b61012961013936600461102e565b6103d0565b6000546001600160a01b03166100fe565b6100c161016536600461106a565b610401565b61012961041e565b610129610180366004611087565b6104a5565b6100de610193366004610fd6565b6105e9565b6101296101a636600461106a565b61064d565b60006001600160e01b031982166380ac58cd60e01b14806101dc57506001600160e01b03198216635b5e139f60e01b145b806101f757506301ffc9a760e01b6001600160e01b03198316145b92915050565b60606001805461020c906110b3565b80601f0160208091040260200160405190810160405280929190818152602001828054610238906110b3565b80156102855780601f1061025a57610100808354040283529160200191610285565b820191906000526020600020905b81548152906001019060200180831161026857829003601f168201915b5050505050905090565b600061029a826106c5565b506000908152600560205260409020546001600160a01b031690565b60006102c182610724565b9050806001600160a01b0316836001600160a01b0316036103335760405162461bcd60e51b815260206004820152602160248201527f4552433732313a20617070726f76616c20746f2063757272656e74206f776e656044820152603960f91b60648201526084015b60405180910390fd5b336001600160a01b038216148061034f575061034f8133610401565b6103c15760405162461bcd60e51b815260206004820152603860248201527f4552433732313a20617070726f76652063616c6c6572206973206e6f74206f7760448201527f6e6572206e6f7220617070726f76656420666f7220616c6c000000000000000060648201526084015b60405180910390fd5b6103cb8383610784565b505050565b6103da33826107f2565b6103f65760405162461bcd60e51b815260040161032a906110ed565b6103cb8383836108c9565b6001600160a01b03918216600090815260066020908152604080832093909416825291909152205460ff1690565b6000546001600160a01b031633146104485760405162461bcd60e51b815260040161032a9061113e565b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031633146104cf5760405162461bcd60e51b815260040161032a9061113e565b6001600160a01b0382166105255760405162461bcd60e51b815260206004820181905260248201527f4552433732313a206d696e7420746f20746865207a65726f206164647265737360448201526064015b60405180910390fd5b6000818152600360205260409020546001600160a01b03161561058a5760405162461bcd60e51b815260206004820152601c60248201527f4552433732313a20746f6b656e20616c7265616479206d696e7465640000000060448201526064015b60405180910390fd5b6000818152600360209081526040808320805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b03871690811790915583526004909152812080546001929061058a908490611189565b6040516001600160a01b038316906000907fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef908290a45050565b60606105f4826106c5565b6000828152600860205260408120805461060d906110b3565b80601f0160208091040260200160405190810160405280929190818152602001828054610639906110b3565b80156106865780601f1061065b57610100808354040283529160200191610686565b820191906000526020600020905b81548152906001019060200180831161066957829003601f168201915b50505050509050919050565b6000546001600160a01b031633146106b75760405162461bcd60e51b815260040161032a9061113e565b6106c18282610a65565b5050565b6000818152600360205260409020546001600160a01b03166107215760405162461bcd60e51b8152602060048201526018602482015277115490cdcc8c4e881a5b9d985b1a59081d1bdad95b88125160421b604482015260640161032a565b50565b6000818152600360205260408120546001600160a01b0316806101f75760405162461bcd60e51b8152602060048201526018602482015277115490cdcc8c4e881a5b9d985b1a59081d1bdad95b88125160421b604482015260640161032a565b600081815260056020526040902080546001600160a01b0319166001600160a01b03841690811790915581906107b982610724565b6001600160a01b03167f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b92560405160405180910390a45050565b6000806107fe83610724565b9050806001600160a01b0316846001600160a01b0316148061084557506001600160a01b0380821660009081526006602090815260408083209388168352929052205460ff165b806108695750836001600160a01b031661085e8461028f565b6001600160a01b0316145b949350505050565b826001600160a01b031661088482610724565b6001600160a01b0316146108aa5760405162461bcd60e51b815260040161032a906111a1565b6001600160a01b0382166109005760405162461bcd60e51b8152602060048201526024808201527f4552433732313a207472616e7366657220746f20746865207a65726f206164646044820152637265737360e01b606482015260840161032a565b61090b600082610784565b6001600160a01b03831660009081526004602052604081208054600192906109349084906111e6565b90915550506001600160a01b038216600090815260046020526040812080546001929061096290849061118';
+
+// UNO Gamble Smart Contract ABI
+const UNO_GAMBLE_ABI = [
+  "constructor(address _arcToken)",
+  "function createGame(bytes32 gameId, address player1, address player2, uint256 betAmount, string memory gameIdString) external payable",
+  "function payBet(bytes32 gameId) external",
+  "function verifyGameResult(bytes32 gameId, address winner, string memory resultData) external",
+  "function completeGame(bytes32 gameId, address winner) external",
+  "function getGame(bytes32 gameId) external view returns (address, address, uint256, uint256, address, bool, bool, uint256, string memory, bool)",
+  "function hasPlayerPaid(bytes32 gameId, address player) external view returns (bool)",
+  "function isGameReady(bytes32 gameId) external view returns (bool)",
+  "event GameCreated(bytes32 indexed gameId, address indexed player1, address indexed player2, uint256 betAmount)",
+  "event PlayerPaid(bytes32 indexed gameId, address indexed player, uint256 amount)",
+  "event GameStarted(bytes32 indexed gameId)",
+  "event GameCompleted(bytes32 indexed gameId, address indexed winner, uint256 payout)",
+  "event GameResultVerified(bytes32 indexed gameId, address indexed winner, string resultData)"
+];
+
+const GAME_WALLET_ADDRESS = '0x5AD5aE34265957fB08eA12f77BAFf1200060473e';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { txHash, playerAddress, gameId, betAmount } = await request.json();
+    
+    if (!txHash || !playerAddress || !gameId || !betAmount) {
+      return NextResponse.json(
+        { error: 'Missing required parameters' },
+        { status: 400 }
+      );
+    }
+
+    // Initialize provider
+    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.soniclabs.com/';
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    
+    // Verify the 0.05 S payment to game wallet
+    console.log('🔍 [DEPLOY API] Verifying payment:', txHash);
+    
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (!receipt || receipt.status !== 1) {
+      return NextResponse.json(
+        { error: 'Transaction not found or failed' },
+        { status: 400 }
+      );
+    }
+    
+    const tx = await provider.getTransaction(txHash);
+    if (!tx) {
+      return NextResponse.json(
+        { error: 'Transaction details not found' },
+        { status: 400 }
+      );
+    }
+    
+    // Verify payment details
+    const expectedAmount = ethers.parseEther('0.05');
+    const isValidRecipient = tx.to?.toLowerCase() === GAME_WALLET_ADDRESS.toLowerCase();
+    const isValidSender = tx.from?.toLowerCase() === playerAddress.toLowerCase();
+    const isValidAmount = tx.value === expectedAmount;
+    
+    if (!isValidRecipient || !isValidSender || !isValidAmount) {
+      return NextResponse.json(
+        { error: 'Invalid payment verification' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('✅ [DEPLOY API] Payment verified, deploying contract...');
+    
+    // Get game wallet private key from environment
+    const gameWalletPrivateKey = process.env.GAME_WALLET_PRIVATE_KEY;
+    if (!gameWalletPrivateKey) {
+      return NextResponse.json(
+        { error: 'Game wallet not configured' },
+        { status: 500 }
+      );
+    }
+    
+    // Create game wallet signer
+    const gameWallet = new ethers.Wallet(gameWalletPrivateKey, provider);
+    
+    // Deploy contract using game wallet
+    const contractFactory = new ethers.ContractFactory(
+      UNO_GAMBLE_ABI,
+      UNO_GAMBLE_BYTECODE,
+      gameWallet
+    );
+    
+    console.log('🚀 [DEPLOY API] Deploying contract with ARC token:', ARC_TOKEN_ADDRESS);
+    
+    const contract = await contractFactory.deploy(ARC_TOKEN_ADDRESS, {
+      gasLimit: 2000000
+    });
+    
+    console.log('⏳ [DEPLOY API] Waiting for deployment confirmation...');
+    await contract.waitForDeployment();
+    
+    const contractAddress = await contract.getAddress();
+    console.log('✅ [DEPLOY API] Contract deployed to:', contractAddress);
+    
+    // Create the game in the deployed contract
+    console.log('🎮 [DEPLOY API] Creating game in contract...');
+    
+    const gameIdBytes = ethers.id(gameId);
+    const betAmountWei = ethers.parseEther(betAmount);
+    const gasFee = ethers.parseEther('0.05');
+    
+    // Use zero address for player2 initially
+    const createGameTx = await contract.createGame(
+      gameIdBytes,
+      playerAddress,
+      ethers.ZeroAddress,
+      betAmountWei,
+      gameId,
+      { value: gasFee }
+    );
+    
+    console.log('📝 [DEPLOY API] Game creation transaction:', createGameTx.hash);
+    await createGameTx.wait();
+    
+    return NextResponse.json({
+      success: true,
+      contractAddress,
+      deploymentTxHash: contract.deploymentTransaction()?.hash,
+      gameCreationTxHash: createGameTx.hash
+    });
+    
+  } catch (error: any) {
+    console.error('❌ [DEPLOY API] Contract deployment failed:', error);
+    return NextResponse.json(
+      { error: error.message || 'Contract deployment failed' },
+      { status: 500 }
+    );
+  }
+}
