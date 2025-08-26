@@ -170,7 +170,7 @@ export class UnoGambleContract {
       
       // Deploy the contract
       const contract = await contractFactory.deploy(ARC_TOKEN_ADDRESS, {
-        gasLimit: 1000000
+        gasLimit: 2000000
       });
       
       console.log('⏳ [UNO GAMBLE] Waiting for deployment confirmation...');
