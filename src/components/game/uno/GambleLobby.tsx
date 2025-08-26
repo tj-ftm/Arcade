@@ -10,6 +10,7 @@ import { MenuLayout } from '@/components/layout/MenuLayout';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { unoGambleContract, UnoGambleContract } from '@/lib/uno-gamble';
+import { ethers } from 'ethers';
 
 interface GambleLobby {
   id: string;
@@ -74,7 +75,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     if (activeTab === 'create' && account && creationState === 'setup') {
       const interval = setInterval(() => {
         refreshBalance();
-      }, 10000); // Refresh every 10 seconds
+      }, 2000); // Refresh every 2 seconds
       
       return () => clearInterval(interval);
     }
@@ -119,34 +120,46 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     setError('');
 
     try {
-      // Deploy contract first
+      // Get contract address (for development, this is a mock address)
       const contractAddress = await unoGambleContract.deployGameContract();
-      await unoGambleContract.initialize(signer, contractAddress);
       
       // Create temporary lobby ID
       const lobbyId = `GAMBLE-${gameType.toUpperCase()}-${Date.now()}`;
       
-      // Create the gambling game in smart contract (includes 0.05 S gas fee)
-      const gameResult = await unoGambleContract.createGame(
-        lobbyId,
-        account,
-        '', // Player 2 will be set when someone joins
-        betAmount
-      );
+      // For development: Simulate gas fee payment (0.05 S)
+      // In production, this would be part of the smart contract deployment
+      const provider = await signer.provider;
+      if (provider) {
+        const gasTx = await signer.sendTransaction({
+          to: '0x0000000000000000000000000000000000000000', // Burn address for demo
+          value: ethers.parseEther('0.05'),
+          data: '0x' // Empty data
+        });
+        setCurrentTxHash(gasTx.hash);
+        await gasTx.wait();
+      }
       
-      setCurrentTxHash(gameResult.txHash);
-      
-      // Approve and pay the bet (ARC tokens)
+      // Approve and transfer ARC tokens
+      await unoGambleContract.initialize(signer, contractAddress);
       const approvalTx = await unoGambleContract.approveTokens(betAmount);
       if (approvalTx) {
         setCurrentTxHash(approvalTx);
       }
       
-      const paymentResult = await unoGambleContract.payBet(lobbyId);
+      // For development: Simulate ARC token transfer
+      // In production, this would be handled by the smart contract
+      const arcTokenContract = new ethers.Contract(
+        '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
+        ['function transfer(address to, uint256 amount) external returns (bool)'],
+        signer
+      );
       
-      if (!paymentResult.success) {
-        throw new Error('Payment failed');
-      }
+      const transferTx = await arcTokenContract.transfer(
+        contractAddress,
+        ethers.parseEther(betAmount)
+      );
+      setCurrentTxHash(transferTx.hash);
+      await transferTx.wait();
       
       setCreationState('creating');
       
@@ -159,7 +172,7 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
         player1Paid: true,
         player2Paid: false,
         contractDeployed: true,
-        player1TxHash: paymentResult.txHash
+        player1TxHash: currentTxHash
       };
       
       const lobby = await createLobby(
@@ -251,22 +264,22 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
           {creationState === 'setup' && (
             <>
               <div>
-                <label className="block text-white mb-2 font-semibold">Bet Amount (ARC)</label>
-                <div className="flex gap-2">
+                <label className="block text-white mb-1 sm:mb-2 font-semibold text-sm sm:text-base">Bet Amount (ARC)</label>
+                <div className="flex gap-1 sm:gap-2">
                   <Input
                     type="number"
                     value={betAmount}
                     onChange={(e) => setBetAmount(e.target.value)}
                     min="0.1"
                     step="0.1"
-                    className="bg-black/30 border-yellow-400/30 text-white text-lg flex-1"
+                    className="bg-black/30 border-yellow-400/30 text-white text-sm sm:text-base md:text-lg flex-1"
                     placeholder="Enter bet amount"
                   />
                   <Button
                     onClick={refreshBalance}
                     variant="outline"
                     size="sm"
-                    className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+                    className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 px-2 sm:px-3"
                     title="Refresh ARC Balance"
                   >
                     🔄
@@ -274,9 +287,9 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
                 </div>
               </div>
               
-              <div className="bg-yellow-600/20 rounded-lg p-4 border border-yellow-400/30">
-                <h3 className="text-yellow-400 font-semibold mb-2">Gambling Details</h3>
-                <div className="text-sm text-white/80 space-y-1">
+              <div className="bg-yellow-600/20 rounded-lg p-2 sm:p-3 md:p-4 border border-yellow-400/30">
+                <h3 className="text-yellow-400 font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Gambling Details</h3>
+                <div className="text-xs sm:text-sm text-white/80 space-y-0.5 sm:space-y-1">
                   <p>• Your ARC Balance: <span className="font-bold text-yellow-300">{playerBalance} ARC</span></p>
                   <p>• Total Pot: {(parseFloat(betAmount) * 2).toFixed(2)} ARC</p>
                   <p>• Winner Gets: {((parseFloat(betAmount) * 2) * 0.95).toFixed(2)} ARC (after 5% house fee)</p>
@@ -293,10 +306,11 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
               
               <Button
                 onClick={handleCreateGambleLobby}
-                disabled={!account || parseFloat(betAmount) > parseFloat(playerBalance) || parseFloat(betAmount) <= 0}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-lg py-6"
+                disabled={isProcessing || !account || parseFloat(betAmount) > parseFloat(playerBalance) || parseFloat(betAmount) <= 0}
+                className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-sm sm:text-base md:text-lg py-3 sm:py-4 md:py-6"
               >
-                Create Gamble Lobby & Pay {betAmount} ARC
+                <span className="hidden sm:inline">Create Gamble Lobby & Pay {betAmount} ARC</span>
+                <span className="sm:hidden">Create & Pay {betAmount} ARC</span>
               </Button>
             </>
           )}
@@ -426,31 +440,33 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6">
-      <div className="bg-black/50 rounded-xl p-4 sm:p-6 flex-1 max-h-[85vh] sm:max-h-[90vh] overflow-hidden relative z-10">
-        <div className="text-center mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 text-yellow-400" style={{ WebkitTextStroke: '1px black', textShadow: '0 0 20px rgba(255, 255, 0, 0.3)' }}>
+    <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-2 sm:pb-4">
+      <div className="bg-black/50 rounded-xl p-2 sm:p-4 md:p-6 flex-1 max-h-[95vh] overflow-hidden relative z-10">
+        <div className="text-center mb-2 sm:mb-4">
+          <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-1 sm:mb-2 text-yellow-400" style={{ WebkitTextStroke: '1px black', textShadow: '0 0 20px rgba(255, 255, 0, 0.3)' }}>
             {gameType.toUpperCase()} GAMBLE
           </h1>
-          <p className="text-white/70 text-lg">High-stakes gaming with ARC tokens</p>
+          <p className="text-white/70 text-sm sm:text-base md:text-lg">High-stakes gaming with ARC tokens</p>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-          <div className="flex justify-center items-center mb-3 sm:mb-4">
+          <div className="flex justify-center items-center mb-2 sm:mb-3">
             <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/10">
               <TabsTrigger 
                 value="browse" 
-                className="data-[state=active]:bg-yellow-600 data-[state=active]:text-black text-sm sm:text-base"
+                className="data-[state=active]:bg-yellow-600 data-[state=active]:text-black text-xs sm:text-sm md:text-base py-1 sm:py-2"
               >
-                <Users className="h-4 w-4 mr-2" />
-                Browse Lobbies
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Browse Lobbies</span>
+                <span className="sm:hidden">Browse</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="create"
-                className="data-[state=active]:bg-yellow-600 data-[state=active]:text-black text-sm sm:text-base"
+                className="data-[state=active]:bg-yellow-600 data-[state=active]:text-black text-xs sm:text-sm md:text-base py-1 sm:py-2"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Lobby
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Create Lobby</span>
+                <span className="sm:hidden">Create</span>
               </TabsTrigger>
             </TabsList>
           </div>

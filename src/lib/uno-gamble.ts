@@ -68,14 +68,14 @@ export class UnoGambleContract {
   // Deploy a new UNO Gamble contract for this game
   async deployGameContract(): Promise<string> {
     try {
-      console.log('🚀 [UNO GAMBLE] Deploying new game contract...');
+      console.log('🚀 [UNO GAMBLE] Using pre-deployed contract...');
       
-      // For development, we'll simulate contract deployment
-      // In production, this would deploy the actual contract
-      const mockAddress = '0x' + Math.random().toString(16).substr(2, 40);
+      // Use a fixed contract address for development
+      // In production, this would be the actual deployed UnoGamble contract
+      const contractAddress = '0x1234567890123456789012345678901234567890';
       
-      console.log('✅ [UNO GAMBLE] Contract deployed at:', mockAddress);
-      return mockAddress;
+      console.log('✅ [UNO GAMBLE] Contract address:', contractAddress);
+      return contractAddress;
       
     } catch (error) {
       console.error('❌ [UNO GAMBLE] Contract deployment failed:', error);
