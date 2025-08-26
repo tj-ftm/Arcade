@@ -48,6 +48,17 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        // HDR Color Support
+        'hdr-primary': 'var(--hdr-primary)',
+        'hdr-accent': 'var(--hdr-accent)',
+        'hdr-uno': 'var(--hdr-uno)',
+        'hdr-snake': 'var(--hdr-snake)',
+        'hdr-chess': 'var(--hdr-chess)',
+      },
+      backgroundImage: {
+        'hdr-uno-gradient': 'var(--hdr-uno-gradient)',
+        'hdr-snake-gradient': 'var(--hdr-snake-gradient)',
+        'hdr-chess-gradient': 'var(--hdr-chess-gradient)',
       },
       borderRadius: {
         lg: 'var(--radius)',
