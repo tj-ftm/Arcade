@@ -3,9 +3,7 @@
 
 import { useState, useCallback } from 'react'; // Added a comment to force re-compilation
 import { Button } from "@/components/ui/button";
-import { WagmiConfig, createConfig } from 'wagmi';
-import { mainnet } from 'wagmi/chains';
-import { http } from 'viem';
+
 import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2, Coins } from "lucide-react";
 import TokenomicsChart from "@/components/web3/TokenomicsChart";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -222,12 +220,7 @@ interface Lobby {
   createdAt: any; // Firebase timestamp
 }
 
-const wagmiConfig = createConfig({
-  chains: [mainnet],
-  transports: {
-    [mainnet.id]: http(),
-  },
-});
+
 
 export default function HomePage() {
   const { toast } = useToast();
@@ -521,7 +514,7 @@ export default function HomePage() {
   const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader;
 
   return (
-    <WagmiConfig config={wagmiConfig}>
+    
       <main className={`flex h-screen flex-col items-center overflow-hidden relative ${getBackgroundClass()}`}>
         {showMainMenuHeader ? (
              <>
@@ -632,7 +625,7 @@ export default function HomePage() {
             {renderContent()}
         </div>
       </main>
-    </WagmiConfig>
+    
   );
 }
 
