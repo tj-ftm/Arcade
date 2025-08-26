@@ -590,11 +590,28 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         );
     }
 
-    const player = gameState.players[isHost ? 0 : 1];
-    const opponent = gameState.players[isHost ? 1 : 0];
-    const topCard = gameState.discardPile[gameState.discardPile.length - 1];
-    const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
-    const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
+    // Check if game has ended and show end screen automatically
+    if (gameState.winner && !showEndGameScreen) {
+        setTimeout(() => setShowEndGameScreen(true), 2000); // Show end screen after 2 seconds
+    }
+
+    const player = gameState?.players?.[isHost ? 0 : 1];
+    const opponent = gameState?.players?.[isHost ? 1 : 0];
+    const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1];
+    const isMyTurn = gameState && ((gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost));
+    const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor)) || false;
+
+    // Additional safety checks
+    if (!player || !opponent || !topCard) {
+        return (
+            <div className="w-full h-full flex items-center justify-center text-white">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
+                    <p className="text-2xl">Loading game data...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Hand styling function - sophisticated spacing like singleplayer
     const handStyle = (index: number, handSize: number) => {
@@ -635,7 +652,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
             
             {/* Game Log Button - moved to left side */}
-            <div className={cn("absolute top-24 left-2 z-20", gameState.winner && "hidden")}>
+            <div className={cn("absolute top-24 left-2 z-20", gameState?.winner && "hidden")}>
                 <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
                     Log
                 </Button>
@@ -664,10 +681,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
              <div className="flex-1 h-full flex flex-col justify-between items-center py-2 md:py-4 px-2 md:px-4">
                 {/* Opponent Area */}
                 <div className="flex flex-col items-center gap-2 md:gap-4 min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] w-full max-w-7xl">
-                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", !isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{opponent.name} ({opponent.hand.length} cards)</div>
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", !isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{opponent.name} ({opponent.hand?.length || 0} cards)</div>
                     <div className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
-                        {opponent.hand.map((_, i) => (
-                            <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, opponent.hand.length), top: 0 }}>
+                          {(opponent.hand || []).map((_, i) => (
+                              <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, opponent.hand?.length || 0), top: 0 }}>
                                 <CardBack size={windowWidth < 768 ? 'large' : 'normal'} />
                             </div>
                         ))}
@@ -708,12 +725,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 {/* Player Area */}
                 <div className="flex flex-col items-center gap-2 md:gap-4 w-full max-w-7xl min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] pb-0 mb-2 md:mb-4">
                     <div ref={playerHandRef} className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
-                        {player.hand.map((card, i) => (
+                        {(player.hand || []).map((card, i) => (
                             <div
                               key={`${card.color}-${card.value}-${i}`}
                               className="absolute"
                               style={{
-                                  ...handStyle(i, player.hand.length),
+                                  ...handStyle(i, player.hand?.length || 0),
                                   visibility: flyingCard?.card === card ? 'hidden' : 'visible',
                                   bottom: 0,
                               }}
@@ -723,14 +740,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                                     isPlayer={true} 
                                     onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
                                     isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState.activeColor)}
-                                    isLastCard={player.hand.length === 1}
+                                    isLastCard={(player.hand?.length || 0) === 1}
                                     size={windowWidth < 768 ? 'large' : 'normal'}
                                 />
                             </div>
                         )
                         )}
                     </div>
-                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand.length} cards)</div>
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand?.length || 0} cards)</div>
                 </div>
             </div>
 
@@ -764,7 +781,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             )}
 
             {/* Winner Overlay */}
-            {gameState.winner && !showEndGameScreen && (
+            {gameState?.winner && !showEndGameScreen && (
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-30">
                     <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO!</h2>
                     <p className="text-2xl md:text-4xl text-white -mt-4">{gameState.winner} Wins!</p>
