@@ -216,6 +216,9 @@ export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProp
                       Created {formatTimeAgo(lobby.createdAt)}
                     </div>
                     
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70">
+                      <span className="font-mono text-primary">ID: {lobby.id}</span>
+                    </div>
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <span className="text-green-400">Waiting for player</span>

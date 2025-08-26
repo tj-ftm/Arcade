@@ -3,6 +3,9 @@
 
 import { useState, useCallback } from 'react'; // Added a comment to force re-compilation
 import { Button } from "@/components/ui/button";
+import { WagmiConfig, createConfig } from 'wagmi';
+import { mainnet } from 'wagmi/chains';
+import { http } from 'viem';
 import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2, Coins } from "lucide-react";
 import TokenomicsChart from "@/components/web3/TokenomicsChart";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -219,6 +222,13 @@ interface Lobby {
   createdAt: any; // Firebase timestamp
 }
 
+const wagmiConfig = createConfig({
+  chains: [mainnet],
+  transports: {
+    [mainnet.id]: http(),
+  },
+});
+
 export default function HomePage() {
   const { toast } = useToast();
   const { account } = useWeb3();
@@ -411,13 +421,16 @@ export default function HomePage() {
           <>
              
              <div className="w-full flex-1 flex flex-col items-center justify-center pt-3 px-3 pb-3 sm:pt-2 sm:px-2 sm:pb-2">
-                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-3 sm:gap-2 w-full max-w-xs sm:max-w-6xl mx-auto h-full">
+                <div className="grid grid-cols-2 sm:grid sm:grid-cols-4 items-stretch justify-center gap-3 sm:gap-2 w-full max-w-xs sm:max-w-6xl mx-auto h-full overflow-hidden pt-8 pb-8">
                   <div className="animate-fade-in text-center">
                     <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider tracking-wider">
                       <div className="pt-0 sm:pt-1">
                             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-accent uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '2px black' }}>UNO</h1>
                         </div>
-                        <img src="/arcade_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
+                        <div className="relative">
+                           <img src="/arcade_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
+                           <img src="/multiplayer_icon.svg" alt="Multiplayer" className="absolute top-0 right-0 w-16 h-auto" />
+                         </div>
 
                         <Button onClick={() => handleNavigate('uno')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider border border-white">
                            Play
@@ -426,26 +439,29 @@ export default function HomePage() {
                     </div>
 
                   <div className="animate-fade-in text-center">
-                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
+                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                        <div className="pt-0 sm:pt-1">
-                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
                         </div>
-                        <img src="/arcade_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
+                        <div className="relative">
+                           <img src="/arcade_icon.png" alt="CHESS Game" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
+                           <img src="/multiplayer_icon.svg" alt="Multiplayer" className="absolute top-0 right-0 w-16 h-auto" />
+                         </div>
 
-                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
+                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Play
                           </Button>
                          </div>
                     </div>
                   
                   <div className="animate-fade-in text-center">
-                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                    <div className="py-3 px-3 sm:py-4 sm:px-3 pb-4 sm:pb-6 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
                        <div className="pt-0 sm:pt-1">
-                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-purple-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-green-500 uppercase tracking-wider mb-2 sm:mb-4 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
                         </div>
-                        <img src="/arcade_icon.png" alt="CHESS Game" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
+                        <img src="/arcade_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
 
-                        <Button onClick={() => handleNavigate('chess')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                        <Button onClick={() => handleNavigate('snake')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
                             Play
                           </Button>
                          </div>
@@ -456,7 +472,7 @@ export default function HomePage() {
                        <div className="pt-0 sm:pt-1">
                              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline text-yellow-500 uppercase tracking-wider mb-0 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
                         </div>
-                        <img src="/arcade_icon.png" alt="SHOP" className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2" />
+                        <img src="/arcade_icon.png" alt="Shop" className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 xl:w-40 xl:h-40 mx-auto mb-2" />
 
                         <Button onClick={() => handleNavigate('shop')} variant="default" size="lg" className="w-full py-3 sm:py-6 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Visit
@@ -505,6 +521,7 @@ export default function HomePage() {
   const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader;
 
   return (
+    <WagmiConfig config={wagmiConfig}>
       <main className={`flex h-screen flex-col items-center overflow-hidden relative ${getBackgroundClass()}`}>
         {showMainMenuHeader ? (
              <>
@@ -615,6 +632,7 @@ export default function HomePage() {
             {renderContent()}
         </div>
       </main>
+    </WagmiConfig>
   );
 }
 
