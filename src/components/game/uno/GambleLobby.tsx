@@ -69,6 +69,17 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
     // This would filter lobbies where isGamble === true
   }, []);
 
+  // Periodic balance refresh when on create lobby tab
+  useEffect(() => {
+    if (activeTab === 'create' && account && creationState === 'setup') {
+      const interval = setInterval(() => {
+        refreshBalance();
+      }, 10000); // Refresh every 10 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, account, creationState]);
+
   const initializeGambling = async () => {
     try {
       if (!account) return;
@@ -241,15 +252,26 @@ export function GambleLobby({ gameType, onStartGame, onBackToMenu }: GambleLobby
             <>
               <div>
                 <label className="block text-white mb-2 font-semibold">Bet Amount (ARC)</label>
-                <Input
-                  type="number"
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(e.target.value)}
-                  min="0.1"
-                  step="0.1"
-                  className="bg-black/30 border-yellow-400/30 text-white text-lg"
-                  placeholder="Enter bet amount"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    value={betAmount}
+                    onChange={(e) => setBetAmount(e.target.value)}
+                    min="0.1"
+                    step="0.1"
+                    className="bg-black/30 border-yellow-400/30 text-white text-lg flex-1"
+                    placeholder="Enter bet amount"
+                  />
+                  <Button
+                    onClick={refreshBalance}
+                    variant="outline"
+                    size="sm"
+                    className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+                    title="Refresh ARC Balance"
+                  >
+                    🔄
+                  </Button>
+                </div>
               </div>
               
               <div className="bg-yellow-600/20 rounded-lg p-4 border border-yellow-400/30">
