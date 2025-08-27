@@ -124,6 +124,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       setIsConnected(false);
       setIsValidWallet(false);
       
+      // Clear persistence state
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('lastConnectedAccount');
+      
       // Try to disconnect from the wallet provider
       if (window.ethereum) {
         // For Rabby and other wallets that support wallet_revokePermissions
@@ -271,6 +275,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
           await getBalance(walletProvider, userAccount);
         }
         console.log("Wallet connected successfully:", userAccount);
+        
+        // Save connection state for persistence
+        localStorage.setItem('walletConnected', 'true');
+        localStorage.setItem('lastConnectedAccount', userAccount);
       }
     } catch (error: any) {
        if (error.code === 4001 || error.code === -32001) { 
@@ -345,6 +353,52 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       return () => clearInterval(interval);
     }
   }, [account, getBalance]);
+
+  // Check for previous wallet connection on mount
+  useEffect(() => {
+    const checkPreviousConnection = async () => {
+      if (typeof window === 'undefined' || !window.ethereum) return;
+      
+      const wasConnected = localStorage.getItem('walletConnected');
+      const lastAccount = localStorage.getItem('lastConnectedAccount');
+      
+      if (wasConnected === 'true' && lastAccount) {
+        try {
+          // Check if the wallet still has accounts available
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          
+          if (accounts.length > 0 && accounts.includes(lastAccount)) {
+            // Wallet is still connected with the same account, restore connection
+            const userAccount = accounts[0];
+            setAccount(userAccount);
+            const storedUsername = localStorage.getItem(`username_${userAccount}`);
+            setUsernameState(storedUsername || userAccount);
+            
+            const walletProvider = getProvider();
+            if (walletProvider) {
+              setProvider(walletProvider);
+              const walletSigner = await walletProvider.getSigner();
+              setSigner(walletSigner);
+              setIsConnected(true);
+              setIsValidWallet(true);
+              await getBalance(walletProvider, userAccount);
+              console.log('Wallet automatically reconnected:', userAccount);
+            }
+          } else {
+            // Account changed or disconnected, clear persistence
+            localStorage.removeItem('walletConnected');
+            localStorage.removeItem('lastConnectedAccount');
+          }
+        } catch (error) {
+          console.log('Failed to restore wallet connection:', error);
+          localStorage.removeItem('walletConnected');
+          localStorage.removeItem('lastConnectedAccount');
+        }
+      }
+    };
+    
+    checkPreviousConnection();
+  }, [getProvider, getBalance]);
 
   const connectWallet = connect;
   const disconnectWallet = disconnect;

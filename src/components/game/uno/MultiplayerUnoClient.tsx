@@ -11,6 +11,8 @@ import { useWeb3 } from '@/components/web3/Web3Provider';
 import { UnoEndGameScreen } from '../UnoEndGameScreen';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
+import { useBetResolver } from '@/lib/bet-resolver';
+import { useToast } from '@/hooks/use-toast';
 
 interface Lobby {
   id: string;
@@ -185,6 +187,8 @@ type FlyingCard = {
 
 export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUnoClientProps) => {
     const { username, account } = useWeb3();
+    const { resolveBet } = useBetResolver();
+    const { toast } = useToast();
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [playerCalledUno, setPlayerCalledUno] = useState(false);
@@ -404,7 +408,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 // Show turn message when receiving opponent's move
                 if (!newGameState.winner) {
                     const currentPlayer = newGameState.players[newGameState.activePlayerIndex];
-                    const isMyTurn = (newGameState.activePlayerIndex === 0 && isHost) || (newGameState.activePlayerIndex === 1 && !isHost);
+                    const currentPlayerId = newGameState.players[newGameState.activePlayerIndex].id;
+        const isMyTurn = currentPlayerId === account;
                     setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                     
                     // Show color change message if opponent played a wild card
@@ -432,7 +437,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         if (!gameState || gameState.winner) return;
         
         const currentPlayer = gameState.players[gameState.activePlayerIndex];
-        const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
+        const currentPlayerId = gameState.players[gameState.activePlayerIndex].id;
+        const isMyTurn = currentPlayerId === account;
         
         if (!isMyTurn) {
             setTurnMessage("Not your turn!");
@@ -546,7 +552,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         
         // Check for UNO call requirement
          if (currentPlayer.hand.length === 1) {
-             const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
+             const currentPlayerId = gameState.players[gameState.activePlayerIndex].id;
+             const isMyTurn = currentPlayerId === account;
              if (isMyTurn && !playerCalledUno) {
                  // Player has 1 card but didn't call UNO - show UNO button
                  setShowUnoButton(true);
@@ -622,7 +629,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             
             // Show turn message
             const nextPlayer = newGameState.players[newGameState.activePlayerIndex];
-            const isMyNextTurn = (newGameState.activePlayerIndex === 0 && isHost) || (newGameState.activePlayerIndex === 1 && !isHost);
+            const nextPlayerId = newGameState.players[newGameState.activePlayerIndex].id;
+            const isMyNextTurn = nextPlayerId === account;
             setTimeout(() => {
                 setTurnMessage(isMyNextTurn ? "Your Turn!" : `${nextPlayer.name}'s Turn`);
             }, card.value.startsWith("Draw") || card.value === 'Skip' ? 1600 : 100);
@@ -668,7 +676,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const handleDrawCard = () => {
         if (!gameState || gameState.winner) return;
         
-        const isMyTurn = (gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost);
+        const currentPlayerId = gameState.players[gameState.activePlayerIndex].id;
+        const isMyTurn = currentPlayerId === account;
         if (!isMyTurn) {
             setTurnMessage("Not your turn!");
             return;
@@ -716,6 +725,33 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             });
         }
     };
+    
+    // Debug function to resolve bet (for testing)
+    const handleDebugResolveBet = async () => {
+        if (!lobby || !(lobby as any).isGamble) {
+            toast({
+                title: "Not a Betting Game",
+                description: "This is not a betting lobby.",
+                variant: "destructive"
+            });
+            return;
+        }
+        
+        try {
+            await resolveBet(lobby.id, account!);
+            toast({
+                title: "Bet Resolved",
+                description: "Debug bet resolution successful! You won the bet.",
+            });
+        } catch (error) {
+            console.error('Debug bet resolution failed:', error);
+            toast({
+                title: "Resolution Failed",
+                description: "Failed to resolve bet. Check console for details.",
+                variant: "destructive"
+            });
+        }
+    };
 
     const handleNewGame = () => {
         setGameState(null);
@@ -751,10 +787,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setShowEndGameScreen(true); // Show end screen immediately
     }
 
-    const player = gameState?.players?.[isHost ? 0 : 1];
-    const opponent = gameState?.players?.[isHost ? 1 : 0];
+    // Find current user's player data by matching account ID
+    const player = gameState?.players?.find(p => p.id === account);
+    const opponent = gameState?.players?.find(p => p.id !== account);
     const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1];
-    const isMyTurn = gameState && ((gameState.activePlayerIndex === 0 && isHost) || (gameState.activePlayerIndex === 1 && !isHost));
+    const currentPlayerId = gameState?.players?.[gameState.activePlayerIndex]?.id;
+    const isMyTurn = gameState && currentPlayerId === account;
     const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor)) || false;
 
     // Additional safety checks
@@ -805,13 +843,24 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     };
 
     return (
-        <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
+        <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden bg-gradient-to-br from-red-900 via-red-700 to-orange-900">
             
             {/* Game Log Button - moved to left side */}
-            <div className={cn("absolute top-24 left-2 z-20", gameState?.winner && "hidden")}>
+            <div className={cn("absolute top-24 left-2 z-20 flex flex-col gap-2", gameState?.winner && "hidden")}>
                 <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
                     Log
                 </Button>
+                {/* Debug Resolve Button - only show for betting games */}
+                {(lobby as any)?.isGamble && (
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleDebugResolveBet}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-500"
+                    >
+                        🏆 Test Resolve
+                    </Button>
+                )}
             </div>
 
             {/* Game Log Panel - opens from left side */}

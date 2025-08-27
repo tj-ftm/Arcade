@@ -11,6 +11,8 @@ import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { ChessEndGameScreen } from './ChessEndGameScreen';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useBetResolver } from '@/lib/bet-resolver';
+import { useToast } from '@/hooks/use-toast';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -102,6 +104,9 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 };
 
 export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogModal = false, onCloseGameLogModal }: MultiplayerChessClientProps) => {
+  const { account } = useWeb3();
+  const { resolveBet } = useBetResolver();
+  const { toast } = useToast();
   const isMobile = useIsMobile();
   console.log('🏁 [CHESS MULTIPLAYER] Component initialized with:', {
     lobbyId: lobby.id,
@@ -485,8 +490,9 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   const handleSquareClick = (square: Square) => {
     if (!chessGameState || chessGameState.winner) return;
     
-    // Validate turn based on chess game state and player color
-    const myColor = isHost ? chessGameState.player1.color : chessGameState.player2.color;
+    // Validate turn based on chess game state and player color using account ID
+    const myPlayer = chessGameState.player1.id === account ? chessGameState.player1 : chessGameState.player2;
+    const myColor = myPlayer.color;
     const currentChessTurn = game.turn();
     const isMyTurn = myColor === currentChessTurn;
     
@@ -516,7 +522,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
           newGameState.activePlayerIndex = newGameState.activePlayerIndex === 0 ? 1 : 0;
           newGameState.lastMoveTime = Date.now();
           
-          const myName = isHost ? newGameState.player1.name : newGameState.player2.name;
+          const myName = myPlayer.name;
           newGameState.gameLog.push(`${myName}: ${move.san}`);
           
           setChessGameState(newGameState);
@@ -524,7 +530,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
           console.log('♟️ [CHESS MULTIPLAYER] Move made:', move.san, 'New turn:', game.turn());
           
           // Show turn message - now it's opponent's turn
-          const opponentName = isHost ? (newGameState.player2.name || 'Player 2') : newGameState.player1.name;
+          const opponentPlayer = chessGameState.player1.id === account ? chessGameState.player2 : chessGameState.player1;
+          const opponentName = opponentPlayer.name;
           setTurnMessage(`${opponentName}'s Turn!`);
           
           // Send updated game state to opponent (robust synchronization like UNO)
@@ -564,9 +571,36 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     leaveLobby(lobby.id, currentUserId);
     onGameEnd();
   };
+  
+  // Debug function to resolve bet (for testing)
+  const handleDebugResolveBet = async () => {
+    if (!lobby || !(lobby as any).isGamble) {
+      toast({
+        title: "Not a Betting Game",
+        description: "This is not a betting lobby.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      await resolveBet(lobby.id, account!);
+      toast({
+        title: "Bet Resolved",
+        description: "Debug bet resolution successful! You won the bet.",
+      });
+    } catch (error) {
+      console.error('Debug bet resolution failed:', error);
+      toast({
+        title: "Resolution Failed",
+        description: "Failed to resolve bet. Check console for details.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8">
+    <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
       {isLoadingGame ? (
         <div className="flex flex-col items-center justify-center w-full h-full">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4"></div>
@@ -635,6 +669,16 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
               <Button variant="destructive" className="w-full font-headline text-lg" onClick={handleLeaveGame}>
                 Leave Game
               </Button>
+              {/* Debug Resolve Button - only show for betting games */}
+              {(lobby as any)?.isGamble && (
+                <Button 
+                  variant="outline" 
+                  className="w-full font-headline text-lg bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-500" 
+                  onClick={handleDebugResolveBet}
+                >
+                  🏆 Test Resolve Bet
+                </Button>
+              )}
             </div>
           </div>
 
@@ -656,7 +700,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
               </div>
             )}
             
-            <div className="w-full max-w-[100vw] sm:max-w-[90vw] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
+            <div className="w-full max-w-[98vw] max-h-[98vh] sm:max-w-[90vmin] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
               {(() => {
                 // Determine if board should be flipped (player with black pieces sees their pieces at bottom)
                 const myColor = chessGameState ? (isHost ? chessGameState.player1.color : chessGameState.player2.color) : 'w';

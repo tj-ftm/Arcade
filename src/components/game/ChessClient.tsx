@@ -475,7 +475,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                     </div>
 
                     <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative mt-4 md:mt-0">
-                        <div className="w-full max-w-[95vw] sm:max-w-[80vh] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
+                        <div className="w-full max-w-[98vw] max-h-[98vh] sm:max-w-[90vmin] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
                             {board.map((row, rowIndex) =>
                                 row.map((piece, colIndex) => {
                                     const square: Square = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}` as Square;

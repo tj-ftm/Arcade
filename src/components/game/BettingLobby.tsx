@@ -10,7 +10,7 @@ import { Plus, Users, ArrowLeft, Coins, Trophy, Loader2 } from 'lucide-react';
 import { useGameBetting } from '@/lib/game-betting';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { useToast } from '@/hooks/use-toast';
-import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
+import { useFirebaseBetting } from '@/hooks/use-firebase-betting';
 
 interface Lobby {
   id: string;
@@ -36,38 +36,38 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const [betAmount, setBetAmount] = useState('10');
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [bettingLobbies, setBettingLobbies] = useState<Lobby[]>([]);
+  const [filteredLobbies, setFilteredLobbies] = useState<Lobby[]>([]);
   const [gameStarting, setGameStarting] = useState(false);
   
   const { createService, account, isConnected } = useGameBetting();
   const { username, arcBalance } = useWeb3();
   const { toast } = useToast();
-  const { createLobby, joinLobby, lobbies, onLobbyJoined, startGame } = useFirebaseMultiplayer();
+  const { createBettingLobby, joinBettingLobby, bettingLobbies, onBettingLobbyJoined, startBettingGame } = useFirebaseBetting();
   
   const currentUserId = account || `guest-${Date.now()}`;
   const currentUserName = username || 'Anonymous';
 
-  // Filter betting lobbies
+  // Filter betting lobbies for current game type
   useEffect(() => {
-    const bettingLobbiesForGame = lobbies.filter(
-      lobby => lobby.gameType === gameType && lobby.isBetting === true
+    const lobbiesForGame = bettingLobbies.filter(
+      lobby => lobby.gameType === gameType
     );
-    setBettingLobbies(bettingLobbiesForGame);
-  }, [lobbies, gameType]);
+    setFilteredLobbies(lobbiesForGame);
+  }, [bettingLobbies, gameType]);
 
   // ARC balance is now fetched from Web3Provider context
 
   // Handle lobby joined
   useEffect(() => {
-    const unsubscribe = onLobbyJoined((lobby) => {
-      if (lobby.isBetting && lobby.gameType === gameType) {
+    const unsubscribe = onBettingLobbyJoined((lobby) => {
+      if (lobby.gameType === gameType) {
         console.log('🎯 [BETTING LOBBY] Joined betting lobby:', lobby);
         handleGameStart(lobby, false);
       }
     });
     
     return unsubscribe;
-  }, [gameType, onLobbyJoined]);
+  }, [gameType, onBettingLobbyJoined]);
 
   const handleCreateBettingLobby = async () => {
     if (!isConnected || !account) {
@@ -122,10 +122,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       }
       
       // Create Firebase lobby with betting info
-      const lobby = await createLobby(gameType, currentUserName, currentUserId, {
-        isBetting: true,
-        betAmount: betAmount
-      });
+      const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, betAmount);
       
       // Create blockchain bet
       const createBetTx = await service.createBet(betAmount, gameType, lobby.id);
@@ -194,7 +191,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       await joinBetTx.wait();
       
       // Join Firebase lobby
-      await joinLobby(lobby.id, currentUserName, currentUserId);
+      await joinBettingLobby(lobby.id, currentUserName, currentUserId);
       
       toast({
         title: "Joined Betting Lobby",
@@ -220,7 +217,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     
     try {
       if (isHost) {
-        await startGame(lobby.id);
+        await startBettingGame(lobby.id);
       }
       
       setTimeout(() => {
@@ -234,10 +231,10 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     } finally {
       setGameStarting(false);
     }
-  }, [gameStarting, startGame, onStartGame]);
+  }, [gameStarting, startBettingGame, onStartGame]);
 
   // Show wallet connection prompt only when trying to create/join bets
-  const showWalletPrompt = !isConnected && (activeTab === 'create' || bettingLobbies.length === 0);
+  const showWalletPrompt = !isConnected && (activeTab === 'create' || filteredLobbies.length === 0);
 
   const getGameThemeColors = () => {
     switch (gameType) {
@@ -372,7 +369,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
 
             <TabsContent value="browse" className="mt-0 h-full overflow-auto">
               <div className="space-y-4">
-            {bettingLobbies.length === 0 ? (
+            {filteredLobbies.length === 0 ? (
               <Card className="bg-black/20 border-white/20">
                 <CardContent className="p-8 text-center">
                   <Trophy className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -381,7 +378,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                 </CardContent>
               </Card>
             ) : (
-              bettingLobbies.map((lobby) => (
+              filteredLobbies.map((lobby) => (
                 <Card key={lobby.id} className="bg-black/20 border-white/20">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">

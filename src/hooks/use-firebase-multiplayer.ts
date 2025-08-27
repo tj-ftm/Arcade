@@ -142,7 +142,8 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
               id: key
             });
           });
-          setLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting'));
+          // Filter lobbies to only show regular multiplayer (non-betting) lobbies
+          setLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting' && !lobby.isGamble));
         } else {
           setLobbies([]);
         }

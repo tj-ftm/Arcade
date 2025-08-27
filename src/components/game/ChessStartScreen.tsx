@@ -10,7 +10,7 @@ interface ChessStartScreenProps {
 
 export const ChessStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBetting }: ChessStartScreenProps) => {
   return (
-    <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
+    <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-10 p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
       {/* Game Title */}
       <div className="text-center">
         <h1 className="text-9xl sm:text-9xl md:text-9xl lg:text-9xl font-headline text-white uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '2px #333', textShadow: '0 0 20px rgba(255, 255, 255, 0.3)' }}>
