@@ -5,6 +5,8 @@ import PoolGameEngine from './PoolGameEngine';
 import { PoolStartScreen } from '../PoolStartScreen';
 import { PoolEndGameScreen } from '../PoolEndGameScreen';
 import { useWeb3 } from '@/components/web3/Web3Provider';
+import { ErrorReportButton } from '../ErrorReportButton';
+import { errorLogger } from '@/lib/error-logger';
 
 interface Lobby {
   id: string;
@@ -40,8 +42,13 @@ export const PoolClient = ({ lobby, isHost, skipStartScreen = false, onGameEnd }
   const [tokensEarned, setTokensEarned] = useState(0);
 
   const handleStartGame = useCallback(() => {
+    // Initialize error logging for new game session
+    const gameMode = lobby ? 'multiplayer' : 'singleplayer';
+    errorLogger.startGameSession('pool', gameMode, account || 'anonymous', username || 'Anonymous Player');
+    errorLogger.addToGameLog(`New pool game started - Mode: ${gameMode}`);
+    
     setGameState('playing');
-  }, []);
+  }, [lobby, account, username]);
 
   const handleGameEnd = useCallback((result?: any) => {
     setGameResult(result);

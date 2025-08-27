@@ -12,6 +12,8 @@ import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib
 import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
 import { ChessStartScreen } from './chess/ChessStartScreen';
 import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
+import { ErrorReportButton } from './ErrorReportButton';
+import { errorLogger } from '@/lib/error-logger';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -109,8 +111,12 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
     }, []);
 
     const handleNewGame = useCallback((bonusMode = false) => {
-      const newGame = new Chess();
-      setGame(newGame);
+        // Initialize error logging for new game session
+        errorLogger.startGameSession('chess', 'singleplayer', account || 'anonymous', username || 'Anonymous Player');
+        errorLogger.addToGameLog(`New chess game started - Bonus mode: ${bonusMode}`);
+        
+        const newGame = new Chess();
+        setGame(newGame);
       setBoard(newGame.board());
       setSelectedSquare(null);
       setPossibleMoves([]);
@@ -431,10 +437,16 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
 
             {!showStartScreen && !showEndGameScreen && (
                 <>
-                    <div className={cn("absolute top-2 left-2 z-20 md:hidden", winner && "hidden")}>
+                    <div className={cn("absolute top-2 left-2 z-20 md:hidden flex flex-col gap-2", winner && "hidden")}>
                         <Button variant="secondary" size="icon" onClick={() => setIsLogVisible(v => !v)}>
                             Log
                         </Button>
+                        <ErrorReportButton
+                            gameType="chess"
+                            gameMode="singleplayer"
+                            gameState={{ board, gameLog, winner, selectedSquare, possibleMoves }}
+                            size="sm"
+                        />
                     </div>
                     
                     <div className={cn(

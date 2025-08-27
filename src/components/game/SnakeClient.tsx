@@ -6,9 +6,11 @@ import useInterval from 'use-interval';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useWeb3 } from '@/components/web3/Web3Provider';
+import { useWeb3 } from '../web3/Web3Provider';
 import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib/game-logger';
 import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
+import { ErrorReportButton } from './ErrorReportButton';
+import { errorLogger } from '@/lib/error-logger';
 import { MintSuccessModal } from './MintSuccessModal';
 import { SnakeStartScreen } from './snake/SnakeStartScreen';
 import { SnakeEndGameScreen } from './snake/SnakeEndGameScreen';
@@ -134,6 +136,10 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     };
 
     const handleNewGame = () => {
+        // Initialize error logging for new game session
+        errorLogger.startGameSession('snake', 'singleplayer', account || 'anonymous', username || 'Anonymous Player');
+        errorLogger.addToGameLog('New snake game started');
+        
         handleStartGame();
     };
 
@@ -306,6 +312,12 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
                             <h1 className="text-4xl md:text-6xl text-green-500 uppercase tracking-wider" style={{ WebkitTextStroke: '2px black' }}>Snake</h1>
                             <div className="flex gap-2">
                                <Button size="icon" variant="secondary" onClick={handleStartGame}><RefreshCw/></Button>
+                               <ErrorReportButton
+                                   gameType="snake"
+                                   gameMode="singleplayer"
+                                   gameState={{ snake, food, score, gameState, direction }}
+                                   size="sm"
+                               />
                             </div>
                         </div>
 

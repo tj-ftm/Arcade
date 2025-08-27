@@ -14,6 +14,8 @@ import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationRes
 
 import { UnoEndGameScreen } from './UnoEndGameScreen';
 import { UnoStartScreen } from './UnoStartScreen';
+import { ErrorReportButton } from './ErrorReportButton';
+import { errorLogger } from '@/lib/error-logger';
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
 const values: UnoValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two'];
@@ -330,6 +332,10 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
 
 
     const handleNewGame = useCallback((bonusMode = false) => {
+        // Initialize error logging for new game session
+        errorLogger.startGameSession('uno', 'singleplayer', account || 'anonymous', username || 'Anonymous Player');
+        errorLogger.addToGameLog(`New game started - Bonus mode: ${bonusMode}`);
+        
         let deck = shuffleDeck(createDeck());
         
         const dealHand = () => {
@@ -815,11 +821,17 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
     return (
         <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
             
-            {/* Game Log Button - positioned under connect wallet */}
-            <div className={cn("absolute top-24 right-2 z-20", winner && "hidden")}>
+            {/* Game Controls - positioned under connect wallet */}
+            <div className={cn("absolute top-24 right-2 z-20 flex flex-col gap-2", winner && "hidden")}>
                 <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
                     Log
                 </Button>
+                <ErrorReportButton
+                    gameType="uno"
+                    gameMode="singleplayer"
+                    gameState={{ player, bot, topCard, activePlayerIndex, gameLog, winner }}
+                    size="sm"
+                />
             </div>
 
             {/* Game Log Panel */}

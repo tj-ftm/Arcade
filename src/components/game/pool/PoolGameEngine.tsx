@@ -6,6 +6,7 @@ import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PanelLeft } from 'lucide-react';
+import { ErrorReportButton } from '../ErrorReportButton';
 
 interface Ball {
   id: number;
@@ -393,12 +394,21 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
           </div>
         </div>
         
-        {/* Center Coins/Rewards */}
-        <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-3 border border-yellow-400/30">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg animate-pulse">
-            <span className="text-black font-bold text-xs">50</span>
+        {/* Center Coins/Rewards and Error Report */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-3 border border-yellow-400/30">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg animate-pulse">
+              <span className="text-black font-bold text-xs">50</span>
+            </div>
+            <span className="text-yellow-300 font-semibold text-sm">ARC</span>
           </div>
-          <span className="text-yellow-300 font-semibold text-sm">ARC</span>
+          <ErrorReportButton
+            gameType="pool"
+            gameMode={gameMode}
+            gameState={gameState}
+            size="sm"
+            variant="outline"
+          />
         </div>
         
         {/* Player 2 */}
