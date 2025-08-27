@@ -868,12 +868,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                         </div>
                         
                         <div className="flex justify-center items-start w-20 md:w-32">
-                            {/* Show card back for non-starting player until first card is played */}
-                            {!gameStarted && !isHost ? (
-                                <CardBack size="large" />
-                            ) : (
-                                <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
-                            )}
+                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
                         </div>
                     </div>
                 </div>

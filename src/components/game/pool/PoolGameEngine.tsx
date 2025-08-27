@@ -430,7 +430,7 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
         style={{ 
           width: tableDimensions.width, 
           height: tableDimensions.height,
-          background: 'linear-gradient(145deg, #8B4513 0%, #A0522D 50%, #8B4513 100%)',
+          background: 'linear-gradient(145deg, #228B22 0%, #32CD32 50%, #228B22 100%)',
           borderRadius: `${20 * tableDimensions.scale}px`,
           border: `${8 * tableDimensions.scale}px solid #654321`,
           boxShadow: `0 ${20 * tableDimensions.scale}px ${40 * tableDimensions.scale}px rgba(0,0,0,0.5), inset 0 ${2 * tableDimensions.scale}px ${4 * tableDimensions.scale}px rgba(255,255,255,0.1)`,

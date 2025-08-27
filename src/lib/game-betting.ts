@@ -140,6 +140,13 @@ export class GameBettingService {
     return await this.gameBettingContract.cancelBet(lobbyId);
   }
 
+  // Resolve a bet (declare winner and distribute funds)
+  async resolveBet(lobbyId: string, winnerAddress: string): Promise<ethers.TransactionResponse> {
+    if (!this.gameBettingContract) throw new Error('Not initialized');
+    
+    return await this.gameBettingContract.resolveBet(lobbyId, winnerAddress);
+  }
+
   // Get bet information by lobby ID
   async getBetByLobby(lobbyId: string): Promise<Bet | null> {
     if (!this.gameBettingContract) throw new Error('Not initialized');

@@ -46,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResult } from '@/lib/game-statistics';
+import { useBetResolver } from '@/lib/bet-resolver';
 
 
 type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-betting' | 'pool-betting-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs';
@@ -496,6 +497,7 @@ interface Lobby {
 export default function HomePage() {
   const { toast } = useToast();
   const { account } = useWeb3();
+  const { resolveBet } = useBetResolver();
   const [activeView, setActiveView] = useState<View>('menu');
   const [gameKey, setGameKey] = useState(0); // Used to reset game state
   const [chessLobby, setChessLobby] = useState<Lobby | null>(null);
@@ -686,14 +688,25 @@ export default function HomePage() {
     setActiveView('pool-betting-game');
   }, []);
 
-  const handlePoolBettingEnd = useCallback((gameResult: any) => {
+  const handlePoolBettingEnd = useCallback(async (gameResult: any) => {
     console.log('🏁 [MAIN PAGE] Pool betting game ended', gameResult);
     const didWin = gameResult?.winnerId === account;
+    
+    // Resolve bet on smart contract if there's a winner
+    if (poolBettingLobby && gameResult?.winnerAddress) {
+      console.log('💰 [MAIN PAGE] Resolving Pool bet for lobby:', poolBettingLobby.id, 'Winner:', gameResult.winnerAddress);
+      try {
+        await resolveBet(poolBettingLobby.id, gameResult.winnerAddress);
+      } catch (error) {
+        console.error('❌ [MAIN PAGE] Failed to resolve Pool bet:', error);
+      }
+    }
+    
     setPoolBettingLobby(null);
     setIsPoolBettingHost(false);
     setEndGameData({ game: 'pool', didWin, lobby: poolBettingLobby, gameResult });
     setActiveView('pool-end-game');
-  }, [account, poolBettingLobby]);
+  }, [account, poolBettingLobby, resolveBet]);
 
   // Chess Betting Handlers
   const handleChessBettingStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -703,14 +716,25 @@ export default function HomePage() {
     setActiveView('chess-betting-game');
   }, []);
 
-  const handleChessBettingEnd = useCallback((gameResult: any) => {
+  const handleChessBettingEnd = useCallback(async (gameResult: any) => {
     console.log('🏁 [MAIN PAGE] Chess betting game ended', gameResult);
     const didWin = gameResult?.winnerId === account;
+    
+    // Resolve bet on smart contract if there's a winner
+    if (chessBettingLobby && gameResult?.winnerAddress) {
+      console.log('💰 [MAIN PAGE] Resolving Chess bet for lobby:', chessBettingLobby.id, 'Winner:', gameResult.winnerAddress);
+      try {
+        await resolveBet(chessBettingLobby.id, gameResult.winnerAddress);
+      } catch (error) {
+        console.error('❌ [MAIN PAGE] Failed to resolve Chess bet:', error);
+      }
+    }
+    
     setChessBettingLobby(null);
     setIsChessBettingHost(false);
     setEndGameData({ game: 'chess', didWin, lobby: chessBettingLobby, gameResult });
     setActiveView('chess-end-game');
-  }, [account, chessBettingLobby]);
+  }, [account, chessBettingLobby, resolveBet]);
 
   // UNO Betting Handlers
   const handleUnoBettingStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -720,14 +744,25 @@ export default function HomePage() {
     setActiveView('uno-betting-game');
   }, []);
 
-  const handleUnoBettingEnd = useCallback((gameResult: any) => {
+  const handleUnoBettingEnd = useCallback(async (gameResult: any) => {
     console.log('🏁 [MAIN PAGE] UNO betting game ended', gameResult);
     const didWin = gameResult?.winnerId === account;
+    
+    // Resolve bet on smart contract if there's a winner
+    if (unoBettingLobby && gameResult?.winnerAddress) {
+      console.log('💰 [MAIN PAGE] Resolving UNO bet for lobby:', unoBettingLobby.id, 'Winner:', gameResult.winnerAddress);
+      try {
+        await resolveBet(unoBettingLobby.id, gameResult.winnerAddress);
+      } catch (error) {
+        console.error('❌ [MAIN PAGE] Failed to resolve UNO bet:', error);
+      }
+    }
+    
     setUnoBettingLobby(null);
     setIsUnoBettingHost(false);
     setEndGameData({ game: 'uno', didWin, lobby: unoBettingLobby, gameResult });
     setActiveView('uno-end-game');
-  }, [account, unoBettingLobby]);
+  }, [account, unoBettingLobby, resolveBet]);
 
   const getSidebarTheme = () => {
     switch (activeView) {
