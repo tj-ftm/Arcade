@@ -14,6 +14,9 @@ import { UnoClient } from '@/components/game/UnoClient';
 import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
 import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
+import { PoolClient } from '@/components/game/pool/PoolClient';
+import { PoolStartScreen } from '@/components/game/PoolStartScreen';
+import { PoolEndGameScreen } from '@/components/game/PoolEndGameScreen';
 import { MultiplayerUnoClient } from '@/components/game/uno/MultiplayerUnoClient';
 import { UnoGambleClient } from '@/components/game/uno/UnoGambleClient';
 import { GambleLobby } from '@/components/game/uno/GambleLobby';
@@ -23,6 +26,7 @@ import { SimpleGambleGame } from '@/lib/simple-gamble';
 import ShopContent from '@/components/ShopContent';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
 import ProfileContent from './profile/page';
+import DocsPage from './docs/page';
 
 
 // Page-like components
@@ -40,7 +44,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResult } from '@/lib/game-statistics';
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics' | 'profile';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs';
 
 // --- Replicated Page Components ---
 
@@ -53,7 +57,7 @@ const Badge = ({ children, variant = 'default' }: { children: React.ReactNode; v
   }`}>{children}</span>
 );
 
-type GameType = 'all' | 'chess' | 'uno';
+type GameType = 'all' | 'chess' | 'uno' | 'pool' | 'snake';
 
 const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavigate: (view: View) => void }) => {
   const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
@@ -137,7 +141,7 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
 
         {/* Game Type Tabs */}
         <div className="flex bg-black/20 rounded-lg p-1 mb-6 max-w-md mx-auto">
-          {(['all', 'chess', 'uno'] as GameType[]).map((gameType) => (
+          {(['all', 'chess', 'uno', 'pool'] as GameType[]).map((gameType) => (
             <button
               key={gameType}
               onClick={() => setSelectedGameType(gameType)}
@@ -152,72 +156,92 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
           ))}
         </div>
 
-        {/* Player Stats Cards */}
-        {playerStats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 flex flex-col h-full">
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Total Games
-                </h3>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-accent">{playerStats.totalGames}</div>
-                <p className="text-sm text-white/70">
-                  {playerStats.wins} wins, {playerStats.losses} losses
-                </p>
-              </div>
+        {/* Player Stats Section */}
+        {account && (
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+              <h2 className="text-2xl font-bold text-white">Your Stats</h2>
+              <Button 
+                onClick={() => onNavigate('profile')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold"
+              >
+                View Detailed Stats
+              </Button>
             </div>
-
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-2">
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Win Rate
-                </h3>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-accent">{playerStats.winRate.toFixed(1)}%</div>
-                <p className="text-sm text-white/70">
-                  Current streak: {playerStats.currentWinStreak}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-2">
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Avg Game Time
-                </h3>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-accent">{formatDuration(Math.round(playerStats.averageGameDuration))}</div>
-                <p className="text-sm text-white/70">
-                  Longest streak: {playerStats.longestWinStreak}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 flex flex-col overflow-y-auto min-w-0">
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <Trophy className="h-5 w-5" />
-                  Best Game
-                </h3>
-              </div>
-              <div>
-                <div className="text-lg font-bold text-accent">
-                  Chess: {playerStats.gamesPerType.chess.wins}/{playerStats.gamesPerType.chess.games}
+            
+            {playerStats ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 flex flex-col h-full">
+                  <div className="mb-2">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Total Games
+                    </h3>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-accent">{playerStats.totalGames}</div>
+                    <p className="text-sm text-white/70">
+                      {playerStats.wins} wins, {playerStats.losses} losses
+                    </p>
+                  </div>
                 </div>
-                <div className="text-lg font-bold text-accent">
-                  UNO: {playerStats.gamesPerType.uno.wins}/{playerStats.gamesPerType.uno.games}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
+                <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+                   <div className="mb-2">
+                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                       <TrendingUp className="h-4 w-4" />
+                       Win Rate
+                     </h3>
+                   </div>
+                   <div>
+                     <div className="text-2xl font-bold text-accent">{playerStats.winRate.toFixed(1)}%</div>
+                     <p className="text-sm text-white/70">
+                       Current streak: {playerStats.currentWinStreak}
+                     </p>
+                   </div>
+                 </div>
+
+                 <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
+                   <div className="mb-2">
+                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                       <Clock className="h-4 w-4" />
+                       Avg Game Time
+                     </h3>
+                   </div>
+                   <div>
+                     <div className="text-2xl font-bold text-accent">{formatDuration(Math.round(playerStats.averageGameDuration))}</div>
+                     <p className="text-sm text-white/70">
+                       Longest streak: {playerStats.longestWinStreak}
+                     </p>
+                   </div>
+                 </div>
+
+                 <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 flex flex-col overflow-y-auto min-w-0">
+                   <div className="mb-2">
+                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                       <Trophy className="h-4 w-4" />
+                       Game Stats
+                     </h3>
+                   </div>
+                   <div className="space-y-1">
+                     <div className="text-sm font-bold text-accent">
+                       Chess: {playerStats.gamesPerType.chess.wins}/{playerStats.gamesPerType.chess.games}
+                     </div>
+                     <div className="text-sm font-bold text-accent">
+                       UNO: {playerStats.gamesPerType.uno.wins}/{playerStats.gamesPerType.uno.games}
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             ) : (
+               <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-6 text-center">
+                 <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                 <p className="text-lg text-white/70">No game statistics available</p>
+                 <p className="text-sm text-white/50">Play some games to see your stats here!</p>
+               </div>
+             )}
+           </div>
+         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full overflow-hidden">
           {/* Leaderboard */}
@@ -446,7 +470,7 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay, onGamblePlay, onSimpleGamblePl
 
 interface Lobby {
   id: string;
-  gameType: 'chess' | 'uno';
+  gameType: 'chess' | 'uno' | 'pool';
   player1Id: string;
   player1Name: string;
   player2Id?: string;
@@ -468,7 +492,10 @@ export default function HomePage() {
   const [isUnoHost, setIsUnoHost] = useState(false);
   const [simpleGambleGame, setSimpleGambleGame] = useState<SimpleGambleGame | null>(null);
   const [isSimpleGambleHost, setIsSimpleGambleHost] = useState(false);
+  const [poolLobby, setPoolLobby] = useState<Lobby | null>(null);
+  const [isPoolHost, setIsPoolHost] = useState(false);
   const [showChessGameLog, setShowChessGameLog] = useState(false);
+  const [endGameData, setEndGameData] = useState<{ game: GameType; didWin: boolean; lobby: Lobby | null } | null>(null);
   const isMobile = useIsMobile();
 
   const handleMintArc = async () => {
@@ -535,8 +562,9 @@ export default function HomePage() {
     setActiveView(view);
   };
   
-  const handleGameEnd = useCallback(() => {
-    setActiveView('menu');
+  const handleGameEnd = useCallback((gameType: GameType, didWin: boolean) => {
+    setEndGameData({ game: gameType, didWin, lobby: null });
+    setActiveView(`${gameType}-end-game`);
   }, []);
 
   const handleChessMultiplayerStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -546,11 +574,12 @@ export default function HomePage() {
     setActiveView('chess-multiplayer-game');
   }, []);
 
-  const handleChessMultiplayerEnd = useCallback(() => {
+  const handleChessMultiplayerEnd = useCallback((lobby: Lobby, didWin: boolean) => {
     console.log('🏁 [MAIN PAGE] Chess multiplayer game ended');
     setChessLobby(null);
     setIsChessHost(false);
-    setActiveView('menu');
+    setEndGameData({ game: 'chess', didWin, lobby });
+    setActiveView('chess-end-game');
   }, []);
 
   const handleUnoMultiplayerStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -560,11 +589,12 @@ export default function HomePage() {
     setActiveView('uno-multiplayer-game');
   }, []);
 
-  const handleUnoMultiplayerEnd = useCallback(() => {
+  const handleUnoMultiplayerEnd = useCallback((lobby: Lobby, didWin: boolean) => {
     console.log('🏁 [MAIN PAGE] UNO multiplayer game ended');
     setUnoLobby(null);
     setIsUnoHost(false);
-    setActiveView('menu');
+    setEndGameData({ game: 'uno', didWin, lobby });
+    setActiveView('uno-end-game');
   }, []);
 
   const handleUnoGambleStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -574,11 +604,12 @@ export default function HomePage() {
     setActiveView('uno-gamble-game');
   }, []);
 
-  const handleUnoGambleEnd = useCallback(() => {
+  const handleUnoGambleEnd = useCallback((lobby: Lobby, didWin: boolean) => {
     console.log('🏁 [MAIN PAGE] UNO gamble game ended');
     setUnoLobby(null);
     setIsUnoHost(false);
-    setActiveView('menu');
+    setEndGameData({ game: 'uno', didWin, lobby });
+    setActiveView('uno-end-game');
   }, []);
 
   const handleSimpleGambleStart = useCallback((game: SimpleGambleGame, isHost: boolean) => {
@@ -588,11 +619,42 @@ export default function HomePage() {
     setActiveView('uno-simple-gamble-game');
   }, []);
 
-  const handleSimpleGambleEnd = useCallback(() => {
+  const handleSimpleGambleEnd = useCallback((game: SimpleGambleGame, didWin: boolean) => {
     console.log('🏁 [MAIN PAGE] Simple gamble game ended');
     setSimpleGambleGame(null);
     setIsSimpleGambleHost(false);
-    setActiveView('menu');
+    setEndGameData({ game: 'uno', didWin, game });
+    setActiveView('uno-end-game');
+  }, []);
+
+  const handlePoolMultiplayerStart = useCallback(() => {
+    console.log('🎮 [MAIN PAGE] Navigating to pool multiplayer lobby');
+    setActiveView('pool-multiplayer');
+  }, []);
+
+  const handlePoolMultiplayerGameStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] Pool multiplayer game starting:', { lobby, isHost });
+    setPoolLobby(lobby);
+    setIsPoolHost(isHost);
+    setActiveView('pool-multiplayer-game');
+  }, []);
+
+  const handlePoolSinglePlayerStart = useCallback(() => {
+    setActiveView('pool-singleplayer-game');
+  }, []);
+
+  const handlePoolMultiplayerEnd = useCallback((lobby: Lobby, didWin: boolean) => {
+    console.log('🏁 [MAIN PAGE] Pool multiplayer game ended');
+    setPoolLobby(null);
+    setIsPoolHost(false);
+    setEndGameData({ game: 'pool', didWin, lobby });
+    setActiveView('pool-end-game');
+  }, []);
+
+  const handlePoolSinglePlayerEnd = useCallback((didWin: boolean) => {
+    console.log('🏁 [MAIN PAGE] Pool single player game ended');
+    setEndGameData({ game: 'pool', didWin, lobby: null });
+    setActiveView('pool-end-game');
   }, []);
 
   const getSidebarTheme = () => {
@@ -609,6 +671,12 @@ export default function HomePage() {
         return 'uno';
       case 'snake':
         return 'snake';
+      case 'pool':
+      case 'pool-multiplayer':
+      case 'pool-multiplayer-game':
+      case 'pool-singleplayer':
+      case 'pool-singleplayer-game':
+        return 'pool';
       case 'shop':
         return 'shop';
       default:
@@ -619,15 +687,37 @@ export default function HomePage() {
   const renderContent = () => {
     switch (activeView) {
       case 'uno':
-        return <UnoClient key={gameKey} onGameEnd={handleGameEnd} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} />;
+        return <UnoClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('uno', didWin)} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} />;
+      case 'pool':
+        return <PoolStartScreen key={gameKey} onStartGame={handlePoolSinglePlayerStart} onStartMultiplayer={handlePoolMultiplayerStart} onGoToMenu={() => handleNavigate('menu')} />;
+      case 'pool-multiplayer-game':
+        return poolLobby ? (
+          <div className="w-full h-full">
+            <PoolClient
+              lobby={poolLobby}
+              isHost={isPoolHost}
+              onGameEnd={handlePoolMultiplayerEnd}
+            />
+          </div>
+        ) : null;
+      case 'pool-singleplayer-game':
+        return (
+          <div className="w-full h-full">
+            <PoolClient
+              lobby={null}
+              isHost={true}
+              onGameEnd={handlePoolSinglePlayerEnd}
+            />
+          </div>
+        );
       case 'pay-uno':
         
       case 'shop':
          return <ShopContent onBack={() => handleNavigate('menu')} />;
       case 'snake':
-        return <SnakeClient key={gameKey} />;
+        return <SnakeClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('snake', didWin)} />;
       case 'chess':
-        return <ChessClient key={gameKey} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} />;
+        return <ChessClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('chess', didWin)} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} />;
       case 'uno-multiplayer':
         return (
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
@@ -690,12 +780,32 @@ export default function HomePage() {
             />
           </div>
         ) : null;
+      case 'uno-end-game':
+        return endGameData ? (
+          <UnoEndGameScreen
+            gameType={endGameData.game}
+            didWin={endGameData.didWin}
+            lobby={endGameData.lobby}
+            onPlayAgain={() => handleNavigate(endGameData.game === 'uno' ? 'uno' : 'menu')}
+            onBackToMenu={() => handleNavigate('menu')}
+          />
+        ) : null;
       case 'chess-multiplayer':
         return (
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
             <MultiplayerLobby
               gameType="chess"
               onStartGame={handleChessMultiplayerStart}
+              onBackToMenu={() => handleNavigate('menu')}
+            />
+          </div>
+        );
+      case 'pool-multiplayer':
+        return (
+          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
+            <MultiplayerLobby
+              gameType="pool"
+              onStartGame={handlePoolMultiplayerGameStart}
               onBackToMenu={() => handleNavigate('menu')}
             />
           </div>
@@ -712,6 +822,26 @@ export default function HomePage() {
             />
           </div>
         ) : null;
+      case 'chess-end-game':
+        return endGameData ? (
+          <ChessEndGameScreen
+            gameType={endGameData.game}
+            didWin={endGameData.didWin}
+            lobby={endGameData.lobby}
+            onPlayAgain={() => handleNavigate(endGameData.game === 'chess' ? 'chess' : 'menu')}
+            onBackToMenu={() => handleNavigate('menu')}
+          />
+        ) : null;
+      case 'pool-end-game':
+        return endGameData ? (
+          <PoolEndGameScreen
+            gameType={endGameData.game}
+            didWin={endGameData.didWin}
+            lobby={endGameData.lobby}
+            onPlayAgain={() => handleNavigate(endGameData.game === 'pool' ? 'pool' : 'menu')}
+            onBackToMenu={() => handleNavigate('menu')}
+          />
+        ) : null;
       case 'leaderboard':
         return <LeaderboardContent onBack={() => handleNavigate('menu')} onNavigate={handleNavigate} />;
       case 'settings':
@@ -720,6 +850,8 @@ export default function HomePage() {
         return <TokenomicsContent onBack={() => handleNavigate('menu')} />;
        case 'profile':
         return <ProfileContent onBack={() => handleNavigate('menu')} />;
+      case 'docs':
+        return <DocsPage onBack={() => handleNavigate('menu')} />;
       case 'menu':
       default:
         return (
@@ -785,12 +917,39 @@ export default function HomePage() {
                        <div className="pt-0 sm:pt-1">
                              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-yellow-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
                         </div>
-                        <img src="/shop_icon.png" alt="Shop" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto" />
+                        <div className="relative">
+                           <img src="/shop_icon.png" alt="Shop" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
+                                   COMING SOON
+                               </div>
+                           </div>
+                         </div>
 
                         <Button onClick={() => handleNavigate('shop')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                             Visit
                           </Button>
                           </div>
+                    </div>
+
+                  <div className="animate-fade-in text-center">
+                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
+                       <div className="pt-0 sm:pt-1">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>POOL</h1>
+                        </div>
+                        <div className="relative">
+                           <img src="/pool_icon.png" alt="POOL Game" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
+                                   COMING SOON
+                               </div>
+                           </div>
+                         </div>
+
+                        <Button onClick={() => handleNavigate('pool')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
+                            Play
+                          </Button>
+                         </div>
                     </div>
 
                   <div className="animate-fade-in text-center">
@@ -832,18 +991,7 @@ export default function HomePage() {
                           </div>
                      </div>
 
-                  <div className="animate-fade-in text-center">
-                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg hover:from-red-500 hover:to-red-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
-                        <div className="pt-0 sm:pt-1">
-                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-gray-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SETTINGS</h1>
-                         </div>
-                         <img src="/settings_icon.png" alt="Settings" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1 flex items-center justify-center" />
- 
-                         <Button onClick={() => handleNavigate('settings')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl shadow-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
-                             Open
-                           </Button>
-                          </div>
-                     </div>
+
 
                 </div>
               </div>

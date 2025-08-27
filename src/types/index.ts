@@ -27,6 +27,43 @@ export interface UnoGameState {
   gameLog: string[];
 }
 
+export type BallType = 'solid' | 'stripe' | '8-ball' | 'cue';
+
+export interface PoolBall {
+  id: number;
+  type: BallType;
+  color: string;
+  position: { x: number; y: number; };
+  isInPocket: boolean;
+}
+
+export interface PoolPlayer {
+  id: string;
+  name: string;
+  score: number;
+  ballType: 'solid' | 'stripe' | null;
+  isTurn: boolean;
+}
+
+export interface PoolGameState {
+  players: PoolPlayer[];
+  balls: PoolBall[];
+  activePlayerId: string;
+  turn: number;
+  gameLog: string[];
+  winner: string | null;
+  isGameStarted: boolean;
+  isGameEnded: boolean;
+  cueBallPosition: { x: number; y: number; };
+  cueBallInHand: boolean;
+  lastPocketedBall: PoolBall | null;
+  foul: boolean;
+  scratchOn8Ball: boolean;
+  player1Balls: number[]; // IDs of balls assigned to player 1
+  player2Balls: number[]; // IDs of balls assigned to player 2
+  firstBallPocketed: boolean; // To track if a player has pocketed their first ball to determine ball type
+}
+
 export type BackgroundSetting = "random" | "mountains" | "city" | "desert" | "beach" | "dojo" | "volcano";
 
 export const DERP_ADDRESS = '0x8500d84b203775fc8b418148223872b35c43b050';

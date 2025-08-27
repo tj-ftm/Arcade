@@ -9,6 +9,11 @@ import {
   getAllGameLogs,
   getGameStats 
 } from '@/lib/game-database';
+import { 
+  storeMintLog, 
+  getMintStats,
+  getAllMintLogs 
+} from '@/lib/mint-database';
 
 // Environment variables
 const MINTER_PRIVATE_KEY = process.env.MINTER_PRIVATE_KEY;
@@ -204,9 +209,27 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
       const amountToMint = ethers.parseUnits(tokensToMint.toString(), 18);
       
       const mintTx = await tokenContract.mintTo(storedLog.playerAddress, amountToMint);
-      await mintTx.wait();
+      const receipt = await mintTx.wait();
       mintTxHash = mintTx.hash;
       console.log('Token(s) minted successfully. Transaction:', mintTxHash);
+      
+      // Log the mint to the mint database
+      try {
+        const mintLog = storeMintLog({
+          timestamp: storedLog.timestamp || new Date().toISOString(),
+          playerAddress: storedLog.playerAddress,
+          gameType: storedLog.gameType,
+          gameId: storedLog.gameId,
+          amount: amountToMint.toString(), // Amount in wei
+          amountFormatted: tokensToMint.toString(), // Amount in ARC tokens
+          txHash: mintTxHash,
+          blockNumber: receipt?.blockNumber
+        });
+        console.log('Mint logged successfully:', mintLog.id);
+      } catch (mintLogError: any) {
+        console.error('Failed to log mint:', mintLogError);
+        // Don't fail the entire operation if mint logging fails
+      }
     } catch (error: any) {
       console.error('Failed to mint tokens:', error);
       // Continue execution even if minting fails, but log the error
@@ -236,16 +259,23 @@ export async function GET(req: NextRequest) {
 
   try {
     const allLogs = getAllGameLogs();
+    const gameStats = getGameStats();
+    const allMints = getAllMintLogs();
+    const mintStats = getMintStats();
+    
     return NextResponse.json({
       gameLogs: allLogs,
       totalGames: allLogs.length,
-      message: 'Game logs retrieved successfully'
+      gameStats: gameStats,
+      mintLogs: allMints,
+      mintStats: mintStats,
+      message: 'Game logs and mint data retrieved successfully'
     });
 
   } catch (error: any) {
-    console.error('Error reading game logs:', error);
+    console.error('Error reading game logs and mint data:', error);
     return NextResponse.json({ 
-      error: 'Failed to read game logs', 
+      error: 'Failed to read game logs and mint data', 
       details: error.message 
     }, { status: 500 });
   }

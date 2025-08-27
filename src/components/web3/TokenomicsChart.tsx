@@ -81,12 +81,37 @@ interface TokenomicsChartProps {
   onBack?: () => void;
 }
 
+interface GameMintLog {
+  id: string;
+  timestamp: string;
+  playerAddress: string;
+  gameType: string;
+  gameId?: string;
+  amount: number;
+  amountFormatted: string;
+  txHash: string;
+  blockNumber?: number;
+  verified: boolean;
+  createdAt: string;
+}
+
+interface MintStats {
+  totalMints: number;
+  totalAmountMinted: string;
+  mintsByGameType: Record<string, { count: number; amount: string }>;
+  mintsByPlayer: Record<string, { count: number; amount: string }>;
+  verifiedMints: number;
+}
+
 const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
   const [totalSupply, setTotalSupply] = useState<string | null>(null);
   const [mintEvents, setMintEvents] = useState<MintEvent[]>([]);
   const [chartData, setChartData] = useState<{ date: string; minted: number }[]>([]);
+  const [gameMintLogs, setGameMintLogs] = useState<GameMintLog[]>([]);
+  const [mintStats, setMintStats] = useState<MintStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [mintLogsLoading, setMintLogsLoading] = useState<boolean>(true);
 
   const getProvider = useCallback(() => {
     if (typeof window !== "undefined" && window.ethereum) {
@@ -109,6 +134,26 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
       }
     }
     return null;
+  }, []);
+
+  const fetchGameMintLogs = useCallback(async () => {
+    setMintLogsLoading(true);
+    try {
+      const response = await fetch('/api/game-complete');
+      if (!response.ok) {
+        throw new Error('Failed to fetch game mint logs');
+      }
+      
+      const data = await response.json();
+      setGameMintLogs(data.mintLogs || []);
+      setMintStats(data.mintStats || null);
+      console.log('Game mint logs fetched:', data.mintLogs?.length || 0);
+    } catch (error: any) {
+      console.error('Error fetching game mint logs:', error);
+      // Don't set error state for mint logs as it's secondary data
+    } finally {
+      setMintLogsLoading(false);
+    }
   }, []);
 
   const fetchTokenData = useCallback(async () => {
@@ -244,7 +289,8 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
 
   useEffect(() => {
     fetchTokenData();
-  }, [fetchTokenData]);
+    fetchGameMintLogs();
+  }, [fetchTokenData, fetchGameMintLogs]);
 
   return (
     <div className="w-full h-full flex flex-col z-10 animate-fade-in overflow-y-auto">
@@ -255,7 +301,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
       </div>
       
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
         <CardHeader>
           <CardTitle className="text-accent">Current Total Supply</CardTitle>
@@ -311,6 +357,94 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
         </CardContent>
       </Card>
 
+      {/* Game Mint Logs Card */}
+      <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-accent">Game Mint History</CardTitle>
+        </CardHeader>
+        <CardContent className="min-h-[300px]">
+          {mintLogsLoading ? (
+            <div className="flex items-center justify-center h-[300px]">
+              <p className="text-gray-400">Loading mint logs...</p>
+            </div>
+          ) : gameMintLogs.length > 0 ? (
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {gameMintLogs.slice(0, 20).map((mint) => (
+                  <div key={mint.id} className="bg-black/30 rounded-lg p-3 border border-gray-600">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-green-400">
+                            +{mint.amountFormatted} ARC
+                          </span>
+                          <span className="text-xs bg-blue-600 px-2 py-1 rounded uppercase">
+                            {mint.gameType}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Player: {mint.playerAddress.slice(0, 6)}...{mint.playerAddress.slice(-4)}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {new Date(mint.timestamp).toLocaleDateString()} {new Date(mint.timestamp).toLocaleTimeString()}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <a 
+                          href={`https://sonicscan.org/tx/${mint.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-400 hover:text-blue-300 underline"
+                        >
+                          View TX
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {gameMintLogs.length > 20 && (
+                  <div className="text-center text-sm text-gray-400 mt-4">
+                    Showing latest 20 of {gameMintLogs.length} total mints
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="flex items-center justify-center h-[300px]">
+              <p className="text-gray-400">No game mint logs available</p>
+            </div>
+          )}
+          
+          {/* Mint Statistics */}
+          {mintStats && (
+            <div className="mt-4 pt-4 border-t border-gray-600">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-400">Total Mints:</span>
+                  <span className="ml-2 text-white font-semibold">{mintStats.totalMints}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Total Amount:</span>
+                  <span className="ml-2 text-green-400 font-semibold">{mintStats.totalAmountMinted} ARC</span>
+                </div>
+              </div>
+              
+              {/* Game Type Breakdown */}
+              <div className="mt-3">
+                <div className="text-xs text-gray-400 mb-2">By Game Type:</div>
+                <div className="space-y-1">
+                  {Object.entries(mintStats.mintsByGameType).map(([gameType, stats]) => (
+                    <div key={gameType} className="flex justify-between text-xs">
+                      <span className="text-gray-300 capitalize">{gameType}:</span>
+                      <span className="text-green-400">{stats.count} mints ({stats.amount} ARC)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
         </div>
       </div>

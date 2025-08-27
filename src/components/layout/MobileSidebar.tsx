@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Settings, BarChart, Ticket, Coins, FileText } from "lucide-react";
+import { Menu, X, Settings, BarChart, Ticket, Coins, FileText, BookOpen } from "lucide-react";
 import { ConnectWallet } from '@/components/web3/ConnectWallet';
 import { cn } from '@/lib/utils';
 
 interface MobileSidebarProps {
-  onNavigate: (view: 'leaderboard' | 'settings' | 'tokenomics') => void;
+  onNavigate: (view: 'leaderboard' | 'settings' | 'tokenomics' | 'docs') => void;
   theme?: string;
   onShowGameLog?: () => void;
   showGameLogButton?: boolean;
@@ -19,7 +19,7 @@ export function MobileSidebar({ onNavigate, theme, onShowGameLog, showGameLogBut
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
 
-  const handleNavigation = (view: 'leaderboard' | 'settings' | 'tokenomics') => {
+  const handleNavigation = (view: 'leaderboard' | 'settings' | 'tokenomics' | 'docs') => {
     onNavigate(view);
     closeSidebar();
   };
@@ -133,6 +133,16 @@ export function MobileSidebar({ onNavigate, theme, onShowGameLog, showGameLogBut
             >
               <Coins className="mr-3 h-5 w-5" />
               Tokenomics
+            </Button>
+
+            {/* Documentation */}
+            <Button
+              onClick={() => handleNavigation('docs')}
+              variant="ghost"
+              className="w-full justify-start text-lg h-12 text-white font-headline border border-white/40 hover:border-white/60 transition-all duration-200 pl-2"
+            >
+              <BookOpen className="mr-3 h-5 w-5" />
+              Documentation
             </Button>
 
             {/* Settings */}

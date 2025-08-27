@@ -10,7 +10,7 @@ import { useWeb3 } from '@/components/web3/Web3Provider';
 
 interface Lobby {
   id: string;
-  gameType: 'chess' | 'uno';
+  gameType: 'chess' | 'uno' | 'pool';
   player1Id: string;
   player1Name: string;
   player2Id?: string;
@@ -20,7 +20,7 @@ interface Lobby {
 }
 
 interface CreateLobbyProps {
-  gameType: 'chess' | 'uno';
+  gameType: 'chess' | 'uno' | 'pool';
   onLobbyCreated?: (lobby: Lobby) => void;
   onGameStart?: (lobby: Lobby, isHost: boolean) => void;
   onBackToMenu?: () => void;
