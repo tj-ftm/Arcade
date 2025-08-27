@@ -138,7 +138,6 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [turnMessage, setTurnMessage] = useState<string | null>(null);
   
-  const { account, username } = useWeb3();
   const currentUserId = account || `guest-${Date.now()}`;
   
   const { sendGameMove, onGameMove, leaveLobby, onLobbyJoined, setupGameMovesListener, endGame } = useFirebaseMultiplayer();

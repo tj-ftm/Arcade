@@ -38,6 +38,8 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const [isJoining, setIsJoining] = useState(false);
   const [filteredLobbies, setFilteredLobbies] = useState<Lobby[]>([]);
   const [gameStarting, setGameStarting] = useState(false);
+  const [loadingStep, setLoadingStep] = useState('');
+  const [loadingProgress, setLoadingProgress] = useState(0);
   
   const { createService, account, isConnected } = useGameBetting();
   const { username, arcBalance } = useWeb3();
@@ -99,20 +101,28 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     }
 
     setIsCreating(true);
+    setLoadingStep('Initializing betting service...');
+    setLoadingProgress(10);
     
     try {
       // Create betting service
       const service = await createService();
+      setLoadingStep('Checking token allowance...');
+      setLoadingProgress(25);
       
       // Check allowance and approve if needed
       const hasAllowance = await service.checkAllowance(account, betAmount);
       if (!hasAllowance) {
+        setLoadingStep('Requesting token approval...');
+        setLoadingProgress(40);
         toast({
           title: "Approving Tokens",
           description: "Please approve the transaction to allow betting with ARC tokens."
         });
         
         const approveTx = await service.approveTokens(betAmount);
+        setLoadingStep('Waiting for approval confirmation...');
+        setLoadingProgress(55);
         await approveTx.wait();
         
         toast({
@@ -121,12 +131,21 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
         });
       }
       
+      setLoadingStep('Creating lobby...');
+      setLoadingProgress(70);
       // Create Firebase lobby with betting info
       const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, betAmount);
       
+      setLoadingStep('Creating blockchain bet...');
+      setLoadingProgress(85);
       // Create blockchain bet
       const createBetTx = await service.createBet(betAmount, gameType, lobby.id);
+      setLoadingStep('Confirming bet transaction...');
+      setLoadingProgress(95);
       await createBetTx.wait();
+      
+      setLoadingStep('Lobby created successfully!');
+      setLoadingProgress(100);
       
       toast({
         title: "Betting Lobby Created",
@@ -145,6 +164,8 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       });
     } finally {
       setIsCreating(false);
+      setLoadingStep('');
+      setLoadingProgress(0);
     }
   };
 
@@ -169,29 +190,46 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     }
 
     setIsJoining(true);
+    setLoadingStep('Initializing betting service...');
+    setLoadingProgress(15);
     
     try {
       // Create betting service
       const service = await createService();
+      setLoadingStep('Checking token allowance...');
+      setLoadingProgress(30);
       
       // Check allowance and approve if needed
       const hasAllowance = await service.checkAllowance(account, lobby.betAmount || '0');
       if (!hasAllowance) {
+        setLoadingStep('Requesting token approval...');
+        setLoadingProgress(45);
         toast({
           title: "Approving Tokens",
           description: "Please approve the transaction to join this betting lobby."
         });
         
         const approveTx = await service.approveTokens(lobby.betAmount || '0');
+        setLoadingStep('Waiting for approval confirmation...');
+        setLoadingProgress(60);
         await approveTx.wait();
       }
       
+      setLoadingStep('Joining blockchain bet...');
+      setLoadingProgress(75);
       // Join blockchain bet
       const joinBetTx = await service.joinBet(lobby.id);
+      setLoadingStep('Confirming bet transaction...');
+      setLoadingProgress(90);
       await joinBetTx.wait();
       
+      setLoadingStep('Joining lobby...');
+      setLoadingProgress(95);
       // Join Firebase lobby
       await joinBettingLobby(lobby.id, currentUserName, currentUserId);
+      
+      setLoadingStep('Successfully joined!');
+      setLoadingProgress(100);
       
       toast({
         title: "Joined Betting Lobby",
@@ -207,6 +245,8 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       });
     } finally {
       setIsJoining(false);
+      setLoadingStep('');
+      setLoadingProgress(0);
     }
   };
 
@@ -343,6 +383,23 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                           </p>
                         </div>
                         
+                        {isCreating && (
+                          <div className="mb-4 p-4 bg-black/30 rounded-lg border border-white/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
+                              <span className="text-white font-medium">Creating Betting Lobby</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                              <div 
+                                className="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${loadingProgress}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-sm text-gray-300">{loadingStep}</p>
+                            <p className="text-xs text-gray-400 mt-1">{loadingProgress}% complete</p>
+                          </div>
+                        )}
+                        
                         <Button
                           onClick={handleCreateBettingLobby}
                           disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(betAmount) > parseFloat(arcBalance || '0')}
@@ -351,7 +408,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                           {isCreating ? (
                             <>
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Creating Bet...
+                              Creating...
                             </>
                           ) : (
                             <>
@@ -411,23 +468,40 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                             Connect to Join
                           </Button>
                         ) : (
-                          <Button
-                            onClick={() => handleJoinBettingLobby(lobby)}
-                            disabled={isJoining || lobby.player1Id === currentUserId}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            {isJoining ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Joining...
-                              </>
-                            ) : (
-                              <>
-                                <Users className="w-4 h-4 mr-2" />
-                                Join Bet
-                              </>
-                            )}
-                          </Button>
+                          <div className="flex flex-col items-end gap-2">
+                            {isJoining && (
+                              <div className="p-3 bg-black/30 rounded-lg border border-white/20 min-w-[200px]">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                                  <span className="text-white text-sm font-medium">Joining Bet</span>
+                                </div>
+                                <div className="w-full bg-gray-700 rounded-full h-1.5 mb-1">
+                                  <div 
+                                    className="bg-gradient-to-r from-blue-500 to-blue-400 h-1.5 rounded-full transition-all duration-300"
+                                    style={{ width: `${loadingProgress}%` }}
+                                  ></div>
+                                </div>
+                                <p className="text-xs text-gray-300">{loadingStep}</p>
+                              </div>
+                             )}
+                             <Button
+                               onClick={() => handleJoinBettingLobby(lobby)}
+                               disabled={isJoining || lobby.player1Id === currentUserId}
+                               className="bg-blue-600 hover:bg-blue-700"
+                             >
+                               {isJoining ? (
+                                 <>
+                                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                   Joining...
+                                 </>
+                               ) : (
+                                 <>
+                                   <Users className="w-4 h-4 mr-2" />
+                                   Join Bet
+                                 </>
+                               )}
+                             </Button>
+                           </div>
                         )}
                       </div>
                     </div>
