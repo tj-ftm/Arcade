@@ -495,13 +495,15 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         if (newCurrentPlayer.hand.length === 0) {
             newGameState.winner = currentPlayer.name;
             newGameState.gameLog.push(`${currentPlayer.name} wins!`);
-            // Check if the current user (account) is the winner
-            setHasWon(currentPlayer.id === account);
+            // Check if the current user is the winner based on their position in the lobby
+            const currentUserIsWinner = (isHost && currentPlayer.id === 'player1') || (!isHost && currentPlayer.id === 'player2');
+            setHasWon(currentUserIsWinner);
             console.log('🏆 [UNO MULTIPLAYER] Winner determined:', {
                 winnerId: currentPlayer.id,
                 winnerName: currentPlayer.name,
-                currentAccount: account,
-                hasWon: currentPlayer.id === account
+                isHost: isHost,
+                currentUserIsWinner: currentUserIsWinner,
+                currentAccount: account
             });
             
             // Record game result in Firebase

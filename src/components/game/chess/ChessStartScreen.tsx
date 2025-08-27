@@ -1,13 +1,14 @@
 import { Button } from '@/components/ui/button';
-import { Play, Users } from 'lucide-react';
+import { Play, Users, Coins } from 'lucide-react';
 
 interface ChessStartScreenProps {
   onStartGame: () => void;
   onStartMultiplayer?: () => void;
   onStartBonusMode: () => void;
+  onNavigateToBetting?: () => void;
 }
 
-export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonusMode }: ChessStartScreenProps) => {
+export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonusMode, onNavigateToBetting }: ChessStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
@@ -35,6 +36,16 @@ export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonus
           >
             <Users className="mr-4 h-8 w-8" />
             Multiplayer
+          </Button>
+        )}
+        {onNavigateToBetting && (
+          <Button 
+            size="lg" 
+            onClick={onNavigateToBetting}
+            className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white border-2 border-yellow-400/30 shadow-lg"
+          >
+            <Coins className="mr-4 h-8 w-8" />
+            Bet Mode
           </Button>
         )}
         <Button 

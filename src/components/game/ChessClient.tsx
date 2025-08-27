@@ -52,10 +52,11 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
 
 interface ChessClientProps {
   onNavigateToMultiplayer?: () => void;
+  onNavigateToBetting?: () => void;
   onGameEnd?: () => void;
 }
 
-export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientProps = {}) => {
+export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGameEnd }: ChessClientProps = {}) => {
     const { account, getProvider, getSigner } = useWeb3();
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
@@ -422,9 +423,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
             {showStartScreen && (
                 <ChessStartScreen 
                     onStartGame={() => { handleNewGame(false); setShowStartScreen(false); }} 
-                    onGoToMenu={() => setShowStartScreen(true)}
-                    onStartMultiplayer={handleStartMultiplayer}
-                    onStartBetting={handleStartBonusMode}
+                    onStartMultiplayer={onNavigateToMultiplayer}
+                    onStartBonusMode={handleStartBonusMode}
+                    onNavigateToBetting={onNavigateToBetting}
                 />
             )}
 

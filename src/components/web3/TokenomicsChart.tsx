@@ -297,6 +297,34 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
       {/* Title and Back Button */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-20 pb-8">
         <h1 className="text-4xl sm:text-6xl font-headline text-center uppercase tracking-wider mb-6 text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Tokenomics</h1>
+        
+        {/* ARC Contract Address */}
+        <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 mb-6 border border-orange-300/20">
+          <div className="text-center">
+            <p className="text-sm text-gray-400 mb-2">ARC Token Contract Address</p>
+            <div className="flex items-center justify-center gap-2">
+              <code className="bg-black/30 px-3 py-1 rounded text-orange-300 font-mono text-sm">
+                {ARC_TOKEN_ADDRESS}
+              </code>
+              <button
+                onClick={() => navigator.clipboard.writeText(ARC_TOKEN_ADDRESS)}
+                className="text-xs bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded transition-colors"
+                title="Copy to clipboard"
+              >
+                Copy
+              </button>
+              <a
+                href={`https://sonicscan.org/token/${ARC_TOKEN_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded transition-colors"
+                title="View on SonicScan"
+              >
+                View on Explorer
+              </a>
+            </div>
+          </div>
+        </div>
 
       </div>
       

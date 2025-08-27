@@ -36,12 +36,11 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const [betAmount, setBetAmount] = useState('10');
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [arcBalance, setArcBalance] = useState('0');
   const [bettingLobbies, setBettingLobbies] = useState<Lobby[]>([]);
   const [gameStarting, setGameStarting] = useState(false);
   
   const { createService, account, isConnected } = useGameBetting();
-  const { username } = useWeb3();
+  const { username, arcBalance } = useWeb3();
   const { toast } = useToast();
   const { createLobby, joinLobby, lobbies, onLobbyJoined, startGame } = useFirebaseMultiplayer();
   
@@ -56,22 +55,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     setBettingLobbies(bettingLobbiesForGame);
   }, [lobbies, gameType]);
 
-  // Get ARC balance
-  useEffect(() => {
-    const getBalance = async () => {
-      if (!isConnected || !account) return;
-      
-      try {
-        const service = await createService();
-        const balance = await service.getArcBalance(account);
-        setArcBalance(balance);
-      } catch (error) {
-        console.error('Error getting ARC balance:', error);
-      }
-    };
-    
-    getBalance();
-  }, [isConnected, account, createService]);
+  // ARC balance is now fetched from Web3Provider context
 
   // Handle lobby joined
   useEffect(() => {
@@ -105,7 +89,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       return;
     }
 
-    if (parseFloat(arcBalance) < betAmountNum) {
+    if (parseFloat(arcBalance || '0') < betAmountNum) {
       toast({
         title: "Insufficient Balance",
         description: `You need at least ${betAmount} ARC tokens to create this bet.`,
@@ -178,7 +162,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     }
 
     const betAmountNum = parseFloat(lobby.betAmount || '0');
-    if (parseFloat(arcBalance) < betAmountNum) {
+    if (parseFloat(arcBalance || '0') < betAmountNum) {
       toast({
         title: "Insufficient Balance",
         description: `You need at least ${lobby.betAmount} ARC tokens to join this bet.`,
@@ -296,7 +280,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
           <div className="flex justify-center items-center gap-4 mb-4">
             <div className="text-center">
               <p className="text-sm text-white/70">Your Balance</p>
-              <p className={`text-xl font-bold ${themeColors.accent}`}>{parseFloat(arcBalance).toFixed(2)} ARC</p>
+              <p className={`text-xl font-bold ${themeColors.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
             </div>
           </div>
         </div>
@@ -354,17 +338,17 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                             onChange={(e) => setBetAmount(e.target.value)}
                             placeholder="Enter bet amount"
                             min="1"
-                            max={arcBalance}
+                            max={arcBalance || '0'}
                             className="bg-black/20 border-white/20 text-white"
                           />
                           <p className="text-sm text-gray-400 mt-1">
-                            Available: {parseFloat(arcBalance).toFixed(2)} ARC
+                            Available: {parseFloat(arcBalance || '0').toFixed(2)} ARC
                           </p>
                         </div>
                         
                         <Button
                           onClick={handleCreateBettingLobby}
-                          disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(betAmount) > parseFloat(arcBalance)}
+                          disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(betAmount) > parseFloat(arcBalance || '0')}
                           className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500"
                         >
                           {isCreating ? (

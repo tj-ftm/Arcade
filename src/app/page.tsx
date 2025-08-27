@@ -803,6 +803,7 @@ export default function HomePage() {
             <PoolClient
               lobby={null}
               isHost={true}
+              skipStartScreen={true}
               onGameEnd={handlePoolSinglePlayerEnd}
             />
           </div>
@@ -814,7 +815,7 @@ export default function HomePage() {
       case 'snake':
         return <SnakeClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('snake', didWin)} />;
       case 'chess':
-        return <ChessClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('chess', didWin)} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} />;
+        return <ChessClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('chess', didWin)} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} onNavigateToBetting={() => handleNavigate('chess-betting')} />;
       case 'chess-betting':
         return <BettingLobby gameType="chess" onStartGame={handleChessBettingStart} onBackToMenu={() => handleNavigate('chess')} />;
       case 'chess-betting-game':
