@@ -78,49 +78,49 @@ export const useSocket = (): UseSocketReturn => {
 
   const createLobby = (gameType: 'chess' | 'uno', player1Name: string, player1Id: string) => {
     if (socketRef.current) {
-      socket.emit('create-lobby', gameType, player1Name, player1Id);
+      socketRef.current.emit('create-lobby', gameType, player1Name, player1Id);
     }
   };
 
   const joinLobby = (lobbyId: string, player2Name: string, player2Id: string) => {
     if (socketRef.current) {
-      socket.emit('join-lobby', lobbyId, player2Name, player2Id);
+      socketRef.current.emit('join-lobby', lobbyId, player2Name, player2Id);
     }
   };
 
   const leaveLobby = (lobbyId: string) => {
     if (socketRef.current) {
-      socket.emit('leave-lobby', lobbyId);
+      socketRef.current.emit('leave-lobby', lobbyId);
     }
   };
 
   const sendGameMove = (lobbyId: string, moveData: any) => {
     if (socketRef.current) {
-      socket.emit('game-move', lobbyId, moveData);
+      socketRef.current.emit('game-move', lobbyId, moveData);
     }
   };
 
   const onGameMove = (callback: (moveData: any) => void) => {
     if (socketRef.current) {
-      socket.on('game-move', callback);
+      socketRef.current.on('game-move', callback);
     }
   };
 
   const onLobbyJoined = (callback: (lobby: Lobby) => void) => {
     if (socketRef.current) {
-      socket.on('lobby-joined', callback);
+      socketRef.current.on('lobby-joined', callback);
     }
   };
 
   const onLobbyLeft = (callback: (lobby: Lobby) => void) => {
     if (socketRef.current) {
-      socket.on('lobby-left', callback);
+      socketRef.current.on('lobby-left', callback);
     }
   };
 
   const onLobbyClosed = (callback: () => void) => {
     if (socketRef.current) {
-      socket.on('lobby-closed', callback);
+      socketRef.current.on('lobby-closed', callback);
     }
   };
 

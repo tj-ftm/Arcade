@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ethers, formatEther, parseEther } from "ethers";
 import { GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI, ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI } from "@/types";
+import { Web3ContextType } from "@/types/web3";
 
 // Extend Window interface for ethereum
 declare global {
@@ -19,9 +20,7 @@ declare global {
   }
 }
 
-interface Web3ContextType {
-  account: string | null;
-  username: string | null;
+interface ExtendedWeb3ContextType extends Web3ContextType {
   setUsername: (name: string) => void;
   sBalance: string | null;
   arcBalance: string | null;
@@ -32,7 +31,7 @@ interface Web3ContextType {
   getSigner: () => Promise<ethers.JsonRpcSigner | null>;
 }
 
-export const Web3Context = createContext<Web3ContextType | undefined>(undefined);
+export const Web3Context = createContext<ExtendedWeb3ContextType | undefined>(undefined);
 
 const SONIC_NETWORK = {
     chainId: '0x92', // 146
@@ -52,6 +51,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   const [username, setUsernameState] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [arcBalance, setArcBalance] = useState<string | null>(null);
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [signer, setSigner] = useState<ethers.JsonRpcSigner | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isValidWallet, setIsValidWallet] = useState<boolean>(false);
 
   const setUsername = (name: string) => {
     if(account) {
@@ -93,6 +96,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       setAccount(null);
       setUsernameState(null);
       setBalance(null);
+      setProvider(null);
+      setSigner(null);
+      setIsConnected(false);
+      setIsValidWallet(false);
     } else {
       const userAccount = accounts[0];
       setAccount(userAccount);
@@ -112,6 +119,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       setAccount(null);
       setUsernameState(null);
       setBalance(null);
+      setProvider(null);
+      setSigner(null);
+      setIsConnected(false);
+      setIsValidWallet(false);
       
       // Try to disconnect from the wallet provider
       if (window.ethereum) {
@@ -250,9 +261,14 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         setUsernameState(storedUsername || userAccount);
         
         // Get provider for balance checking
-        const provider = getProvider();
-        if (provider) {
-          await getBalance(provider, userAccount);
+        const walletProvider = getProvider();
+        if (walletProvider) {
+          setProvider(walletProvider);
+          const walletSigner = await walletProvider.getSigner();
+          setSigner(walletSigner);
+          setIsConnected(true);
+          setIsValidWallet(true);
+          await getBalance(walletProvider, userAccount);
         }
         console.log("Wallet connected successfully:", userAccount);
       }
@@ -330,7 +346,27 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [account, getBalance]);
 
-  const value = { account, username, setUsername, sBalance: balance, arcBalance, connect, disconnect, payForGame, getProvider, getSigner };
+  const connectWallet = connect;
+  const disconnectWallet = disconnect;
+
+  const value = { 
+    account, 
+    provider, 
+    signer, 
+    isConnected, 
+    isValidWallet, 
+    username, 
+    setUsername, 
+    sBalance: balance, 
+    arcBalance, 
+    connect, 
+    disconnect, 
+    connectWallet, 
+    disconnectWallet, 
+    payForGame, 
+    getProvider, 
+    getSigner 
+  };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 };

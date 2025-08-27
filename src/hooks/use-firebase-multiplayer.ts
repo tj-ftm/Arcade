@@ -170,7 +170,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
 
 
-  const createLobby = async (gameType: 'chess' | 'uno', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>): Promise<Lobby> => {
+  const createLobby = async (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>): Promise<Lobby> => {
     if (!isConnected) throw new Error('Not connected to Firebase');
 
     try {

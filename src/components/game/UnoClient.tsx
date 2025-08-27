@@ -28,8 +28,8 @@ const createDeck = (): UnoCard[] => {
     
     // Two copies of each 1-9 per color
     for (let num = 1; num <= 9; num++) {
-      deck.push({ color, value: num.toString() });
-      deck.push({ color, value: num.toString() });
+      deck.push({ color, value: num.toString() as UnoValue });
+      deck.push({ color, value: num.toString() as UnoValue });
     }
     
     // Action cards: 2 of each per color (Skip, Reverse, Draw Two)
@@ -75,7 +75,7 @@ const calculateUnoScore = (hand: UnoCard[]): number => {
   }, 0);
 };
 
-const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick?: (e: React.MouseEvent) => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
+const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick?: (e: React.MouseEvent<Element>) => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
   const colorClasses: Record<UnoColor | 'Wild', string> = {
     Red: 'bg-red-600',
     Green: 'bg-green-600',

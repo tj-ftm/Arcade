@@ -49,6 +49,12 @@ export const UnoGambleClient = ({ lobby, isHost, onGameEnd }: UnoGambleClientPro
   const [error, setError] = useState<string>('');
   const [currentTxHash, setCurrentTxHash] = useState<string>('');
 
+  const refreshBalance = async () => {
+    if (!account) return;
+    // Add balance refresh logic here if needed
+    console.log('Refreshing balance for account:', account);
+  };
+
   // Initialize contract and check player balance
   useEffect(() => {
     if (account) {
