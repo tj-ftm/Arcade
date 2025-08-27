@@ -131,7 +131,7 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
 
     const initialGameState: PoolGameState = {
       balls: [...initialBalls],
-      activePlayerId: isHost ? player1Id : player2Id,
+      activePlayerId: gameMode === 'singleplayer' ? player1Id : (isHost ? player1Id : player2Id),
       turn: 1,
       gameLog: ['Game started!'],
       winner: null,
@@ -215,14 +215,14 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
   }, [gameState, isAiming, getPointerPosition]);
 
   const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!gameState || gameState.activePlayerId !== account) return;
+    if (!gameState || (gameMode === 'multiplayer' && gameState.activePlayerId !== account)) return;
     e.preventDefault();
     setIsAiming(true);
     setCuePower(0);
-  }, [gameState, account]);
+  }, [gameState, account, gameMode]);
 
   const handlePointerUp = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!gameState || !isAiming || gameState.activePlayerId !== account) return;
+    if (!gameState || !isAiming || (gameMode === 'multiplayer' && gameState.activePlayerId !== account)) return;
     e.preventDefault();
     
     setIsAiming(false);
@@ -515,7 +515,7 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
           ))}
           
           {/* Enhanced Cue stick with wooden texture and golden details */}
-          {cueBall && gameState.activePlayerId === account && (
+          {cueBall && (gameMode === 'singleplayer' || gameState.activePlayerId === account) && (
             <>
               {/* Aiming guide line with glow */}
               <div

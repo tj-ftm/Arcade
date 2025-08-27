@@ -89,27 +89,28 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
         });
     }
 
-    const checkGameState = useCallback(async () => {
-        if (game.isCheckmate()) {
-            const winnerColor = game.turn() === 'b' ? 'You' : 'Bot';
+    const checkGameState = useCallback(async (currentGame: Chess) => {
+        if (currentGame.isCheckmate()) {
+            const winnerColor = currentGame.turn() === 'b' ? 'You' : 'Bot';
             const playerWon = winnerColor === 'You';
             setWinner(`${winnerColor} win by checkmate!`);
             addGameLog(`${winnerColor} wins by checkmate!`);
             await handleGameEnd(playerWon, 'checkmate');
-        } else if (game.isStalemate()) {
+        } else if (currentGame.isStalemate()) {
             setWinner("Draw by stalemate!");
             addGameLog("Draw by stalemate!");
             await handleGameEnd(false, 'stalemate');
-        } else if (game.isDraw()) {
+        } else if (currentGame.isDraw()) {
             setWinner("Draw!");
             addGameLog("Draw!");
             await handleGameEnd(false, 'draw');
         }
-    }, [game]);
+    }, []);
 
     const handleNewGame = useCallback((bonusMode = false) => {
-      setGame(new Chess());
-      setBoard(new Chess().board());
+      const newGame = new Chess();
+      setGame(newGame);
+      setBoard(newGame.board());
       setSelectedSquare(null);
       setPossibleMoves([]);
       setGameLog([bonusMode ? 'Bonus Game started. Your turn.' : 'Game started. Your turn.']);
@@ -127,6 +128,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
       setIsVerifyingPayment(false);
       setHasWon(false);
       setEndReason('');
+      setScore(0);
     }, []);
 
     const handleGameEnd = async (playerWon: boolean, endReason: string) => {
@@ -193,13 +195,13 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
         }
     };
 
-    const handleBotMove = useCallback(() => {
-      if (game.isGameOver() || game.turn() !== 'b') return;
+    const handleBotMove = useCallback((currentGame: Chess) => {
+      if (currentGame.isGameOver() || currentGame.turn() !== 'b') return;
       
       setIsBotThinking(true);
 
       setTimeout(() => {
-          const moves = game.moves({ verbose: true });
+          const moves = currentGame.moves({ verbose: true });
           
           let bestMove: Move | null = null;
           let maxScore = -Infinity;
@@ -221,27 +223,21 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
           }
 
           if (bestMove) {
-              game.move(bestMove);
-              setBoard(game.board());
+              currentGame.move(bestMove);
+              setBoard(currentGame.board());
               setMoveCount(prev => prev + 1);
               addGameLog(`Bot: ${bestMove.san}`);
-              checkGameState();
+              checkGameState(currentGame);
           }
           setIsBotThinking(false);
       }, 1000 + Math.random() * 500); // Simulate "thinking"
-    }, [game, checkGameState]);
+    }, [checkGameState]);
 
     useEffect(() => {
-        if (game.turn() === 'b' && !winner) {
-            handleBotMove();
+        if (game.turn() === 'b' && !winner && !showStartScreen && !showEndGameScreen) {
+            handleBotMove(game);
         }
-    }, [game, game.turn(), winner, handleBotMove]);
-
-    useEffect(() => {
-      if (!showStartScreen) {
-        handleNewGame();
-      }
-    }, [showStartScreen, handleNewGame]);
+    }, [game, winner, handleBotMove, showStartScreen, showEndGameScreen]);
 
     const handleShowStartScreen = useCallback(() => {
         setShowStartScreen(true);
@@ -394,7 +390,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
                     setBoard(game.board());
                     setMoveCount(prev => prev + 1);
                     addGameLog(`You: ${move.san}`);
-                    checkGameState();
+                    checkGameState(game);
                 }
             } catch (e) {
                 // Invalid move, maybe they clicked on another of their pieces
@@ -426,8 +422,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onGameEnd }: ChessClientP
             {showStartScreen && (
                 <ChessStartScreen 
                     onStartGame={() => { handleNewGame(false); setShowStartScreen(false); }} 
+                    onGoToMenu={() => setShowStartScreen(true)}
                     onStartMultiplayer={handleStartMultiplayer}
-                    onStartBonusMode={handleStartBonusMode}
+                    onStartBetting={handleStartBonusMode}
                 />
             )}
 

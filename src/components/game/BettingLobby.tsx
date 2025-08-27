@@ -247,6 +247,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       
     } catch (error) {
       console.error('Error starting game:', error);
+    } finally {
       setGameStarting(false);
     }
   }, [gameStarting, startGame, onStartGame]);
@@ -254,108 +255,139 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   // Show wallet connection prompt only when trying to create/join bets
   const showWalletPrompt = !isConnected && (activeTab === 'create' || bettingLobbies.length === 0);
 
+  const getGameThemeColors = () => {
+    switch (gameType) {
+      case 'uno':
+        return {
+          primary: 'text-red-400',
+          gradient: 'from-red-900 via-red-700 to-orange-900',
+          accent: 'text-yellow-400'
+        };
+      case 'chess':
+        return {
+          primary: 'text-purple-400',
+          gradient: 'from-purple-900 via-purple-800 to-indigo-900',
+          accent: 'text-white'
+        };
+      case 'pool':
+        return {
+          primary: 'text-green-400',
+          gradient: 'from-green-900 via-green-700 to-emerald-900',
+          accent: 'text-lime-400'
+        };
+      default:
+        return {
+          primary: 'text-white',
+          gradient: 'from-gray-900 to-gray-800',
+          accent: 'text-yellow-400'
+        };
+    }
+  };
+
+  const themeColors = getGameThemeColors();
+
   return (
-    <div className="w-full h-full flex flex-col text-white p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={onBackToMenu}
-            variant="outline"
-            size="sm"
-            className="text-white border-white/20 hover:bg-white/10"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold capitalize">{gameType} Betting</h1>
-            <p className="text-gray-400">Wager ARC tokens on multiplayer matches</p>
+    <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6 pt-20 md:pt-24 lg:pt-28">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-4 sm:p-6 flex-1 max-h-[85vh] sm:max-h-[90vh] overflow-hidden relative z-10">
+        <div className="text-center mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 text-white">
+            {gameType.toUpperCase()} Betting
+          </h1>
+          <div className="flex justify-center items-center gap-4 mb-4">
+            <div className="text-center">
+              <p className="text-sm text-white/70">Your Balance</p>
+              <p className={`text-xl font-bold ${themeColors.accent}`}>{parseFloat(arcBalance).toFixed(2)} ARC</p>
+            </div>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-400">Your Balance</p>
-          <p className="text-xl font-bold text-yellow-400">{parseFloat(arcBalance).toFixed(2)} ARC</p>
-        </div>
-      </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+          <div className="flex justify-center items-center mb-3 sm:mb-4">
+            <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/10">
+              <TabsTrigger 
+                value="create" 
+                className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Bet
+              </TabsTrigger>
+              <TabsTrigger 
+                value="browse"
+                className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Join Bets ({bettingLobbies.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-        <TabsList className="grid w-full grid-cols-2 bg-black/20">
-          <TabsTrigger value="create" className="data-[state=active]:bg-yellow-600">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Bet
-          </TabsTrigger>
-          <TabsTrigger value="browse" className="data-[state=active]:bg-blue-600">
-            <Users className="w-4 h-4 mr-2" />
-            Join Bets ({bettingLobbies.length})
-          </TabsTrigger>
-        </TabsList>
+          <div className="flex-1 overflow-hidden">
 
-        <TabsContent value="create" className="mt-6">
-          <Card className="bg-black/20 border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-                Create Betting Lobby
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!isConnected ? (
-                <div className="text-center py-8">
-                  <Coins className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Connect Wallet</h3>
-                  <p className="text-gray-400 mb-4">
-                    Connect your wallet to create betting lobbies and wager ARC tokens.
-                  </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    Connect Wallet
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <Label htmlFor="betAmount" className="text-white">Bet Amount (ARC Tokens)</Label>
-                    <Input
-                      id="betAmount"
-                      type="number"
-                      value={betAmount}
-                      onChange={(e) => setBetAmount(e.target.value)}
-                      placeholder="Enter bet amount"
-                      min="1"
-                      max={arcBalance}
-                      className="bg-black/20 border-white/20 text-white"
-                    />
-                    <p className="text-sm text-gray-400 mt-1">
-                      Available: {parseFloat(arcBalance).toFixed(2)} ARC
-                    </p>
-                  </div>
-                  
-                  <Button
-                    onClick={handleCreateBettingLobby}
-                    disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(betAmount) > parseFloat(arcBalance)}
-                    className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500"
-                  >
-                    {isCreating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating Bet...
-                      </>
+            <TabsContent value="create" className="mt-0 h-full overflow-auto">
+              <div className="flex justify-center h-full items-center">
+                <Card className="bg-black/20 border-white/20 w-full max-w-md">
+                  <CardHeader>
+                    <CardTitle className={`text-white flex items-center gap-2 ${themeColors.primary}`}>
+                      <Trophy className={`w-5 h-5 ${themeColors.accent}`} />
+                      Create Betting Lobby
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {!isConnected ? (
+                      <div className="text-center py-8">
+                        <Coins className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+                        <h3 className="text-lg font-semibold text-white mb-2">Connect Wallet</h3>
+                        <p className="text-gray-400 mb-4">
+                          Connect your wallet to create betting lobbies and wager ARC tokens.
+                        </p>
+                        <Button className="bg-blue-600 hover:bg-blue-700">
+                          Connect Wallet
+                        </Button>
+                      </div>
                     ) : (
                       <>
-                        <Coins className="w-4 h-4 mr-2" />
-                        Create Bet ({betAmount} ARC)
+                        <div>
+                          <Label htmlFor="betAmount" className="text-white">Bet Amount (ARC Tokens)</Label>
+                          <Input
+                            id="betAmount"
+                            type="number"
+                            value={betAmount}
+                            onChange={(e) => setBetAmount(e.target.value)}
+                            placeholder="Enter bet amount"
+                            min="1"
+                            max={arcBalance}
+                            className="bg-black/20 border-white/20 text-white"
+                          />
+                          <p className="text-sm text-gray-400 mt-1">
+                            Available: {parseFloat(arcBalance).toFixed(2)} ARC
+                          </p>
+                        </div>
+                        
+                        <Button
+                          onClick={handleCreateBettingLobby}
+                          disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(betAmount) > parseFloat(arcBalance)}
+                          className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500"
+                        >
+                          {isCreating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Creating Bet...
+                            </>
+                          ) : (
+                            <>
+                              <Coins className="w-4 h-4 mr-2" />
+                              Create Bet ({betAmount} ARC)
+                            </>
+                          )}
+                        </Button>
                       </>
                     )}
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
-        <TabsContent value="browse" className="mt-6">
-          <div className="space-y-4">
+            <TabsContent value="browse" className="mt-0 h-full overflow-auto">
+              <div className="space-y-4">
             {bettingLobbies.length === 0 ? (
               <Card className="bg-black/20 border-white/20">
                 <CardContent className="p-8 text-center">
@@ -422,9 +454,11 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                 </Card>
               ))
             )}
+              </div>
+            </TabsContent>
           </div>
-        </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }

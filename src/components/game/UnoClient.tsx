@@ -748,13 +748,14 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                             chosenColor = colors[Math.floor(Math.random() * 4)];
                          }
                         setTimeout(() => playCard(card, chosenColor), 1000);
+                        return newState; // Return early to avoid changing activePlayerIndex
                     } else { // If drawn card is not playable, skip bot's turn
-                        newState.activePlayerIndex = (newState.activePlayerIndex + (newState.isReversed ? -1 : 1) + newState.players.length) % newState.players.length;
+                        newState.activePlayerIndex = nextPlayer(newState);
                         addGameLog("Bot could not play a card and skipped its turn.");
                         setTurnMessage("Bot skipped turn");
                     }
                 } else { // If deck is empty, bot cannot draw, so skip turn
-                    newState.activePlayerIndex = (newState.activePlayerIndex + (newState.isReversed ? -1 : 1) + newState.players.length) % newState.players.length;
+                    newState.activePlayerIndex = nextPlayer(newState);
                     addGameLog("Bot could not draw a card and skipped its turn.");
                     setTurnMessage("Bot skipped turn");
                 }

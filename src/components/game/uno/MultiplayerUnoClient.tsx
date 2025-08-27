@@ -556,45 +556,74 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
              }
          }
         
-        // Handle special cards
-        let nextPlayerIndex = gameState.activePlayerIndex;
-        if (card.value === 'Skip') {
-            nextPlayerIndex = (nextPlayerIndex + 1) % 2;
-            newGameState.gameLog.push(`${gameState.players[nextPlayerIndex].name} was skipped!`);
-        } else if (card.value === 'Reverse') {
-            // With 2 players, Reverse acts as Skip
-            if (newGameState.players.length === 2) {
-                nextPlayerIndex = (nextPlayerIndex + 1) % 2;
-                newGameState.gameLog.push(`${gameState.players[nextPlayerIndex].name} was skipped by Reverse!`);
-            } else {
-                // With 3+ players, actually reverse direction
-                newGameState.isReversed = !gameState.isReversed;
-                newGameState.gameLog.push('Direction reversed!');
+        // Handle special cards using same logic as single player
+        let tempNextPlayerIndex = (gameState.activePlayerIndex + 1) % 2;
+        
+        const handleAction = (value: UnoValue) => {
+            const opponent = newGameState.players[tempNextPlayerIndex];
+            switch(value) {
+                case 'Draw Two': {
+                    const drawnCards = newGameState.deck.splice(0, 2);
+                    opponent.hand = [...opponent.hand, ...drawnCards];
+                    newGameState.players[tempNextPlayerIndex] = opponent;
+                    const msg = `${opponent.name} drew 2 cards.`;
+                    newGameState.gameLog.push(msg);
+                    setTurnMessage(msg);
+                    tempNextPlayerIndex = (tempNextPlayerIndex + 1) % 2; // Skip opponent's turn
+                    break;
+                }
+                case 'Draw Four': {
+                    const drawnCards = newGameState.deck.splice(0, 4);
+                    opponent.hand = [...opponent.hand, ...drawnCards];
+                    newGameState.players[tempNextPlayerIndex] = opponent;
+                    const msg = `${opponent.name} drew 4 cards.`;
+                    newGameState.gameLog.push(msg);
+                    setTurnMessage(msg);
+                    tempNextPlayerIndex = (tempNextPlayerIndex + 1) % 2; // Skip opponent's turn
+                    break;
+                }
+                case 'Skip': {
+                    const msg = `${opponent.name} is skipped.`;
+                    newGameState.gameLog.push(msg);
+                    setTurnMessage(msg);
+                    tempNextPlayerIndex = (tempNextPlayerIndex + 1) % 2;
+                    break;
+                }
+                case 'Reverse': {
+                    // With 2 players, Reverse acts as Skip
+                    if (newGameState.players.length === 2) {
+                        const msg = `${opponent.name} is skipped by Reverse.`;
+                        newGameState.gameLog.push(msg);
+                        setTurnMessage("Reverse = Skip!");
+                        tempNextPlayerIndex = (tempNextPlayerIndex + 1) % 2;
+                    } else {
+                        // With 3+ players, actually reverse direction
+                        newGameState.isReversed = !newGameState.isReversed;
+                        newGameState.gameLog.push(`Play direction was reversed.`);
+                        setTurnMessage("Direction Reversed!");
+                        const direction = newGameState.isReversed ? -1 : 1;
+                        let nextIndex = (newGameState.activePlayerIndex + direction) % newGameState.players.length;
+                        if (nextIndex < 0) nextIndex = newGameState.players.length - 1;
+                        tempNextPlayerIndex = nextIndex;
+                    }
+                    break;
+                }
             }
-        } else if (card.value === 'Draw Two') {
-            const targetPlayerIndex = (nextPlayerIndex + 1) % 2;
-            const targetPlayer = { ...newGameState.players[targetPlayerIndex] };
-            const drawnCards = newGameState.deck.splice(0, 2);
-            targetPlayer.hand = [...targetPlayer.hand, ...drawnCards];
-            newGameState.players[targetPlayerIndex] = targetPlayer;
-            newGameState.gameLog.push(`${targetPlayer.name} draws 2 cards!`);
-        } else if (card.value === 'Draw Four') {
-            const targetPlayerIndex = (nextPlayerIndex + 1) % 2;
-            const targetPlayer = { ...newGameState.players[targetPlayerIndex] };
-            const drawnCards = newGameState.deck.splice(0, 4);
-            targetPlayer.hand = [...targetPlayer.hand, ...drawnCards];
-            newGameState.players[targetPlayerIndex] = targetPlayer;
-            newGameState.gameLog.push(`${targetPlayer.name} draws 4 cards!`);
         }
+        
+        // Apply action card effects
+        handleAction(card.value);
         
         // Move to next player
         if (!newGameState.winner) {
-            newGameState.activePlayerIndex = (gameState.activePlayerIndex + 1) % 2;
+            newGameState.activePlayerIndex = tempNextPlayerIndex;
             
             // Show turn message
             const nextPlayer = newGameState.players[newGameState.activePlayerIndex];
             const isMyNextTurn = (newGameState.activePlayerIndex === 0 && isHost) || (newGameState.activePlayerIndex === 1 && !isHost);
-            setTurnMessage(isMyNextTurn ? "Your Turn!" : `${nextPlayer.name}'s Turn`);
+            setTimeout(() => {
+                setTurnMessage(isMyNextTurn ? "Your Turn!" : `${nextPlayer.name}'s Turn`);
+            }, card.value.startsWith("Draw") || card.value === 'Skip' ? 1600 : 100);
         }
         
         // Show color change message for wild cards

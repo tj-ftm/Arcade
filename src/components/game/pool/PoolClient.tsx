@@ -20,6 +20,7 @@ interface Lobby {
 interface PoolClientProps {
   lobby?: Lobby | null; // Make lobby optional and allow null
   isHost: boolean;
+  skipStartScreen?: boolean; // Skip start screen for betting games
   onGameEnd: (gameResult?: {
     winnerId: string;
     winnerName: string;
@@ -30,9 +31,9 @@ interface PoolClientProps {
   }) => void;
 }
 
-export const PoolClient = ({ lobby, isHost, onGameEnd }: PoolClientProps) => {
+export const PoolClient = ({ lobby, isHost, skipStartScreen = false, onGameEnd }: PoolClientProps) => {
   const { username, account } = useWeb3();
-  const [gameState, setGameState] = useState<'start' | 'playing' | 'ended'>('start');
+  const [gameState, setGameState] = useState<'start' | 'playing' | 'ended'>(skipStartScreen ? 'playing' : 'start');
   const [gameResult, setGameResult] = useState<any>(null);
   const [isMinting, setIsMinting] = useState(false);
   const [mintTxHash, setMintTxHash] = useState('');

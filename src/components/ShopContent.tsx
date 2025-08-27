@@ -307,6 +307,62 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+  // Function to fetch NFT data from SonicScan Explorer
+  const fetchNFTFromSonicScan = async (walletAddress: string) => {
+    try {
+      // SonicScan API endpoints for NFT transfers
+      const endpoints = [
+        `https://api.sonicscan.org/api?module=account&action=tokennfttx&address=${walletAddress}&startblock=0&endblock=999999999&sort=desc`,
+        `https://api.sonicscan.org/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=999999999&sort=desc`
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying SonicScan endpoint: ${endpoint}`);
+          const response = await fetch(endpoint);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('SonicScan API response:', data);
+            
+            if (data.status === '1' && data.result) {
+              // Filter for NFT transfers where the wallet is the recipient
+              const nftTransfers = data.result.filter((tx: any) => 
+                tx.to?.toLowerCase() === walletAddress.toLowerCase() && 
+                tx.tokenID && 
+                tx.contractAddress
+              );
+              
+              // Group by contract and token ID to get unique NFTs
+              const uniqueNFTs = new Map();
+              nftTransfers.forEach((tx: any) => {
+                const key = `${tx.contractAddress}-${tx.tokenID}`;
+                if (!uniqueNFTs.has(key)) {
+                  uniqueNFTs.set(key, {
+                    contractAddress: tx.contractAddress,
+                    tokenId: tx.tokenID,
+                    tokenName: tx.tokenName || 'Unknown NFT',
+                    tokenSymbol: tx.tokenSymbol || 'NFT',
+                    blockNumber: tx.blockNumber,
+                    hash: tx.hash
+                  });
+                }
+              });
+              
+              return Array.from(uniqueNFTs.values());
+            }
+          }
+        } catch (err) {
+          console.warn(`SonicScan endpoint ${endpoint} failed:`, err);
+          continue;
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching from SonicScan:', error);
+      return [];
+    }
+  };
+
   // Function to construct image URL from SonicScan/blockchain data
   const constructImageFromBlockchain = (contractAddress: string, tokenId: string, metadata: any): string | null => {
     try {
@@ -345,6 +401,19 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
 
     setLoading(true);
     setError(null);
+    
+    // Show placeholder NFTs immediately while loading
+    const placeholderNFTs: NFT[] = Array.from({ length: 6 }, (_, index) => ({
+      tokenId: `loading-${index}`,
+      contractAddress: 'loading',
+      name: 'Loading...',
+      description: 'Fetching NFT data...',
+      image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ELoading...%3C/text%3E%3C/svg%3E",
+      metadata: {}
+    }));
+    
+    setOwnedNFTs(placeholderNFTs);
+    setLoading(false); // Set loading to false immediately to show placeholders
     
     try {
       // Try the userNFTs endpoint with query parameter
@@ -446,11 +515,36 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
         }
       });
     } catch (err) {
-      console.error("Error fetching NFTs:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch NFTs");
-    } finally {
-      setLoading(false);
+      console.error("Error fetching NFTs from Paintswap:", err);
+      
+      // Try SonicScan as fallback
+      try {
+        console.log('Trying SonicScan as fallback...');
+        const sonicScanNFTs = await fetchNFTFromSonicScan(account);
+        
+        if (sonicScanNFTs.length > 0) {
+          const sonicNFTs: NFT[] = sonicScanNFTs.map((item: any) => ({
+            tokenId: item.tokenId,
+            contractAddress: item.contractAddress,
+            name: item.tokenName || `${item.tokenSymbol} #${item.tokenId}`,
+            description: `NFT from ${item.tokenSymbol || 'Unknown'} collection`,
+            image: placeholderImage,
+            metadata: item
+          }));
+          
+          setOwnedNFTs(sonicNFTs);
+          console.log(`Found ${sonicNFTs.length} NFTs via SonicScan`);
+        } else {
+          setError("No NFTs found via Paintswap or SonicScan APIs");
+          setOwnedNFTs([]);
+        }
+      } catch (sonicErr) {
+        console.error("Error fetching NFTs from SonicScan:", sonicErr);
+        setError("Failed to fetch NFTs from both Paintswap and SonicScan APIs");
+        setOwnedNFTs([]);
+      }
     }
+    // Note: loading is already set to false above to show placeholders immediately
   };
 
   const handleViewNFTs = () => {
@@ -461,8 +555,8 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
   return (
       <div className="w-full h-full max-w-4xl animate-fade-in my-auto">
         <div className="w-full flex-1 flex flex-col items-center justify-center pt-8 sm:pt-8 px-2">
-          {/* View Owned NFTs Button */}
-          <div className="mb-6 w-full max-w-md">
+          {/* NFT Buttons */}
+          <div className="mb-6 w-full max-w-md space-y-3">
             <Button 
               onClick={handleViewNFTs}
               className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-green-600 hover:bg-green-500 rounded-lg font-headline group whitespace-normal leading-tight"
@@ -470,6 +564,21 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
             >
               <Eye className="mr-2 h-5 w-5" />
               View Owned NFTs
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                if (account) {
+                  window.open(`https://sonicscan.org/address/${account}#tokentxnsErc721`, '_blank');
+                } else {
+                  setError('Please connect your wallet first');
+                }
+              }}
+              className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group whitespace-normal leading-tight"
+              size="lg"
+            >
+              <Eye className="mr-2 h-5 w-5" />
+              Inspect on SonicScan
             </Button>
           </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-4 w-full max-w-xs sm:max-w-none mx-auto">
@@ -594,13 +703,24 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
                   {ownedNFTs.map((nft, index) => {
                     const nftKey = `${nft.contractAddress}-${nft.tokenId}-${index}`;
                     const imageState = imageLoadStates[nftKey];
+                    const isPlaceholder = nft.contractAddress === 'loading';
                     const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
                     
                     return (
-                       <div key={nftKey} className="bg-black/50 rounded-lg overflow-hidden border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 shadow-lg">
+                       <div key={nftKey} className={`bg-black/50 rounded-lg overflow-hidden border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 shadow-lg ${isPlaceholder ? 'animate-pulse' : ''}`}>
                          <div className="aspect-square bg-black/30 flex items-center justify-center relative">
-                          {/* Loading state */}
-                           {imageState?.loading && (
+                          {/* Placeholder loading state */}
+                          {isPlaceholder && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-yellow-500/20 to-orange-500/20">
+                              <div className="text-center">
+                                <Loader2 className="h-12 w-12 animate-spin text-yellow-300 mx-auto mb-3" />
+                                <p className="text-sm text-white/70 font-headline">Loading NFTs...</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Regular loading state for actual NFTs */}
+                           {!isPlaceholder && imageState?.loading && (
                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                                <div className="text-center">
                                  <Loader2 className="h-8 w-8 animate-spin text-yellow-300 mx-auto mb-2" />
@@ -610,7 +730,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
                            )}
                           
                           {/* Loaded image */}
-                          {imageState?.loaded && imageState.url && (
+                          {!isPlaceholder && imageState?.loaded && imageState.url && (
                             <img 
                               src={imageState.url}
                               alt={nft.name}
@@ -619,7 +739,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
                           )}
                           
                           {/* Error state or no image */}
-                           {(!imageState || imageState.error || (!imageState.loading && !imageState.loaded)) && (
+                           {!isPlaceholder && (!imageState || imageState.error || (!imageState.loading && !imageState.loaded)) && (
                              <div className="text-white/70 text-center p-4">
                                <div className="w-16 h-16 bg-yellow-600/30 rounded-lg mx-auto mb-2 flex items-center justify-center">
                                  <span className="text-2xl">🖼️</span>
@@ -629,11 +749,19 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
                            )}
                         </div>
                         <div className="p-4">
-                           <h3 className="text-white font-semibold text-lg mb-2 truncate font-headline">{nft.name}</h3>
-                           <p className="text-white/70 text-sm mb-2 line-clamp-2">{nft.description}</p>
+                           <h3 className={`text-white font-semibold text-lg mb-2 truncate font-headline ${isPlaceholder ? 'bg-gray-600/50 rounded animate-pulse' : ''}`}>
+                             {isPlaceholder ? '' : nft.name}
+                           </h3>
+                           <p className={`text-white/70 text-sm mb-2 line-clamp-2 ${isPlaceholder ? 'bg-gray-600/30 rounded animate-pulse' : ''}`}>
+                             {isPlaceholder ? '' : nft.description}
+                           </p>
                            <div className="text-xs text-white/60">
-                             <p className="truncate font-headline">Token ID: {nft.tokenId}</p>
-                             <p className="truncate font-headline">Contract: {nft.contractAddress}</p>
+                             <p className={`truncate font-headline ${isPlaceholder ? 'bg-gray-600/30 rounded animate-pulse mb-1' : ''}`}>
+                               {isPlaceholder ? '' : `Token ID: ${nft.tokenId}`}
+                             </p>
+                             <p className={`truncate font-headline ${isPlaceholder ? 'bg-gray-600/30 rounded animate-pulse' : ''}`}>
+                               {isPlaceholder ? '' : `Contract: ${nft.contractAddress}`}
+                             </p>
                            </div>
                          </div>
                       </div>

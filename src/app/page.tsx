@@ -247,19 +247,19 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
            </div>
          )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full overflow-hidden">
           {/* Leaderboard */}
-          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4 min-w-0">
-            <div className="mb-4">
-              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Trophy className="h-6 w-6" />
+          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-3 min-w-0">
+            <div className="mb-3">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Trophy className="h-5 w-5" />
                 Top Players
                 {selectedGameType !== 'all' && (
-                  <Badge variant="outline">{selectedGameType.toUpperCase()}</Badge>
+                  <Badge variant="outline" className="text-xs px-1 py-0.5">{selectedGameType.toUpperCase()}</Badge>
                 )}
               </h3>
-              <p className="text-sm text-white/70">
-                Rankings based on wins and current win streaks
+              <p className="text-xs text-white/70">
+                Rankings by wins & streaks
               </p>
             </div>
             <div className="flex-1 flex flex-col">
@@ -272,30 +272,30 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[50px] text-xs">Rank</TableHead>
-                        <TableHead className="text-xs">Player</TableHead>
-                        <TableHead className="text-xs">Wins</TableHead>
-                        <TableHead className="text-xs">Streak</TableHead>
-                        <TableHead className="text-xs">Rate</TableHead>
+                        <TableHead className="w-[40px] text-xs p-1">Rank</TableHead>
+                        <TableHead className="text-xs p-1">Player</TableHead>
+                        <TableHead className="text-xs p-1">Wins</TableHead>
+                        <TableHead className="text-xs p-1">Streak</TableHead>
+                        <TableHead className="text-xs p-1">Rate</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {leaderboard.map((entry) => (
                         <TableRow key={entry.playerId} className={entry.playerId === account ? 'bg-accent/10' : ''}>
-                          <TableCell className="font-bold text-sm">
-                            {entry.rank === 1 && <Trophy className="h-4 w-4 text-yellow-500 inline mr-1" />}
+                          <TableCell className="font-bold text-xs p-1">
+                            {entry.rank === 1 && <Trophy className="h-3 w-3 text-yellow-500 inline mr-1" />}
                             {entry.rank}
                           </TableCell>
-                          <TableCell className="font-medium text-sm">
+                          <TableCell className="font-medium text-xs p-1 truncate max-w-[80px]">
                             {entry.playerId === account ? (username || 'You') : entry.playerName}
                           </TableCell>
-                          <TableCell className="text-sm">{entry.wins}</TableCell>
-                          <TableCell className="text-sm">
-                            <Badge variant={entry.winStreak > 5 ? "default" : "secondary"}>
+                          <TableCell className="text-xs p-1">{entry.wins}</TableCell>
+                          <TableCell className="text-xs p-1">
+                            <Badge variant={entry.winStreak > 5 ? "default" : "secondary"} className="text-xs px-1 py-0.5">
                               {entry.winStreak}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm">{entry.winRate.toFixed(1)}%</TableCell>
+                          <TableCell className="text-xs p-1">{entry.winRate.toFixed(1)}%</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -312,14 +312,14 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
           </div>
 
           {/* Recent Games / Match History */}
-          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-4">
-            <div className="mb-4">
-              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Gamepad2 className="h-6 w-6" />
+          <div className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl rounded-lg p-3">
+            <div className="mb-3">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Gamepad2 className="h-5 w-5" />
                 Recent Matches
               </h3>
-              <p className="text-sm text-white/70">
-                Latest completed multiplayer games
+              <p className="text-xs text-white/70">
+                Latest completed games
               </p>
             </div>
             <div className="flex-1 flex flex-col">
@@ -329,28 +329,37 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
                 </div>
               ) : recentGames.length > 0 ? (
                 <div className="flex-1 overflow-y-auto">
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {recentGames.map((game) => (
-                      <div key={game.id} className="bg-black/20 rounded-lg p-4 border border-white/10">
+                      <div key={game.id} className="bg-black/20 rounded-lg p-3 border border-white/10">
                         <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{game.gameType.toUpperCase()}</Badge>
-                            <span className="text-sm text-white/70">{formatDate(game.gameEndTime)}</span>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-xs px-1 py-0.5">{game.gameType.toUpperCase()}</Badge>
+                            <span className="text-xs text-white/70">{formatDate(game.gameEndTime)}</span>
                           </div>
-                          <span className="text-sm text-white/70">{formatDuration(game.gameDuration)}</span>
+                          <span className="text-xs text-white/70">{formatDuration(game.gameDuration)}</span>
                         </div>
-                        <div className="text-sm">
+                        <div className="text-xs">
                           <div className="flex justify-between items-center">
-                            <span className={game.winnerId === game.player1Id ? 'text-green-400 font-medium' : 'text-white/70'}>
-                              {game.player1Name}
-                            </span>
-                            <span className="text-white/50">vs</span>
-                            <span className={game.winnerId === game.player2Id ? 'text-green-400 font-medium' : 'text-white/70'}>
-                              {game.player2Name}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              {game.winnerId === game.player1Id && <Trophy className="h-3 w-3 text-yellow-500" />}
+                              <span className={game.winnerId === game.player1Id ? 'text-green-400 font-medium' : 'text-white/70'}>
+                                {game.player1Name}
+                              </span>
+                            </div>
+                            <span className="text-white/50 text-xs">vs</span>
+                            <div className="flex items-center gap-1">
+                              {game.winnerId === game.player2Id && <Trophy className="h-3 w-3 text-yellow-500" />}
+                              <span className={game.winnerId === game.player2Id ? 'text-green-400 font-medium' : 'text-white/70'}>
+                                {game.player2Name}
+                              </span>
+                            </div>
                           </div>
                           <div className="text-center mt-1">
-                            <span className="text-accent font-medium">Winner: {game.winnerName}</span>
+                            <div className="flex items-center justify-center gap-1">
+                              <Trophy className="h-3 w-3 text-yellow-500" />
+                              <span className="text-accent font-medium text-xs">Winner: {game.winnerName}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -773,6 +782,7 @@ export default function HomePage() {
             <PoolClient
               lobby={poolBettingLobby}
               isHost={isPoolBettingHost}
+              skipStartScreen={true}
               onGameEnd={handlePoolBettingEnd}
             />
           </div>
@@ -804,7 +814,7 @@ export default function HomePage() {
       case 'snake':
         return <SnakeClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('snake', didWin)} />;
       case 'chess':
-        return <ChessStartScreen onStartGame={() => handleGameEnd('chess', true)} onStartMultiplayer={() => handleNavigate('chess-multiplayer')} onStartBetting={() => handleNavigate('chess-betting')} onGoToMenu={() => handleNavigate('menu')} />;
+        return <ChessClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('chess', didWin)} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} />;
       case 'chess-betting':
         return <BettingLobby gameType="chess" onStartGame={handleChessBettingStart} onBackToMenu={() => handleNavigate('chess')} />;
       case 'chess-betting-game':

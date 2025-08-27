@@ -301,12 +301,12 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
       </div>
       
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
       <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
         <CardHeader>
           <CardTitle className="text-accent">Current Total Supply</CardTitle>
         </CardHeader>
-        <CardContent className="min-h-[300px]">
+        <CardContent className="min-h-[200px] md:min-h-[250px]">
           {loading ? (
             <p className="text-2xl font-bold">Loading...</p>
           ) : error ? (
@@ -321,20 +321,20 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
         <CardHeader>
           <CardTitle className="text-accent">Minted Tokens Over Time</CardTitle>
         </CardHeader>
-        <CardContent className="min-h-[300px]">
+        <CardContent className="min-h-[200px] md:min-h-[250px]">
           {loading ? (
-            <div className="flex items-center justify-center h-[300px]">
+            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
               <p className="text-gray-400">Loading chart data...</p>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center h-[300px]">
+            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
               <div className="text-center">
                 <p className="text-red-400 mb-2">Chart data unavailable</p>
                 <p className="text-sm text-gray-400">Check console for details</p>
               </div>
             </div>
           ) : chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={200}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                 <XAxis dataKey="date" stroke="#888" />
@@ -350,7 +350,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px]">
+            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
               <p className="text-gray-400">No minting data available</p>
             </div>
           )}
@@ -362,13 +362,13 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
         <CardHeader>
           <CardTitle className="text-accent">Game Mint History</CardTitle>
         </CardHeader>
-        <CardContent className="min-h-[300px]">
+        <CardContent className="min-h-[200px] md:min-h-[250px]">
           {mintLogsLoading ? (
-            <div className="flex items-center justify-center h-[300px]">
+            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
               <p className="text-gray-400">Loading mint logs...</p>
             </div>
           ) : gameMintLogs.length > 0 ? (
-            <ScrollArea className="h-[300px]">
+            <ScrollArea className="h-[200px] md:h-[250px]">
               <div className="space-y-2">
                 {gameMintLogs.slice(0, 20).map((mint) => (
                   <div key={mint.id} className="bg-black/30 rounded-lg p-3 border border-gray-600">
@@ -410,7 +410,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
               </div>
             </ScrollArea>
           ) : (
-            <div className="flex items-center justify-center h-[300px]">
+            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
               <p className="text-gray-400">No game mint logs available</p>
             </div>
           )}

@@ -7,6 +7,10 @@ import { useWeb3 } from '@/components/web3/Web3Provider';
 import PlayerStatsCharts from '@/components/profile/PlayerStatsCharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Wallet, Copy, ExternalLink } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { formatEther } from 'ethers';
 
 interface ProfileContentProps {
   onBack: () => void;
@@ -43,7 +47,8 @@ interface GameMintLog {
 }
 
 const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
-    const web3 = useWeb3();
+  const web3 = useWeb3();
+  const { toast } = useToast();
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
   const [playerMintLogs, setPlayerMintLogs] = useState<GameMintLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,54 +56,102 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
   const [gameStatsChartData, setGameStatsChartData] = useState<any[]>([]);
   const [mintHistoryChartData, setMintHistoryChartData] = useState<any[]>([]);
   const [gameTypeData, setGameTypeData] = useState<any[]>([]);
+  const [walletBalance, setWalletBalance] = useState<string>('0');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (web3?.account) {
-        setLoading(true);
-        try {
-          const stats = await GameStatistics.getPlayerStats(web3.account);
-          setPlayerStats(stats);
-        } catch (error) {
-          console.error('Error fetching player stats:', error);
-          setPlayerStats(null);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+  const fetchWalletBalance = async () => {
+    if (web3?.account && web3?.provider) {
+      try {
+        const balance = await web3.provider.getBalance(web3.account);
+        setWalletBalance(formatEther(balance));
+      } catch (error) {
+        console.error('Error fetching wallet balance:', error);
+        setWalletBalance('0');
+      }
+    } else {
+      setWalletBalance('0');
+    }
+  };
+
+  const fetchStats = async () => {
+    if (web3?.account) {
+      setLoading(true);
+      try {
+        const stats = await GameStatistics.getPlayerStats(web3.account);
+        setPlayerStats(stats);
+      } catch (error) {
+        console.error('Error fetching player stats:', error);
         setPlayerStats(null);
+      } finally {
         setLoading(false);
       }
-    };
+    } else {
+      setPlayerStats(null);
+      setLoading(false);
+    }
+  };
 
-    const fetchPlayerMintLogs = async () => {
-      if (web3?.account) {
-        setMintLogsLoading(true);
-        try {
-          const response = await fetch('/api/game-complete');
-          if (response.ok) {
-            const data = await response.json();
-            const allMintLogs = data.mintLogs || [];
-            // Filter mint logs for the current player
-            const playerMints = allMintLogs.filter((mint: GameMintLog) => 
-              mint.playerAddress.toLowerCase() === web3.account.toLowerCase()
-            );
-            setPlayerMintLogs(playerMints);
-          }
-        } catch (error) {
-          console.error('Error fetching player mint logs:', error);
-          setPlayerMintLogs([]);
-        } finally {
-          setMintLogsLoading(false);
+  const fetchPlayerMintLogs = async () => {
+    if (web3?.account) {
+      setMintLogsLoading(true);
+      try {
+        const response = await fetch('/api/game-complete');
+        if (response.ok) {
+          const data = await response.json();
+          const allMintLogs = data.mintLogs || [];
+          // Filter mint logs for the current player
+          const playerMints = allMintLogs.filter((mint: GameMintLog) => 
+            mint.playerAddress.toLowerCase() === web3.account.toLowerCase()
+          );
+          setPlayerMintLogs(playerMints);
         }
-      } else {
+      } catch (error) {
+        console.error('Error fetching player mint logs:', error);
         setPlayerMintLogs([]);
+      } finally {
         setMintLogsLoading(false);
       }
-    };
+    } else {
+      setPlayerMintLogs([]);
+      setMintLogsLoading(false);
+    }
+  };
 
-    fetchStats();
-    fetchPlayerMintLogs();
+  const refreshAllData = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchStats(),
+        fetchPlayerMintLogs(),
+        fetchWalletBalance()
+      ]);
+      toast({
+        title: "Data Refreshed",
+        description: "Profile data has been updated successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh profile data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: "Address copied to clipboard."
+    });
+  };
+
+  useEffect(() => {
+     fetchStats();
+     fetchPlayerMintLogs();
+     fetchWalletBalance();
   }, [web3?.account]);
 
   // Process chart data when stats change
@@ -147,11 +200,69 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
 
   return (
     <div className="relative flex flex-col items-center justify-start min-h-screen w-full bg-gradient-to-br from-pink-600 to-purple-700 text-white p-2 sm:p-4 pt-20 sm:pt-8 overflow-auto">
-      <h1 className="text-3xl sm:text-4xl md:text-6xl font-headline mb-4 sm:mb-8 sticky top-16 sm:top-0 w-full text-center py-2 sm:py-4 z-10">Profile Page</h1>
+      <div className="w-full max-w-6xl">
+        <div className="flex justify-between items-center mb-4 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-headline">Profile Page</h1>
+          <Button 
+            onClick={refreshAllData} 
+            disabled={refreshing}
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Wallet Information */}
+        {web3?.account && (
+          <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl mb-6">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Wallet className="w-5 h-5" />
+                Wallet Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-white/70 mb-1">Wallet Address</p>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-black/30 px-2 py-1 rounded text-sm font-mono">
+                      {web3.account.slice(0, 6)}...{web3.account.slice(-4)}
+                    </code>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => copyToClipboard(web3.account)}
+                      className="h-8 w-8 p-0 hover:bg-white/20"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => window.open(`https://sonicscan.org/address/${web3.account}`, '_blank')}
+                      className="h-8 w-8 p-0 hover:bg-white/20"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-white/70 mb-1">S Balance</p>
+                  <p className="text-lg font-semibold text-green-300">
+                    {parseFloat(walletBalance).toFixed(4)} S
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Game Statistics Charts */}
-       <div className="w-full max-w-xs sm:max-w-lg md:max-w-2xl mb-4 sm:mb-6">
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="w-full mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
            {/* Game Performance Over Time */}
            <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
              <CardHeader>
