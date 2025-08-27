@@ -2,9 +2,6 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { database } from '@/lib/firebase';
 import { ref, push, onValue, off, remove, set, serverTimestamp, get } from 'firebase/database';
 
-import { PoolGameState } from '@/types';
-import { initialPoolGameState } from '@/components/game/pool/PoolClient';
-
 interface Lobby {
   id: string;
   gameType: 'chess' | 'uno' | 'pool';
@@ -25,7 +22,7 @@ interface Lobby {
   contractDeployed?: boolean;
   player1TxHash?: string;
   player2TxHash?: string;
-  poolGameState?: PoolGameState;
+  poolGameState?: any;
 }
 
 interface GameResult {
@@ -54,8 +51,8 @@ interface UseFirebaseMultiplayerReturn {
   leaveLobby: (lobbyId: string, playerId?: string) => Promise<void>;
   startGame: (lobbyId: string) => Promise<void>;
   endGame: (lobbyId: string, winnerId: string, winnerName: string, loserId: string, loserName: string) => Promise<void>;
-  sendGameMove: (lobbyId: string, poolGameState: PoolGameState) => Promise<void>;
-  onGameMove: (callback: (poolGameState: PoolGameState) => void) => () => void;
+  sendGameMove: (lobbyId: string, poolGameState: any) => Promise<void>;
+  onGameMove: (callback: (poolGameState: any) => void) => () => void;
   setupGameMovesListener: (lobbyId: string) => void;
   onLobbyJoined: (callback: (lobby: Lobby) => void) => void;
   onLobbyLeft: (callback: (lobby: Lobby) => void) => void;
@@ -119,7 +116,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
   }, []);
 
-  const generateLobbyId = (gameType: 'chess' | 'uno' | 'pool'): string => {
+  const generateLobbyId = (gameType: 'chess' | 'uno'): string => {
     const prefix = gameType.toUpperCase();
     const pin = Math.floor(1000 + Math.random() * 9000);
     return `${prefix}-${pin}`;
@@ -128,7 +125,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
 
 
-  const createLobby = async (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>): Promise<Lobby> => {
+  const createLobby = async (gameType: 'chess' | 'uno', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>): Promise<Lobby> => {
     if (!isConnected) throw new Error('Not connected to Firebase');
 
     try {
@@ -148,7 +145,6 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         expiresAt: expirationTime,
         // Include gambling data if provided
         ...gambleData,
-        ...(gameType === 'pool' && { poolGameState: initialPoolGameState(player1Id, player1Name, gambleData?.player2Id || '', gambleData?.player2Name || '') }),
       };
 
       await set(lobbyRef, newLobby);
@@ -417,39 +413,44 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
   };
 
-  const sendGameMove = async (lobbyId: string, newPoolGameState: PoolGameState) => {
-    if (!isConnected) throw new Error('Not connected to Firebase');
-    const lobbyRef = ref(database, `lobbies/${lobbyId}`);
-    const snapshot = await get(lobbyRef);
-    const lobbyData = snapshot.val();
+  const sendGameMove = async (lobbyId: string, moveData: any, playerId?: string) => {
+    if (!isConnected) return;
 
-    if (lobbyData) {
-      await set(lobbyRef, {
-        ...lobbyData,
-        poolGameState: newPoolGameState,
-        lastActivity: serverTimestamp()
+    try {
+      const moveRef = ref(database, `game-moves/${lobbyId}`);
+      await push(moveRef, {
+        moveData,
+        playerId: playerId || 'unknown',
+        timestamp: serverTimestamp()
       });
-    } else {
-      console.warn(`Lobby ${lobbyId} not found when trying to send game move.`);
+    } catch (error) {
+      console.error('Error sending game move:', error);
     }
   };
 
   const setupGameMovesListener = (lobbyId: string) => {
-    // Clean up previous listener if exists
     if (gameMovesListeners[lobbyId]) {
-      gameMovesListeners[lobbyId]();
+      return; // Already listening to this lobby
     }
 
-    const poolGameStateRef = ref(database, `lobbies/${lobbyId}/poolGameState`);
-    const unsubscribe = onValue(poolGameStateRef, (snapshot) => {
+    const movesRef = ref(database, `game-moves/${lobbyId}`);
+    const unsubscribe = onValue(movesRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        gameMovesCallbacksRef.current.forEach(callback => callback(data));
+        // Get the latest move (last entry)
+        const moves = Object.values(data) as any[];
+        const latestMove = moves[moves.length - 1];
+        if (latestMove && latestMove.moveData) {
+          console.log('🔥 [FIREBASE] Game move received for lobby', lobbyId, ':', latestMove.moveData);
+          console.log('🔥 [FIREBASE] Current callbacks count:', gameMovesCallbacksRef.current.length);
+          gameMovesCallbacksRef.current.forEach(callback => callback(latestMove.moveData));
+        }
       }
     });
+
     setGameMovesListeners(prev => ({ ...prev, [lobbyId]: unsubscribe }));
   };
-  const onGameMove = useCallback((callback: (poolGameState: PoolGameState) => void) => {
+  const onGameMove = useCallback((callback: (moveData: any) => void) => {
     setGameMovesCallbacks(prev => [...prev, callback]);
     return () => {
       setGameMovesCallbacks(prev => prev.filter(cb => cb !== callback));
