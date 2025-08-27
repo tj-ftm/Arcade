@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title GameBetting
@@ -77,8 +77,9 @@ contract GameBetting is ReentrancyGuard, Ownable, Pausable {
     event HouseFeeUpdated(uint256 oldFee, uint256 newFee);
     event BetLimitsUpdated(uint256 newMinBet, uint256 newMaxBet);
     
-    constructor(address _arcToken) {
+    constructor(address _arcToken, address _initialOwner) Ownable(_initialOwner) {
         require(_arcToken != address(0), "Invalid ARC token address");
+        require(_initialOwner != address(0), "Invalid initial owner address");
         arcToken = IERC20(_arcToken);
     }
     

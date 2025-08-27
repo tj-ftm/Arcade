@@ -6,12 +6,23 @@ async function main() {
   // ARC token contract address as specified
   const ARC_TOKEN_ADDRESS = "0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d";
   
+  // Get the deployer's address to use as initial owner
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying from account:", deployer.address);
+  
   // Get the contract factory
   const GameBetting = await ethers.getContractFactory("GameBetting");
   
+  // Use a high gas price for Sonic network
+  const gasPrice = ethers.parseUnits("100", "gwei"); // 100 gwei
+  console.log("Using gas price:", ethers.formatUnits(gasPrice, "gwei"), "gwei");
+  
   // Deploy the contract
   console.log("Deploying with ARC token address:", ARC_TOKEN_ADDRESS);
-  const gameBetting = await GameBetting.deploy(ARC_TOKEN_ADDRESS);
+  console.log("Initial owner:", deployer.address);
+  const gameBetting = await GameBetting.deploy(ARC_TOKEN_ADDRESS, deployer.address, {
+    gasPrice: gasPrice
+  });
   
   // Wait for deployment to complete
   await gameBetting.waitForDeployment();

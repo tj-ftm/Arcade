@@ -2,8 +2,8 @@
 
 // This will be updated after contract deployment
 export const BETTING_CONFIG = {
-  // Contract addresses (to be set after deployment)
-  GAME_BETTING_CONTRACT: process.env.NEXT_PUBLIC_GAME_BETTING_CONTRACT || '',
+  // Contract addresses (deployed on Sonic network)
+  GAME_BETTING_CONTRACT: process.env.NEXT_PUBLIC_GAME_BETTING_CONTRACT || '0x4b870044D30d5feaC8561F63dC1CB84Fa8A59880',
   ARC_TOKEN_CONTRACT: '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
   
   // Network configuration

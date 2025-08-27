@@ -1,9 +1,10 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-    version: "0.8.19",
+    version: "0.8.20",
     settings: {
       optimizer: {
         enabled: true,
@@ -19,7 +20,8 @@ module.exports = {
     sonic: {
       url: "https://rpc.soniclabs.com",
       chainId: 146,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+      accounts: process.env.MINTER_PRIVATE_KEY ? [process.env.MINTER_PRIVATE_KEY] : [],
+      gasPrice: 50000000000 // 50 gwei
     }
   },
   paths: {

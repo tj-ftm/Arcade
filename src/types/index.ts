@@ -157,7 +157,7 @@ export const ARC_TOKEN_ABI = [
 ];
 
 // PLACEHOLDERS: Replace with your deployed smart contract address and ABI
-export const GAME_CONTRACT_ADDRESS = '0xYourContractAddressHere';
+export const GAME_CONTRACT_ADDRESS = '0x4b870044D30d5feaC8561F63dC1CB84Fa8A59880';
 export const GAME_CONTRACT_ABI = [
   // A minimal ABI for the playGame function
   {
