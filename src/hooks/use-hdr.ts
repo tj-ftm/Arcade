@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-interface HDRCapabilities {
+export interface HDRCapabilities {
   supportsP3: boolean;
   supportsRec2020: boolean;
   supportsHighDynamicRange: boolean;
