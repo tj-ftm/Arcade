@@ -14,6 +14,7 @@ import { ChessStartScreen } from './chess/ChessStartScreen';
 import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
 import { ErrorReportButton } from './ErrorReportButton';
 import { errorLogger } from '@/lib/error-logger';
+import { MobileRotateButton } from './MobileRotateButton';
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -425,7 +426,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
 
 
     return (
-        <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8">
+        <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8" data-game-container>
             {showStartScreen && (
                 <ChessStartScreen 
                     onStartGame={() => { handleNewGame(false); setShowStartScreen(false); }} 
@@ -513,8 +514,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                     mintTxHash={mintTxHash}
                 />
             )}
-
-
+            
+            {/* Mobile Rotate Button */}
+            <MobileRotateButton />
         </div>
     );
 }

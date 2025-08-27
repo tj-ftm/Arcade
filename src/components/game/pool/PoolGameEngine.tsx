@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PanelLeft } from 'lucide-react';
 import { ErrorReportButton } from '../ErrorReportButton';
+import { MobileRotateButton } from '../MobileRotateButton';
 
 interface Ball {
   id: number;
@@ -309,26 +310,93 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
             newBall.velocity.y = 0;
           }
           
-          // Boundary collision
-           if (newBall.position.x - BALL_RADIUS < 50) {
-             newBall.position.x = 50 + BALL_RADIUS;
-             newBall.velocity.x *= -0.8;
-           }
-           if (newBall.position.x + BALL_RADIUS > BASE_TABLE_WIDTH - 50) {
-             newBall.position.x = BASE_TABLE_WIDTH - 50 - BALL_RADIUS;
-             newBall.velocity.x *= -0.8;
-           }
-           if (newBall.position.y - BALL_RADIUS < 50) {
-             newBall.position.y = 50 + BALL_RADIUS;
-             newBall.velocity.y *= -0.8;
-           }
-           if (newBall.position.y + BALL_RADIUS > BASE_TABLE_HEIGHT - 50) {
-             newBall.position.y = BASE_TABLE_HEIGHT - 50 - BALL_RADIUS;
-             newBall.velocity.y *= -0.8;
-           }
+          // Check for hole detection (pockets)
+          const pockets = [
+            { x: 50, y: 50 }, { x: BASE_TABLE_WIDTH / 2, y: 50 }, { x: BASE_TABLE_WIDTH - 50, y: 50 },
+            { x: 50, y: BASE_TABLE_HEIGHT - 50 }, { x: BASE_TABLE_WIDTH / 2, y: BASE_TABLE_HEIGHT - 50 }, { x: BASE_TABLE_WIDTH - 50, y: BASE_TABLE_HEIGHT - 50 }
+          ];
+          
+          for (const pocket of pockets) {
+            const distToPocket = Math.sqrt(
+              Math.pow(newBall.position.x - pocket.x, 2) + Math.pow(newBall.position.y - pocket.y, 2)
+            );
+            if (distToPocket < 20) {
+              newBall.inPocket = true;
+              newBall.velocity.x = 0;
+              newBall.velocity.y = 0;
+              break;
+            }
+          }
+          
+          if (!newBall.inPocket) {
+            // Boundary collision
+            if (newBall.position.x - BALL_RADIUS < 50) {
+              newBall.position.x = 50 + BALL_RADIUS;
+              newBall.velocity.x *= -0.8;
+            }
+            if (newBall.position.x + BALL_RADIUS > BASE_TABLE_WIDTH - 50) {
+              newBall.position.x = BASE_TABLE_WIDTH - 50 - BALL_RADIUS;
+              newBall.velocity.x *= -0.8;
+            }
+            if (newBall.position.y - BALL_RADIUS < 50) {
+              newBall.position.y = 50 + BALL_RADIUS;
+              newBall.velocity.y *= -0.8;
+            }
+            if (newBall.position.y + BALL_RADIUS > BASE_TABLE_HEIGHT - 50) {
+              newBall.position.y = BASE_TABLE_HEIGHT - 50 - BALL_RADIUS;
+              newBall.velocity.y *= -0.8;
+            }
+          }
           
           return newBall;
         });
+        
+        // Ball-to-ball collision detection
+        for (let i = 0; i < newState.balls.length; i++) {
+          for (let j = i + 1; j < newState.balls.length; j++) {
+            const ball1 = newState.balls[i];
+            const ball2 = newState.balls[j];
+            
+            if (ball1.inPocket || ball2.inPocket) continue;
+            
+            const dx = ball2.position.x - ball1.position.x;
+            const dy = ball2.position.y - ball1.position.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < BALL_RADIUS * 2) {
+              // Collision detected - simple elastic collision
+              const angle = Math.atan2(dy, dx);
+              const sin = Math.sin(angle);
+              const cos = Math.cos(angle);
+              
+              // Rotate velocities
+              const vx1 = ball1.velocity.x * cos + ball1.velocity.y * sin;
+              const vy1 = ball1.velocity.y * cos - ball1.velocity.x * sin;
+              const vx2 = ball2.velocity.x * cos + ball2.velocity.y * sin;
+              const vy2 = ball2.velocity.y * cos - ball2.velocity.x * sin;
+              
+              // Swap velocities (elastic collision)
+              const finalVx1 = vx2 * 0.9; // Add some energy loss
+              const finalVx2 = vx1 * 0.9;
+              
+              // Rotate back
+              ball1.velocity.x = finalVx1 * cos - vy1 * sin;
+              ball1.velocity.y = vy1 * cos + finalVx1 * sin;
+              ball2.velocity.x = finalVx2 * cos - vy2 * sin;
+              ball2.velocity.y = vy2 * cos + finalVx2 * sin;
+              
+              // Separate balls to prevent overlap
+              const overlap = BALL_RADIUS * 2 - distance;
+              const separationX = (dx / distance) * overlap * 0.5;
+              const separationY = (dy / distance) * overlap * 0.5;
+              
+              ball1.position.x -= separationX;
+              ball1.position.y -= separationY;
+              ball2.position.x += separationX;
+              ball2.position.y += separationY;
+            }
+          }
+        }
         
         return newState;
       });
@@ -357,7 +425,7 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
 
   if (!gameState) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-700 to-green-900 text-white">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-700 to-green-900 text-white" data-game-container>
         <p className="text-2xl">Loading Pool Game...</p>
       </div>
     );
@@ -384,13 +452,20 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
       {/* Player UI Top Bar */}
       <div className="absolute top-4 left-0 right-0 flex justify-between items-center px-8 z-20">
         {/* Player 1 */}
-        <div className="flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+        <div className={`flex items-center gap-3 backdrop-blur-sm rounded-xl p-3 border transition-all duration-500 ${
+          gameState.activePlayerId === gameState.players[0]?.id 
+            ? 'bg-blue-500/30 border-blue-400 shadow-lg shadow-blue-400/30 animate-pulse' 
+            : 'bg-black/40 border-white/20'
+        }`}>
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-white/30 flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-sm">P1</span>
           </div>
           <div>
             <p className="text-white font-semibold text-sm">{gameState.players[0]?.name}</p>
             <p className="text-blue-300 text-xs">Score: {gameState.players[0]?.score}</p>
+            {gameState.activePlayerId === gameState.players[0]?.id && (
+              <p className="text-yellow-300 text-xs font-bold animate-bounce">Your Turn!</p>
+            )}
           </div>
         </div>
         
@@ -412,10 +487,17 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
         </div>
         
         {/* Player 2 */}
-        <div className="flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+        <div className={`flex items-center gap-3 backdrop-blur-sm rounded-xl p-3 border transition-all duration-500 ${
+          gameState.activePlayerId === gameState.players[1]?.id 
+            ? 'bg-red-500/30 border-red-400 shadow-lg shadow-red-400/30 animate-pulse' 
+            : 'bg-black/40 border-white/20'
+        }`}>
           <div>
             <p className="text-white font-semibold text-sm text-right">{gameState.players[1]?.name}</p>
             <p className="text-red-300 text-xs text-right">Score: {gameState.players[1]?.score}</p>
+            {gameState.activePlayerId === gameState.players[1]?.id && (
+              <p className="text-yellow-300 text-xs font-bold animate-bounce text-right">Your Turn!</p>
+            )}
           </div>
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-400 to-red-600 border-2 border-white/30 flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-sm">P2</span>
@@ -552,8 +634,8 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
                    width: `${(80 + cuePower) * tableDimensions.scale}px`,
                    height: `${6 * tableDimensions.scale}px`,
                    background: 'linear-gradient(90deg, #D4AF37 0%, #DAA520 10%, #8B4513 20%, #A0522D 80%, #654321 100%)',
-                   transform: `rotate(${cueAngle}rad) translateX(-${(30 + cuePower / 2) * tableDimensions.scale}px)`,
-                   transformOrigin: 'left center',
+                   transform: `rotate(${cueAngle}rad) translateX(-${(80 + cuePower) * tableDimensions.scale}px)`,
+                   transformOrigin: 'right center',
                    borderRadius: `${3 * tableDimensions.scale}px`,
                    border: `${1 * tableDimensions.scale}px solid rgba(255,215,0,0.3)`,
                    boxShadow: `0 ${2 * tableDimensions.scale}px ${4 * tableDimensions.scale}px rgba(0,0,0,0.3), inset 0 ${1 * tableDimensions.scale}px ${2 * tableDimensions.scale}px rgba(255,255,255,0.2)`,
@@ -672,6 +754,9 @@ export const PoolGameEngine = ({ lobby, isHost, onGameEnd, gameMode }: PoolGameE
           </div>
         </div>
       )}
+      
+      {/* Mobile Rotate Button */}
+      <MobileRotateButton />
     </div>
   );
 };
