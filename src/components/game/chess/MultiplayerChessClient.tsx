@@ -56,7 +56,14 @@ interface ChessGameState {
 interface MultiplayerChessClientProps {
   lobby: Lobby;
   isHost: boolean;
-  onGameEnd: () => void;
+  onGameEnd: (gameResult?: {
+    winnerId: string;
+    winnerName: string;
+    winnerAddress: string;
+    loserId: string;
+    loserName: string;
+    loserAddress: string;
+  }) => void;
   showGameLogModal?: boolean;
   onCloseGameLogModal?: () => void;
 }
@@ -407,10 +414,29 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         
         // Call endGame to record statistics and cleanup lobby
         endGame(lobby.id, winnerId, winnerName, loserId, loserName);
+        
+        // Call onGameEnd with game result
+        const gameResult = {
+          winnerId,
+          winnerName,
+          winnerAddress: winnerId,
+          loserId,
+          loserName,
+          loserAddress: loserId
+        };
+        
+        setTimeout(() => {
+          onGameEnd(gameResult);
+        }, 2000);
       } else if (gameWinner === 'Draw') {
         // For draws, we still want to cleanup the lobby but not record win/loss stats
         console.log('🤝 [CHESS MULTIPLAYER] Game ended in draw');
         endGame(lobby.id, chessGameState.player1.id, `${chessGameState.player1.name} (Draw)`, chessGameState.player1.id, `${chessGameState.player1.name} (Draw)`);
+        
+        // For draws, call onGameEnd without parameters
+        setTimeout(() => {
+          onGameEnd();
+        }, 2000);
       }
       
       // Notify opponent of game end

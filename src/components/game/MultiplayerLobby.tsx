@@ -35,10 +35,28 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const [gameStartTimeout, setGameStartTimeout] = useState<NodeJS.Timeout | null>(null);
   const gameStartingRef = useRef(false);
   
-  const { onLobbyJoined, startGame } = useFirebaseMultiplayer();
+  const { onLobbyJoined, startGame, checkForExistingLobby } = useFirebaseMultiplayer();
   const { account } = useWeb3();
   
   const currentUserId = account || `guest-${Date.now()}`;
+  
+  // Check for existing lobby on component mount
+  useEffect(() => {
+    const checkExistingLobby = async () => {
+      try {
+        const existingLobby = await checkForExistingLobby();
+        if (existingLobby && existingLobby.lobby.gameType === gameType) {
+          console.log('🔄 [MULTIPLAYER LOBBY] Found existing lobby, reconnecting:', existingLobby);
+          // Automatically trigger game start for existing lobby
+          handleGameStart(existingLobby.lobby, existingLobby.isHost);
+        }
+      } catch (error) {
+        console.error('Error checking for existing lobby:', error);
+      }
+    };
+    
+    checkExistingLobby();
+  }, [gameType, checkForExistingLobby]);
   
   const handleGameStart = useCallback(async (lobby: Lobby, isHost: boolean) => {
     // Prevent multiple game starts

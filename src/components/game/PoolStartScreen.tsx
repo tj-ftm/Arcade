@@ -1,13 +1,14 @@
 import { Button } from '@/components/ui/button';
-import { Play, ArrowLeft } from 'lucide-react';
+import { Play, ArrowLeft, Coins, Trophy } from 'lucide-react';
 
 interface PoolStartScreenProps {
   onStartGame: () => void;
   onGoToMenu: () => void;
   onStartMultiplayer: () => void;
+  onStartBetting?: () => void;
 }
 
-export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer }: PoolStartScreenProps) => {
+export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBetting }: PoolStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-emerald-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8">
       {/* Game Title */}
@@ -21,7 +22,11 @@ export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer }:
       <div className="flex flex-col items-center gap-4 mt-4">
         <Button 
           size="lg" 
-          onClick={onStartGame}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onStartGame();
+          }}
           className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-green-600 hover:bg-green-700 text-white border-2 border-white/20"
         >
           <Play className="mr-4 h-8 w-8" />
@@ -29,12 +34,31 @@ export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer }:
         </Button>
         <Button 
           size="lg" 
-          onClick={onStartMultiplayer}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onStartMultiplayer();
+          }}
           className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-blue-600 hover:bg-blue-700 text-white border-2 border-white/20"
         >
           <Play className="mr-4 h-8 w-8" />
           Multiplayer
         </Button>
+        
+        {onStartBetting && (
+          <Button 
+            size="lg" 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStartBetting();
+            }}
+            className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white border-2 border-yellow-400/30 shadow-lg"
+          >
+            <Coins className="mr-4 h-8 w-8" />
+            Bet Mode
+          </Button>
+        )}
 
         {/* Rewards Info */}
         <div className="bg-gradient-to-r from-lime-600/20 to-lime-400/20 rounded-xl p-4 border border-lime-400/30">

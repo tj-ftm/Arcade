@@ -90,8 +90,8 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
-  // Extract image URL from various possible fields in PaintSwap API response
-  const extractImageUrl = (nftData: any, fetchedMetadata: any): string | null => {
+  // Enhanced image URL extraction with multiple fallback strategies
+  const extractImageUrl = async (nftData: any, fetchedMetadata: any, contractAddress: string, tokenId: string): Promise<string | null> => {
     // Try multiple possible image URL fields
     const possibleImageFields = [
       nftData.image,
@@ -112,16 +112,42 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       // Try nested structures
       nftData.nft?.image,
       nftData.nft?.imageUrl,
-      nftData.nft?.cached_file_url
+      nftData.nft?.cached_file_url,
+      // Additional PaintSwap fields
+      nftData.nft?.metadata?.image,
+      nftData.token?.image,
+      nftData.token?.metadata?.image
     ];
 
+    // First, try direct image fields
     for (const field of possibleImageFields) {
       if (field && typeof field === 'string') {
         let imageUrl = field;
         
-        // Handle IPFS URLs
+        // Handle IPFS URLs with multiple gateways
         if (imageUrl.startsWith('ipfs://')) {
-          imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+          const ipfsHash = imageUrl.replace('ipfs://', '');
+          const gateways = [
+            `https://ipfs.io/ipfs/${ipfsHash}`,
+            `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+            `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
+            `https://dweb.link/ipfs/${ipfsHash}`
+          ];
+          
+          // Test each gateway to find working one
+          for (const gateway of gateways) {
+            try {
+              const testResponse = await fetch(gateway, { method: 'HEAD', timeout: 5000 } as any);
+              if (testResponse.ok) {
+                console.log(`Working IPFS gateway found: ${gateway}`);
+                return gateway;
+              }
+            } catch {
+              continue;
+            }
+          }
+          // If no gateway works, return the first one as fallback
+          return gateways[0];
         }
         
         // Validate URL format
@@ -135,6 +161,45 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       }
     }
     
+    // If no direct image found, try fetching enhanced metadata from Paintswap
+    console.log(`No direct image found, trying Paintswap API for ${contractAddress}/${tokenId}`);
+    const paintswapData = await fetchNFTFromPaintswap(contractAddress, tokenId);
+    if (paintswapData) {
+      // Recursively try to extract image from Paintswap data
+      const paintswapImage = await extractImageUrl(paintswapData, null, contractAddress, tokenId);
+      if (paintswapImage) {
+        return paintswapImage;
+      }
+    }
+    
+    // Try constructing image from blockchain/metadata
+    const blockchainImage = constructImageFromBlockchain(contractAddress, tokenId, fetchedMetadata || nftData.metadata);
+    if (blockchainImage) {
+      return blockchainImage;
+    }
+    
+    // Final fallback: try to construct common NFT image patterns
+    const commonPatterns = [
+      `https://ipfs.io/ipfs/${contractAddress}/${tokenId}`,
+      `https://gateway.pinata.cloud/ipfs/${contractAddress}/${tokenId}.png`,
+      `https://gateway.pinata.cloud/ipfs/${contractAddress}/${tokenId}.jpg`,
+      `https://api.paintswap.finance/images/${contractAddress}/${tokenId}`,
+      `https://metadata.paintswap.finance/${contractAddress}/${tokenId}.png`
+    ];
+    
+    for (const pattern of commonPatterns) {
+      try {
+        const testResponse = await fetch(pattern, { method: 'HEAD', timeout: 3000 } as any);
+        if (testResponse.ok) {
+          console.log(`Found image using pattern: ${pattern}`);
+          return pattern;
+        }
+      } catch {
+        continue;
+      }
+    }
+    
+    console.log(`No image found for NFT ${contractAddress}/${tokenId}`);
     return null;
   };
 
@@ -164,26 +229,110 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
-  // Function to fetch metadata from IPFS/HTTP URL
+  // Enhanced function to fetch metadata from multiple sources
   const fetchMetadataFromURI = async (tokenURI: string) => {
     try {
-      // Convert IPFS URLs to HTTP gateway URLs
+      // Convert IPFS URLs to HTTP gateway URLs with multiple fallbacks
       let metadataUrl = tokenURI;
       if (tokenURI.startsWith('ipfs://')) {
-        metadataUrl = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        const ipfsHash = tokenURI.replace('ipfs://', '');
+        // Try multiple IPFS gateways for better reliability
+        const gateways = [
+          `https://ipfs.io/ipfs/${ipfsHash}`,
+          `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+          `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
+          `https://dweb.link/ipfs/${ipfsHash}`
+        ];
+        
+        for (const gateway of gateways) {
+          try {
+            console.log(`Trying IPFS gateway: ${gateway}`);
+            const response = await fetch(gateway, { timeout: 10000 } as any);
+            if (response.ok) {
+              const metadata = await response.json();
+              console.log('Successfully fetched metadata from:', gateway);
+              return metadata;
+            }
+          } catch (err) {
+            console.warn(`Gateway ${gateway} failed:`, err);
+            continue;
+          }
+        }
+        throw new Error('All IPFS gateways failed');
+      } else {
+        console.log(`Fetching metadata from: ${metadataUrl}`);
+        const response = await fetch(metadataUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch metadata: ${response.status}`);
+        }
+        
+        const metadata = await response.json();
+        console.log('Fetched metadata:', metadata);
+        return metadata;
       }
-      
-      console.log(`Fetching metadata from: ${metadataUrl}`);
-      const response = await fetch(metadataUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch metadata: ${response.status}`);
-      }
-      
-      const metadata = await response.json();
-      console.log('Fetched metadata:', metadata);
-      return metadata;
     } catch (error) {
       console.error('Error fetching metadata:', error);
+      return null;
+    }
+  };
+
+  // Function to fetch NFT data from Paintswap API with enhanced metadata
+  const fetchNFTFromPaintswap = async (contractAddress: string, tokenId: string) => {
+    try {
+      // Try multiple Paintswap API endpoints
+      const endpoints = [
+        `https://api.paintswap.finance/metadata/${contractAddress}/${tokenId}`,
+        `https://api.paintswap.finance/userNFTs/${contractAddress}/${tokenId}`,
+        `https://api.paintswap.finance/extraNFTInfo/${contractAddress}/${tokenId}`
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying Paintswap endpoint: ${endpoint}`);
+          const response = await fetch(endpoint);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Paintswap API response:', data);
+            return data;
+          }
+        } catch (err) {
+          console.warn(`Paintswap endpoint ${endpoint} failed:`, err);
+          continue;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching from Paintswap:', error);
+      return null;
+    }
+  };
+
+  // Function to construct image URL from SonicScan/blockchain data
+  const constructImageFromBlockchain = (contractAddress: string, tokenId: string, metadata: any): string | null => {
+    try {
+      // If metadata has IPFS image, convert to HTTP
+      if (metadata?.image) {
+        let imageUrl = metadata.image;
+        if (imageUrl.startsWith('ipfs://')) {
+          const ipfsHash = imageUrl.replace('ipfs://', '');
+          // Use multiple IPFS gateways
+          const gateways = [
+            `https://ipfs.io/ipfs/${ipfsHash}`,
+            `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+            `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+          ];
+          return gateways[0]; // Return first gateway, others will be tried as fallbacks
+        }
+        return imageUrl;
+      }
+      
+      // Try to construct OpenSea-style metadata URL
+      const openSeaUrl = `https://api.opensea.io/api/v1/asset/${contractAddress}/${tokenId}/`;
+      console.log('Constructed OpenSea URL:', openSeaUrl);
+      
+      return null;
+    } catch (error) {
+      console.error('Error constructing image URL:', error);
       return null;
     }
   };
@@ -259,7 +408,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
         }
         
         // Extract image URL using the enhanced extraction function
-        const imageUrl = extractImageUrl(nftData, fetchedMetadata);
+        const imageUrl = await extractImageUrl(nftData, fetchedMetadata, contractAddress, tokenId);
         
         console.log(`Final Image URL for NFT ${index}:`, imageUrl);
         console.log(`Available image fields:`, {

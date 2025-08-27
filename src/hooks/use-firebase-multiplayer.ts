@@ -58,12 +58,57 @@ interface UseFirebaseMultiplayerReturn {
   onLobbyLeft: (callback: (lobby: Lobby) => void) => void;
   onLobbyClosed: (callback: () => void) => void;
   cleanupExpiredLobbies: () => Promise<void>;
+  checkForExistingLobby: () => Promise<{ lobby: Lobby; isHost: boolean } | null>;
 }
 
 export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
+  
+  // Store lobby info in localStorage for reconnection
+  const storeLobbyInfo = useCallback((lobby: Lobby, isHost: boolean) => {
+    const lobbyInfo = {
+      lobbyId: lobby.id,
+      gameType: lobby.gameType,
+      isHost,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('currentLobby', JSON.stringify(lobbyInfo));
+  }, []);
+  
+  // Clear stored lobby info
+  const clearLobbyInfo = useCallback(() => {
+    localStorage.removeItem('currentLobby');
+  }, []);
+  
+  // Check for existing lobby on initialization
+  const checkForExistingLobby = useCallback(async () => {
+    const storedLobbyInfo = localStorage.getItem('currentLobby');
+    if (storedLobbyInfo) {
+      try {
+        const lobbyInfo = JSON.parse(storedLobbyInfo);
+        // Check if lobby info is not too old (24 hours)
+        if (Date.now() - lobbyInfo.timestamp < 24 * 60 * 60 * 1000) {
+          const lobbyRef = ref(database, `lobbies/${lobbyInfo.lobbyId}`);
+          const snapshot = await get(lobbyRef);
+          if (snapshot.exists()) {
+            const lobbyData = snapshot.val();
+            if (lobbyData.status === 'waiting' || lobbyData.status === 'playing') {
+              setCurrentLobby({ id: lobbyInfo.lobbyId, ...lobbyData });
+              return { lobby: { id: lobbyInfo.lobbyId, ...lobbyData }, isHost: lobbyInfo.isHost };
+            }
+          }
+        }
+        // Clear invalid or expired lobby info
+        clearLobbyInfo();
+      } catch (error) {
+        console.error('Error checking for existing lobby:', error);
+        clearLobbyInfo();
+      }
+    }
+    return null;
+  }, [clearLobbyInfo]);
   const [gameMovesCallbacks, setGameMovesCallbacks] = useState<((moveData: any) => void)[]>([]);
   const [lobbyJoinedCallbacks, setLobbyJoinedCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
   const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
@@ -150,6 +195,9 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       await set(lobbyRef, newLobby);
       const createdLobby = { ...newLobby, id: lobbyId };
       setCurrentLobby(createdLobby);
+      
+      // Store lobby info for reconnection
+      storeLobbyInfo(createdLobby, true);
 
       // Listen for lobby updates
       const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
@@ -227,6 +275,9 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       const joinedLobby = { ...updatedLobbyData, id: lobbyId };
       setCurrentLobby(joinedLobby);
       
+      // Store lobby info for reconnection
+      storeLobbyInfo(joinedLobby, false);
+      
       console.log('✅ [JOIN LOBBY] Successfully joined lobby, triggering callbacks');
       
       // Trigger lobby joined callback for the joining player
@@ -280,6 +331,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       }
       
       setCurrentLobby(null);
+      clearLobbyInfo();
       lobbyLeftCallbacks.forEach(callback => callback(currentLobby));
     } catch (error) {
       console.error('Error leaving lobby:', error);
@@ -510,6 +562,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     onLobbyJoined,
     onLobbyLeft,
     onLobbyClosed,
-    cleanupExpiredLobbies
+    cleanupExpiredLobbies,
+    checkForExistingLobby
   };
 };

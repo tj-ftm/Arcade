@@ -17,8 +17,12 @@ import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChess
 import { PoolClient } from '@/components/game/pool/PoolClient';
 import { PoolStartScreen } from '@/components/game/PoolStartScreen';
 import { PoolEndGameScreen } from '@/components/game/PoolEndGameScreen';
+import { ChessStartScreen } from '@/components/game/ChessStartScreen';
+import { ChessEndGameScreen } from '@/components/game/chess/ChessEndGameScreen';
+import { BettingLobby } from '@/components/game/BettingLobby';
 import { MultiplayerUnoClient } from '@/components/game/uno/MultiplayerUnoClient';
 import { UnoGambleClient } from '@/components/game/uno/UnoGambleClient';
+import { UnoEndGameScreen } from '@/components/game/UnoEndGameScreen';
 import { GambleLobby } from '@/components/game/uno/GambleLobby';
 import { SimpleGambleLobby } from '@/components/game/uno/SimpleGambleLobby';
 import { SimpleGambleClient } from '@/components/game/uno/SimpleGambleClient';
@@ -44,7 +48,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResult } from '@/lib/game-statistics';
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-betting' | 'pool-betting-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs';
 
 // --- Replicated Page Components ---
 
@@ -442,7 +446,7 @@ const TokenomicsContent = ({ onBack }: { onBack: () => void }) => (
     <TokenomicsChart onBack={onBack} />
 );
 
-const UnoStartScreen = ({ onFreePlay, onPaidPlay, onGamblePlay, onSimpleGamblePlay }: { onFreePlay: () => void, onPaidPlay: () => void, onGamblePlay: () => void, onSimpleGamblePlay: () => void }) => (
+const UnoStartScreen = ({ onFreePlay, onPaidPlay, onGamblePlay, onSimpleGamblePlay, onBetMode }: { onFreePlay: () => void, onPaidPlay: () => void, onGamblePlay: () => void, onSimpleGamblePlay: () => void, onBetMode?: () => void }) => (
      <div className="w-full h-full max-w-md z-10 text-center my-auto animate-fade-in overflow-y-auto">
         <div className="bg-black/50 p-8 rounded-xl flex flex-col items-center">
             <h1 className="text-8xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO</h1>
@@ -454,12 +458,11 @@ const UnoStartScreen = ({ onFreePlay, onPaidPlay, onGamblePlay, onSimpleGamblePl
                 <Button size="lg" onClick={onPaidPlay} className="w-full h-16 text-2xl font-headline rounded-lg bg-green-600 hover:bg-green-700">
                     <Ticket className="mr-4" /> Pay & Play (0.1 S)
                 </Button>
-                <Button size="lg" onClick={onSimpleGamblePlay} className="w-full h-16 text-2xl font-headline rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold">
-                    <Coins className="mr-4" /> Simple Gamble
-                </Button>
-                <Button size="lg" onClick={onGamblePlay} className="w-full h-16 text-2xl font-headline rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-black font-bold">
-                    <Trophy className="mr-4" /> Advanced Gamble
-                </Button>
+                {onBetMode && (
+                  <Button size="lg" onClick={onBetMode} className="w-full h-16 text-2xl font-headline rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold">
+                      <Coins className="mr-4" /> Bet Mode
+                  </Button>
+                )}
             </div>
         </div>
     </div>
@@ -494,6 +497,12 @@ export default function HomePage() {
   const [isSimpleGambleHost, setIsSimpleGambleHost] = useState(false);
   const [poolLobby, setPoolLobby] = useState<Lobby | null>(null);
   const [isPoolHost, setIsPoolHost] = useState(false);
+  const [poolBettingLobby, setPoolBettingLobby] = useState<Lobby | null>(null);
+  const [isPoolBettingHost, setIsPoolBettingHost] = useState(false);
+  const [chessBettingLobby, setChessBettingLobby] = useState<Lobby | null>(null);
+  const [isChessBettingHost, setIsChessBettingHost] = useState(false);
+  const [unoBettingLobby, setUnoBettingLobby] = useState<Lobby | null>(null);
+  const [isUnoBettingHost, setIsUnoBettingHost] = useState(false);
   const [showChessGameLog, setShowChessGameLog] = useState(false);
   const [endGameData, setEndGameData] = useState<{ game: GameType; didWin: boolean; lobby: Lobby | null } | null>(null);
   const isMobile = useIsMobile();
@@ -574,13 +583,14 @@ export default function HomePage() {
     setActiveView('chess-multiplayer-game');
   }, []);
 
-  const handleChessMultiplayerEnd = useCallback((lobby: Lobby, didWin: boolean) => {
-    console.log('🏁 [MAIN PAGE] Chess multiplayer game ended');
+  const handleChessMultiplayerEnd = useCallback((gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] Chess multiplayer game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
     setChessLobby(null);
     setIsChessHost(false);
-    setEndGameData({ game: 'chess', didWin, lobby });
+    setEndGameData({ game: 'chess', didWin, lobby: chessLobby, gameResult });
     setActiveView('chess-end-game');
-  }, []);
+  }, [account, chessLobby]);
 
   const handleUnoMultiplayerStart = useCallback((lobby: Lobby, isHost: boolean) => {
     console.log('🎮 [MAIN PAGE] UNO multiplayer game starting:', { lobby, isHost });
@@ -589,13 +599,14 @@ export default function HomePage() {
     setActiveView('uno-multiplayer-game');
   }, []);
 
-  const handleUnoMultiplayerEnd = useCallback((lobby: Lobby, didWin: boolean) => {
-    console.log('🏁 [MAIN PAGE] UNO multiplayer game ended');
+  const handleUnoMultiplayerEnd = useCallback((gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] UNO multiplayer game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
     setUnoLobby(null);
     setIsUnoHost(false);
-    setEndGameData({ game: 'uno', didWin, lobby });
+    setEndGameData({ game: 'uno', didWin, lobby: unoLobby, gameResult });
     setActiveView('uno-end-game');
-  }, []);
+  }, [account, unoLobby]);
 
   const handleUnoGambleStart = useCallback((lobby: Lobby, isHost: boolean) => {
     console.log('🎰 [MAIN PAGE] UNO gamble game starting:', { lobby, isHost });
@@ -643,19 +654,71 @@ export default function HomePage() {
     setActiveView('pool-singleplayer-game');
   }, []);
 
-  const handlePoolMultiplayerEnd = useCallback((lobby: Lobby, didWin: boolean) => {
-    console.log('🏁 [MAIN PAGE] Pool multiplayer game ended');
+  const handlePoolMultiplayerEnd = useCallback((gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] Pool multiplayer game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
     setPoolLobby(null);
     setIsPoolHost(false);
-    setEndGameData({ game: 'pool', didWin, lobby });
+    setEndGameData({ game: 'pool', didWin, lobby: poolLobby, gameResult });
     setActiveView('pool-end-game');
-  }, []);
+  }, [account, poolLobby]);
 
   const handlePoolSinglePlayerEnd = useCallback((didWin: boolean) => {
     console.log('🏁 [MAIN PAGE] Pool single player game ended');
     setEndGameData({ game: 'pool', didWin, lobby: null });
     setActiveView('pool-end-game');
   }, []);
+
+  // Pool Betting Handlers
+  const handlePoolBettingStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] Pool betting game starting:', { lobby, isHost });
+    setPoolBettingLobby(lobby);
+    setIsPoolBettingHost(isHost);
+    setActiveView('pool-betting-game');
+  }, []);
+
+  const handlePoolBettingEnd = useCallback((gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] Pool betting game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
+    setPoolBettingLobby(null);
+    setIsPoolBettingHost(false);
+    setEndGameData({ game: 'pool', didWin, lobby: poolBettingLobby, gameResult });
+    setActiveView('pool-end-game');
+  }, [account, poolBettingLobby]);
+
+  // Chess Betting Handlers
+  const handleChessBettingStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] Chess betting game starting:', { lobby, isHost });
+    setChessBettingLobby(lobby);
+    setIsChessBettingHost(isHost);
+    setActiveView('chess-betting-game');
+  }, []);
+
+  const handleChessBettingEnd = useCallback((gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] Chess betting game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
+    setChessBettingLobby(null);
+    setIsChessBettingHost(false);
+    setEndGameData({ game: 'chess', didWin, lobby: chessBettingLobby, gameResult });
+    setActiveView('chess-end-game');
+  }, [account, chessBettingLobby]);
+
+  // UNO Betting Handlers
+  const handleUnoBettingStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] UNO betting game starting:', { lobby, isHost });
+    setUnoBettingLobby(lobby);
+    setIsUnoBettingHost(isHost);
+    setActiveView('uno-betting-game');
+  }, []);
+
+  const handleUnoBettingEnd = useCallback((gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] UNO betting game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
+    setUnoBettingLobby(null);
+    setIsUnoBettingHost(false);
+    setEndGameData({ game: 'uno', didWin, lobby: unoBettingLobby, gameResult });
+    setActiveView('uno-end-game');
+  }, [account, unoBettingLobby]);
 
   const getSidebarTheme = () => {
     switch (activeView) {
@@ -687,9 +750,33 @@ export default function HomePage() {
   const renderContent = () => {
     switch (activeView) {
       case 'uno':
-        return <UnoClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('uno', didWin)} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} />;
+        return <UnoClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('uno', didWin)} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} onNavigateToBetting={() => handleNavigate('uno-betting')} />;
+      case 'uno-betting':
+        return <BettingLobby gameType="uno" onStartGame={handleUnoBettingStart} onBackToMenu={() => handleNavigate('uno')} />;
+      case 'uno-betting-game':
+        return unoBettingLobby ? (
+          <div className="w-full h-full">
+            <MultiplayerUnoClient
+              lobby={unoBettingLobby}
+              isHost={isUnoBettingHost}
+              onGameEnd={handleUnoBettingEnd}
+            />
+          </div>
+        ) : null;
       case 'pool':
-        return <PoolStartScreen key={gameKey} onStartGame={handlePoolSinglePlayerStart} onStartMultiplayer={handlePoolMultiplayerStart} onGoToMenu={() => handleNavigate('menu')} />;
+        return <PoolStartScreen key={`pool-start-${gameKey}-${Date.now()}`} onStartGame={handlePoolSinglePlayerStart} onStartMultiplayer={handlePoolMultiplayerStart} onStartBetting={() => handleNavigate('pool-betting')} onGoToMenu={() => handleNavigate('menu')} />;
+      case 'pool-betting':
+        return <BettingLobby gameType="pool" onStartGame={handlePoolBettingStart} onBackToMenu={() => handleNavigate('pool')} />;
+      case 'pool-betting-game':
+        return poolBettingLobby ? (
+          <div className="w-full h-full">
+            <PoolClient
+              lobby={poolBettingLobby}
+              isHost={isPoolBettingHost}
+              onGameEnd={handlePoolBettingEnd}
+            />
+          </div>
+        ) : null;
       case 'pool-multiplayer-game':
         return poolLobby ? (
           <div className="w-full h-full">
@@ -717,7 +804,19 @@ export default function HomePage() {
       case 'snake':
         return <SnakeClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('snake', didWin)} />;
       case 'chess':
-        return <ChessClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('chess', didWin)} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} />;
+        return <ChessStartScreen onStartGame={() => handleGameEnd('chess', true)} onStartMultiplayer={() => handleNavigate('chess-multiplayer')} onStartBetting={() => handleNavigate('chess-betting')} onGoToMenu={() => handleNavigate('menu')} />;
+      case 'chess-betting':
+        return <BettingLobby gameType="chess" onStartGame={handleChessBettingStart} onBackToMenu={() => handleNavigate('chess')} />;
+      case 'chess-betting-game':
+        return chessBettingLobby ? (
+          <div className="w-full h-full">
+            <MultiplayerChessClient
+              lobby={chessBettingLobby}
+              isHost={isChessBettingHost}
+              onGameEnd={handleChessBettingEnd}
+            />
+          </div>
+        ) : null;
       case 'uno-multiplayer':
         return (
           <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
@@ -865,7 +964,7 @@ export default function HomePage() {
                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-accent uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '1px black' }}>UNO</h1>
                         </div>
                         <div className="relative">
-                           <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1" />
+                           <img src="/uno_icon.png" alt="UNO Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mx-auto mb-1 drop-shadow-lg" />
                            <div className="absolute inset-0 flex items-center justify-center">
                                <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
                                    PVP LIVE
@@ -885,7 +984,7 @@ export default function HomePage() {
                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-purple-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>CHESS</h1>
                         </div>
                         <div className="relative">
-                           <img src="/chess_icon.png" alt="CHESS Game" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1" />
+                           <img src="/chess_icon.png" alt="CHESS Game" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1 drop-shadow-lg" />
                            <div className="absolute inset-0 flex items-center justify-center">
                                <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1" >
                                    PVP LIVE
@@ -904,7 +1003,7 @@ export default function HomePage() {
                        <div className="pt-0 sm:pt-1">
                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
                         </div>
-                        <img src="/snake_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mb-1 object-contain mx-auto" />
+                        <img src="/snake_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mb-1 object-contain mx-auto drop-shadow-lg" />
 
                         <Button onClick={() => handleNavigate('snake')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
                             Play
@@ -918,7 +1017,7 @@ export default function HomePage() {
                              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-yellow-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SHOP</h1>
                         </div>
                         <div className="relative">
-                           <img src="/shop_icon.png" alt="Shop" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto" />
+                           <img src="/shop_icon.png" alt="Shop" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto drop-shadow-lg" />
                            <div className="absolute inset-0 flex items-center justify-center">
                                <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
                                    COMING SOON
@@ -938,7 +1037,7 @@ export default function HomePage() {
                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>POOL</h1>
                         </div>
                         <div className="relative">
-                           <img src="/pool_icon.png" alt="POOL Game" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto" />
+                           <img src="/pool_icon.png" alt="POOL Game" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto drop-shadow-lg" />
                            <div className="absolute inset-0 flex items-center justify-center">
                                <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
                                    COMING SOON
@@ -957,7 +1056,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-blue-400 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>LEADERBOARD</h1>
                          </div>
-                         <img src="/leaderboard_icon.png" alt="Leaderboard" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1" />
+                         <img src="/leaderboard_icon.png" alt="Leaderboard" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1 drop-shadow-lg" />
  
                          <Button onClick={() => handleNavigate('leaderboard')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
@@ -970,7 +1069,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>PROFILE</h1>
                          </div>
-                         <img src="/profile_icon.png" alt="Profile" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1" />
+                         <img src="/profile_icon.png" alt="Profile" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1 drop-shadow-lg" />
  
                          <Button onClick={() => handleNavigate('profile')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-pink-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-pink-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
@@ -983,7 +1082,7 @@ export default function HomePage() {
                         <div className="pt-0 sm:pt-1">
                              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>TOKENOMICS</h1>
                          </div>
-                         <img src="/tokenomics_icon.png" alt="Tokenomics" className="w-24 h-16 sm:w-28 sm:h-20 lg:w-32 lg:h-24 xl:w-36 xl:h-28 mx-auto mb-1 flex items-center justify-center" />
+                         <img src="/tokenomics_icon.png" alt="Tokenomics" className="w-24 h-16 sm:w-28 sm:h-20 lg:w-32 lg:h-24 xl:w-36 xl:h-28 mx-auto mb-1 flex items-center justify-center drop-shadow-lg" />
  
                          <Button onClick={() => handleNavigate('tokenomics')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 text-white rounded-xl shadow-lg hover:from-orange-300 hover:to-orange-500 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
