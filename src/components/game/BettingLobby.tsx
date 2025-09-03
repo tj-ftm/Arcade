@@ -93,6 +93,42 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const currentUserId = account || `guest-${Date.now()}`;
   const currentUserName = username || 'Anonymous';
 
+  // Define handleGameStart before it's used in useEffect
+  const handleGameStart = useCallback(async (lobby: Lobby, isHost: boolean) => {
+    console.log('🎯 [BETTING LOBBY] Game start triggered:', {
+      lobby: lobby,
+      isHost: isHost,
+      currentUserId: currentUserId
+    });
+    
+    setGameStarting(true);
+    
+    try {
+      if (isHost) {
+        console.log('🔥 [BETTING LOBBY] Host updating betting game status:', lobby.id);
+        await startBettingGame(lobby.id);
+        console.log('✅ [BETTING LOBBY] Betting game status updated');
+      } else {
+        console.log('👥 [BETTING LOBBY] Non-host player, waiting for host to start game');
+      }
+      
+      // Immediate transition to game for both players
+      console.log('🚀 [BETTING LOBBY] Starting betting game immediately for both players');
+      if (onStartGame) {
+        onStartGame(lobby, isHost);
+        console.log('✅ [BETTING LOBBY] onStartGame callback completed successfully');
+      }
+      
+    } catch (error) {
+      console.error('🚨 [BETTING LOBBY] Error in handleGameStart:', error);
+      toast({
+        title: "Game Start Error",
+        description: "Failed to start the betting game. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [currentUserId, startBettingGame, onStartGame, toast]);
+
   // Filter betting lobbies for current game type
   useEffect(() => {
     const lobbiesForGame = bettingLobbies.filter(
@@ -100,8 +136,6 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     );
     setFilteredLobbies(lobbiesForGame);
   }, [bettingLobbies, gameType]);
-
-  // ARC balance is now fetched from Web3Provider context
 
   // Handle lobby joined
   useEffect(() => {
@@ -175,12 +209,10 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     setLoadingProgress(10);
     
     try {
-      // Create betting service
       const service = await createService();
       setLoadingStep('Checking token allowance...');
       setLoadingProgress(25);
       
-      // Check allowance and approve if needed
       const hasAllowance = await service.checkAllowance(account, betAmount);
       if (!hasAllowance) {
         setLoadingStep('Requesting token approval...');
@@ -203,12 +235,10 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       
       setLoadingStep('Creating lobby...');
       setLoadingProgress(70);
-      // Create Firebase lobby with betting info
       const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, betAmount);
       
       setLoadingStep('Creating blockchain bet...');
       setLoadingProgress(85);
-      // Create blockchain bet
       const createBetTx = await service.createBet(betAmount, gameType, lobby.id);
       setLoadingStep('Confirming bet transaction...');
       setLoadingProgress(95);
@@ -222,7 +252,6 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
         description: `Created ${gameType} betting lobby with ${betAmount} ARC tokens.`
       });
       
-      // Show waiting screen for the created lobby
       setGameStarting(true);
       setLoadingStep('Waiting for opponent...');
       setLoadingProgress(100);
@@ -266,12 +295,10 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     setLoadingProgress(15);
     
     try {
-      // Create betting service
       const service = await createService();
       setLoadingStep('Checking token allowance...');
       setLoadingProgress(30);
       
-      // Check allowance and approve if needed
       const hasAllowance = await service.checkAllowance(account, lobby.betAmount || '0');
       if (!hasAllowance) {
         setLoadingStep('Requesting token approval...');
@@ -289,7 +316,6 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       
       setLoadingStep('Joining blockchain bet...');
       setLoadingProgress(75);
-      // Join blockchain bet
       const joinBetTx = await service.joinBet(lobby.id);
       setLoadingStep('Confirming bet transaction...');
       setLoadingProgress(90);
@@ -297,7 +323,6 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       
       setLoadingStep('Joining lobby...');
       setLoadingProgress(95);
-      // Join Firebase lobby
       await joinBettingLobby(lobby.id, currentUserName, currentUserId);
       
       setLoadingStep('Successfully joined!');
@@ -322,37 +347,6 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     }
   };
 
-  const handleGameStart = useCallback(async (lobby: Lobby, isHost: boolean) => {
-    console.log('🎯 [BETTING LOBBY] Game start triggered:', {
-      lobby: lobby,
-      isHost: isHost,
-      currentUserId: currentUserId
-    });
-    
-    setGameStarting(true);
-    
-    try {
-      if (isHost) {
-        console.log('🔥 [BETTING LOBBY] Host updating betting game status:', lobby.id);
-        await startBettingGame(lobby.id);
-        console.log('✅ [BETTING LOBBY] Betting game status updated');
-      } else {
-        console.log('👥 [BETTING LOBBY] Non-host player, waiting for host to start game');
-      }
-      
-      // Immediate transition to game for both players
-      console.log('🚀 [BETTING LOBBY] Starting betting game immediately for both players');
-      if (onStartGame) {
-        onStartGame(lobby, isHost);
-        console.log('✅ [BETTING LOBBY] onStartGame callback completed successfully');
-      }
-      
-    } catch (error) {
-      console.error('❌ [BETTING LOBBY] Error starting betting game:', error);
-    }
-  }, [startBettingGame, onStartGame, currentUserId]);
-
-  // Show wallet connection prompt only when trying to create/join bets
   const showWalletPrompt = !isConnected && (activeTab === 'create' || filteredLobbies.length === 0);
 
   const getGameThemeColors = () => {
@@ -386,286 +380,230 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
 
   const themeColors = getGameThemeColors();
 
-  const getGameGradient = () => {
-    switch (gameType) {
-      case 'uno':
-        return 'bg-gradient-to-br from-red-900 via-red-700 to-orange-900';
-      case 'chess':
-        return 'bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900';
-      case 'pool':
-        return 'bg-gradient-to-br from-green-900 via-green-700 to-emerald-900';
-      default:
-        return 'bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900';
-    }
-  };
-
   return (
     <div className={`w-full h-full flex flex-col items-center justify-center p-4 ${theme.bg} text-white overflow-auto`}>
       <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6 pt-20 md:pt-24 lg:pt-28">
-      <div className={`${theme.cardBg} border ${theme.border} rounded-xl p-4 sm:p-6 flex-1 min-h-[90vh] sm:min-h-[95vh] overflow-auto relative z-10`}>
-        <div className="text-center mb-4 sm:mb-6">
-          <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
-            {theme.title} Betting
-          </h1>
-          <div className="flex justify-center items-center gap-4 mb-4">
-            <div className="text-center">
-              <p className="text-sm text-white/70">Your Balance</p>
-              <p className={`text-xl font-bold ${theme.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
+        <div className={`${theme.cardBg} border ${theme.border} rounded-xl p-4 sm:p-6 flex-1 min-h-[90vh] sm:min-h-[95vh] overflow-auto relative z-10`}>
+          <div className="text-center mb-4 sm:mb-6">
+            <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
+              {theme.title} Betting
+            </h1>
+            <div className="flex justify-center items-center gap-4 mb-4">
+              <div className="text-center">
+                <p className="text-sm text-white/70">Your Balance</p>
+                <p className={`text-xl font-bold ${theme.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Waiting Screen for Created Betting Lobby */}
-        {gameStarting && loadingStep === 'Waiting for opponent...' ? (
-          <div className="flex justify-center items-center h-full">
-            <Card className="bg-black/50 border-white/10 w-full max-w-md">
-              <CardHeader className="text-center pb-3 sm:pb-4">
-                <CardTitle className="text-lg sm:text-xl lg:text-2xl font-headline uppercase tracking-wider text-white" style={{ WebkitTextStroke: '1px black' }}>
-                  Betting Lobby Created
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 text-center pb-4 sm:pb-6">
-                <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 lg:h-16 lg:w-16 animate-spin text-primary" />
+          
+          {gameStarting && loadingStep === 'Waiting for opponent...' ? (
+            <div className="flex justify-center items-center h-full">
+              <Card className="bg-black/50 border-white/10 w-full max-w-md">
+                <CardHeader className="text-center pb-3 sm:pb-4">
+                  <CardTitle className="text-lg sm:text-xl lg:text-2xl font-headline uppercase tracking-wider text-white" style={{ WebkitTextStroke: '1px black' }}>
+                    Betting Lobby Created
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 text-center pb-4 sm:pb-6">
+                  <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 lg:h-16 lg:w-16 animate-spin text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 sm:mb-2">
+                        Waiting for opponent...
+                      </h3>
+                      <p className="text-white/70 text-xs sm:text-sm lg:text-base">
+                        Another player will join your betting lobby soon
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 sm:mb-2">
-                      Waiting for opponent...
-                    </h3>
-                    <p className="text-white/70 text-xs sm:text-sm lg:text-base">
-                      Another player will join your betting lobby soon
+
+                  <div className="bg-white/10 rounded-lg p-2 sm:p-3 lg:p-4 space-y-1 sm:space-y-2">
+                    <p className="text-xs sm:text-sm text-white/70">Bet Amount:</p>
+                    <p className="font-mono text-sm sm:text-lg lg:text-xl text-primary">
+                      {betAmount} ARC
                     </p>
                   </div>
-                </div>
 
-                <div className="bg-white/10 rounded-lg p-2 sm:p-3 lg:p-4 space-y-1 sm:space-y-2">
-                  <p className="text-xs sm:text-sm text-white/70">Bet Amount:</p>
-                  <p className="font-mono text-sm sm:text-lg lg:text-xl text-primary">
-                    {betAmount} ARC
-                  </p>
-                </div>
-
-                <div className="space-y-1 sm:space-y-2">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
-                    <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>Game: {gameType.toUpperCase()}</span>
+                  <div className="space-y-1 sm:space-y-2">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Game: {gameType.toUpperCase()}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <span>Status: Waiting for Player 2</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span>Status: Waiting for Player 2</span>
+
+                  <Button
+                    onClick={() => {
+                      setGameStarting(false);
+                      setActiveTab('browse');
+                    }}
+                    variant="outline"
+                    className="w-full bg-transparent text-white border-white/50 hover:bg-white/10"
+                  >
+                    Back to Lobby List
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+              <div className="flex justify-center items-center mb-3 sm:mb-4">
+                <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/10">
+                  <TabsTrigger 
+                    value="create" 
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Bet
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="browse"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Join Bets ({bettingLobbies.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="flex-1 overflow-hidden">
+                <TabsContent value="create" className="mt-0 h-full overflow-auto">
+                  <div className="flex justify-center h-full items-center">
+                    <Card className="bg-black/20 border-white/20 w-full max-w-md">
+                      <CardHeader>
+                        <CardTitle className={`text-white flex items-center gap-2 ${themeColors.primary}`}>
+                          <Trophy className={`w-5 h-5 ${themeColors.accent}`} />
+                          Create Betting Lobby
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {!isConnected ? (
+                          <div className="text-center py-8">
+                            <Coins className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+                            <h3 className="text-lg font-semibold text-white mb-2">Connect Wallet</h3>
+                            <p className="text-gray-400 mb-4">
+                              Connect your wallet to create betting lobbies and wager ARC tokens.
+                            </p>
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                              Connect Wallet
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <Label htmlFor="betAmount" className="text-white">Bet Amount (ARC Tokens)</Label>
+                              <Input
+                                id="betAmount"
+                                type="number"
+                                value={betAmount}
+                                onChange={(e) => setBetAmount(e.target.value)}
+                                className="bg-white/10 border-white/20 text-white"
+                                placeholder="Enter bet amount"
+                                min="0.1"
+                                step="0.1"
+                              />
+                            </div>
+                            <div className="text-sm text-gray-400">
+                              <p>Available Balance: {parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
+                            </div>
+                            <Button
+                              onClick={handleCreateBettingLobby}
+                              disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(arcBalance || '0') < parseFloat(betAmount)}
+                              className={`w-full ${theme.button}`}
+                            >
+                              {isCreating ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Creating...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 w-4 mr-2" />
+                                  Create Betting Lobby
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
+                </TabsContent>
 
-                <Button
-                  onClick={() => {
-                    setGameStarting(false);
-                    setActiveTab('browse');
-                  }}
-                  variant="outline"
-                  className="w-full bg-transparent text-white border-white/50 hover:bg-white/10"
-                >
-                  Back to Lobby List
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-          <div className="flex justify-center items-center mb-3 sm:mb-4">
-            <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/10">
-              <TabsTrigger 
-                value="create" 
-                className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Bet
-              </TabsTrigger>
-              <TabsTrigger 
-                value="browse"
-                className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Join Bets ({bettingLobbies.length})
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="flex-1 overflow-hidden">
-
-            <TabsContent value="create" className="mt-0 h-full overflow-auto">
-              <div className="flex justify-center h-full items-center">
-                <Card className="bg-black/20 border-white/20 w-full max-w-md">
-                  <CardHeader>
-                    <CardTitle className={`text-white flex items-center gap-2 ${themeColors.primary}`}>
-                      <Trophy className={`w-5 h-5 ${themeColors.accent}`} />
-                      Create Betting Lobby
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!isConnected ? (
-                      <div className="text-center py-8">
-                        <Coins className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-                        <h3 className="text-lg font-semibold text-white mb-2">Connect Wallet</h3>
-                        <p className="text-gray-400 mb-4">
-                          Connect your wallet to create betting lobbies and wager ARC tokens.
+                <TabsContent value="browse" className="mt-0 h-full overflow-auto">
+                  <div className="space-y-4">
+                    {filteredLobbies.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                        <h3 className="text-xl font-semibold text-white mb-2">No Betting Lobbies</h3>
+                        <p className="text-gray-400 mb-6">
+                          No betting lobbies available for {gameType}. Create one to start playing!
                         </p>
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                          Connect Wallet
+                        <Button
+                          onClick={() => setActiveTab('create')}
+                          className={theme.button}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Betting Lobby
                         </Button>
                       </div>
                     ) : (
-                      <>
-                        <div>
-                          <Label htmlFor="betAmount" className="text-white">Bet Amount (ARC Tokens)</Label>
-                          <Input
-                            id="betAmount"
-                            type="number"
-                            value={betAmount}
-                            onChange={(e) => setBetAmount(e.target.value)}
-                            placeholder="Enter bet amount"
-                            min="1"
-                            max={arcBalance || '0'}
-                            className="bg-black/20 border-white/20 text-white"
-                          />
-                          <p className="text-sm text-gray-400 mt-1">
-                            Available: {parseFloat(arcBalance || '0').toFixed(2)} ARC
-                          </p>
-                        </div>
-                        
-                        {isCreating && (
-                          <div className="mb-4 p-4 bg-black/30 rounded-lg border border-white/20">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
-                              <span className="text-white font-medium">Creating Betting Lobby</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                              <div 
-                                className="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${loadingProgress}%` }}
-                              ></div>
-                            </div>
-                            <p className="text-sm text-gray-300">{loadingStep}</p>
-                            <p className="text-xs text-gray-400 mt-1">{loadingProgress}% complete</p>
-                          </div>
-                        )}
-                        
-                        <Button
-                          onClick={handleCreateBettingLobby}
-                          disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(betAmount) > parseFloat(arcBalance || '0')}
-                          className={`w-full ${theme.button} font-headline text-white border-2 border-white/20`}
-                        >
-                          {isCreating ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Creating...
-                            </>
-                          ) : (
-                            <>
-                              <Coins className="w-4 h-4 mr-2" />
-                              Create Bet ({betAmount} ARC)
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="browse" className="mt-0 h-full overflow-auto">
-              <div className="space-y-4">
-            {filteredLobbies.length === 0 ? (
-              <Card className="bg-black/20 border-white/20">
-                <CardContent className="p-8 text-center">
-                  <Trophy className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-semibold text-white mb-2">No Betting Lobbies</h3>
-                  <p className="text-gray-400">Be the first to create a betting lobby!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              filteredLobbies.map((lobby) => (
-                <Card key={lobby.id} className="bg-black/20 border-white/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">
-                          {lobby.player1Name}'s {gameType.toUpperCase()} Bet
-                        </h3>
-                        <p className="text-gray-400">Bet Amount: {lobby.betAmount} ARC</p>
-                        <p className="text-sm text-gray-500">
-                          Created {new Date(lobby.createdAt?.seconds * 1000 || Date.now()).toLocaleTimeString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-400">Players</p>
-                          <p className="text-lg font-bold text-white">1/2</p>
-                        </div>
-                        {!isConnected ? (
-                          <Button
-                            className="bg-blue-600 hover:bg-blue-700"
-                            onClick={() => {
-                              toast({
-                                title: "Wallet Required",
-                                description: "Please connect your wallet to join betting lobbies.",
-                                variant: "destructive"
-                              });
-                            }}
-                          >
-                            <Users className="w-4 h-4 mr-2" />
-                            Connect to Join
-                          </Button>
-                        ) : (
-                          <div className="flex flex-col items-end gap-2">
-                            {isJoining && (
-                              <div className="p-3 bg-black/30 rounded-lg border border-white/20 min-w-[200px]">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
-                                  <span className="text-white text-sm font-medium">Joining Bet</span>
+                      filteredLobbies.map((lobby) => (
+                        <Card key={lobby.id} className="bg-black/20 border-white/20">
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-center">
+                              <div className="space-y-1">
+                                <h3 className="font-semibold text-white">
+                                  {lobby.player1Name}'s Lobby
+                                </h3>
+                                <div className="flex items-center gap-4 text-sm text-gray-400">
+                                  <span>Bet: {lobby.betAmount} ARC</span>
+                                  <span>Game: {lobby.gameType.toUpperCase()}</span>
+                                  <span className="flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    Waiting
+                                  </span>
                                 </div>
-                                <div className="w-full bg-gray-700 rounded-full h-1.5 mb-1">
-                                  <div 
-                                    className="bg-gradient-to-r from-blue-500 to-blue-400 h-1.5 rounded-full transition-all duration-300"
-                                    style={{ width: `${loadingProgress}%` }}
-                                  ></div>
-                                </div>
-                                <p className="text-xs text-gray-300">{loadingStep}</p>
                               </div>
-                             )}
-                             <Button
-                               onClick={() => handleJoinBettingLobby(lobby)}
-                               disabled={isJoining || lobby.player1Id === currentUserId}
-                               className="bg-blue-600 hover:bg-blue-700"
-                             >
-                               {isJoining ? (
-                                 <>
-                                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                   Joining...
-                                 </>
-                               ) : (
-                                 <>
-                                   <Users className="w-4 h-4 mr-2" />
-                                   Join Bet
-                                 </>
-                               )}
-                             </Button>
-                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                              {lobby.player1Id !== currentUserId && (
+                                <div className="flex gap-2">
+                                  <Button
+                                    onClick={() => handleJoinBettingLobby(lobby)}
+                                    disabled={isJoining || !isConnected || parseFloat(arcBalance || '0') < parseFloat(lobby.betAmount || '0')}
+                                    className={theme.button}
+                                    size="sm"
+                                  >
+                                    {isJoining ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Joining...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Users className="w-4 h-4 mr-2" />
+                                        Join Bet
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                </TabsContent>
               </div>
-            </TabsContent>
-          </div>
-        </Tabs>
-        )}
+            </Tabs>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   );
 }
