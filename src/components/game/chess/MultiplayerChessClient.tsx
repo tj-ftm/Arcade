@@ -703,7 +703,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
               </div>
             )}
             
-            <div className="w-full max-w-[98vw] max-h-[98vh] sm:max-w-[90vmin] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
+            <div className="w-full max-w-[95vw] max-h-[95vh] sm:max-w-[90vmin] md:max-w-[85vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
               {(() => {
                 // Determine if board should be flipped (player with black pieces sees their pieces at bottom)
                 const myColor = chessGameState ? (isHost ? chessGameState.player1.color : chessGameState.player2.color) : 'w';

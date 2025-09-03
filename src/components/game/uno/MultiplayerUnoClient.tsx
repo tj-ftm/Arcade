@@ -275,8 +275,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
          console.log('🔍 [UNO MULTIPLAYER] Checking initialization conditions:', JSON.stringify(conditions, null, 2));
          console.log('🔍 [UNO MULTIPLAYER] Full lobby object received:', lobby);
          
-        if (!gameState && isHost) {
-            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state');
+        if (!gameState && isHost && lobby.player2Id) {
+            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state with both players present');
             
             // Add a small delay to ensure Firebase listeners are set up
             setTimeout(() => {
@@ -293,7 +293,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         } else {
             console.log('✅ [UNO MULTIPLAYER] Game state already exists');
         }
-    }, [gameState, isHost]);
+    }, [gameState, isHost, lobby.player2Id]);
 
     // Handle loading state - always show game interface
     useEffect(() => {
