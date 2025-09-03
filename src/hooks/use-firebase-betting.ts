@@ -35,7 +35,7 @@ interface UseFirebaseBettingReturn {
   sendBettingGameMove: (lobbyId: string, gameState: any) => Promise<void>;
   onBettingGameMove: (callback: (gameState: any) => void) => () => void;
   setupBettingGameMovesListener: (lobbyId: string) => void;
-  onBettingLobbyJoined: (callback: (lobby: BettingLobby) => void) => void;
+  onBettingLobbyJoined: (callback: (lobby: BettingLobby) => void) => () => void;
   onBettingLobbyLeft: (callback: (lobby: BettingLobby) => void) => void;
   onBettingLobbyClosed: (callback: () => void) => void;
 }
@@ -44,12 +44,11 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
   const [isConnected, setIsConnected] = useState(false);
   const [bettingLobbies, setBettingLobbies] = useState<BettingLobby[]>([]);
   const [currentBettingLobby, setCurrentBettingLobby] = useState<BettingLobby | null>(null);
-  
-  // Betting-specific state management (separate from multiplayer)
-  const [gameMovesCallbacks, setGameMovesCallbacks] = useState<((moveData: any) => void)[]>([]);
+  const [gameMovesCallbacks, setGameMovesCallbacks] = useState<((gameState: any) => void)[]>([]);
   const [lobbyJoinedCallbacks, setLobbyJoinedCallbacks] = useState<((lobby: BettingLobby) => void)[]>([]);
   const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: BettingLobby) => void)[]>([]);
   const [lobbyClosedCallbacks, setLobbyClosedCallbacks] = useState<(() => void)[]>([]);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     // Try to connect to Firebase
@@ -357,8 +356,15 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
     };
   }, []);
 
-  const onBettingLobbyJoined = useCallback((callback: (lobby: BettingLobby) => void): void => {
+  const onBettingLobbyJoined = useCallback((callback: (lobby: BettingLobby) => void): (() => void) => {
     setLobbyJoinedCallbacks(prev => [...prev, callback]);
+    
+    // Return unsubscribe function
+    return () => {
+      if (mountedRef.current) {
+        setLobbyJoinedCallbacks(prev => prev.filter(cb => cb !== callback));
+      }
+    };
   }, []);
 
   const onBettingLobbyLeft = useCallback((callback: (lobby: BettingLobby) => void): void => {
@@ -367,6 +373,13 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
 
   const onBettingLobbyClosed = useCallback((callback: () => void): void => {
     setLobbyClosedCallbacks(prev => [...prev, callback]);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   return {

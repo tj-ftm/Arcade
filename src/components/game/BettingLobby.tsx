@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, ArrowLeft, Coins, Trophy, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Users, ArrowLeft, Coins, Trophy, Loader2 } from 'lucide-react';
 import { useGameBetting } from '@/lib/game-betting';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebaseBetting } from '@/hooks/use-firebase-betting';
-import { ConnectWallet } from '../web3/ConnectWallet';
+import BettingPaymentScreen from './BettingPaymentScreen';
 
 interface Lobby {
   id: string;
@@ -32,8 +32,6 @@ interface BettingLobbyProps {
   onBackToMenu?: () => void;
 }
 
-type PaymentStatus = 'waiting' | 'processing' | 'completed' | 'failed' | 'timeout';
-
 export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLobbyProps) {
   const [activeTab, setActiveTab] = useState('create');
   const [betAmount, setBetAmount] = useState('10');
@@ -43,15 +41,9 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const [gameStarting, setGameStarting] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(0);
-  
-  // Payment screen states
   const [showPaymentScreen, setShowPaymentScreen] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('waiting');
-  const [paymentProgress, setPaymentProgress] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(120);
-  const [statusMessage, setStatusMessage] = useState('Initiating payment...');
-  const [txHash, setTxHash] = useState<string>('');
-  const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
+  const [paymentMode, setPaymentMode] = useState<'create' | 'join'>('create');
+  const [selectedLobby, setSelectedLobby] = useState<Lobby | null>(null);
   
   // Game-specific theming
   const getGameTheme = () => {
@@ -84,14 +76,14 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
           title: 'POOL'
         };
       default:
-        return {
-          bg: 'bg-gray-800',
-          cardBg: 'bg-gray-900/50',
-          border: 'border-gray-500/50',
-          accent: 'text-white',
-          button: 'bg-gray-600 hover:bg-gray-700',
-          title: gameType.toUpperCase()
-        };
+          return {
+            bg: 'bg-gray-800',
+            cardBg: 'bg-gray-900/50',
+            border: 'border-gray-500/50',
+            accent: 'text-white',
+            button: 'bg-gray-600 hover:bg-gray-700',
+            title: (gameType as string).toUpperCase()
+          };
     }
   };
   
@@ -102,7 +94,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const { toast } = useToast();
   const { createBettingLobby, joinBettingLobby, bettingLobbies, onBettingLobbyJoined, startBettingGame } = useFirebaseBetting();
   
-  const currentUserId = account || `guest-${Date.now()}`;
+  const currentUserId = account || 'guest';
   const currentUserName = username || 'Anonymous';
 
   // Define handleGameStart before it's used in useEffect
@@ -139,7 +131,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
         variant: "destructive"
       });
     }
-  }, [currentUserId, startBettingGame, onStartGame, toast]);
+  }, [startBettingGame, onStartGame, toast]);
 
   // Filter betting lobbies for current game type
   useEffect(() => {
@@ -149,48 +141,8 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     setFilteredLobbies(lobbiesForGame);
   }, [bettingLobbies, gameType]);
 
-  // Handle lobby joined
-  useEffect(() => {
-    const unsubscribe = onBettingLobbyJoined((lobby) => {
-      if (lobby.gameType === gameType) {
-        console.log('🎯 [BETTING LOBBY] Joined betting lobby:', lobby);
-        
-        const isHost = currentUserId === lobby.player1Id;
-        const isJoiningPlayer = currentUserId === lobby.player2Id;
-        
-        console.log('🔍 [BETTING LOBBY] Player role analysis:', {
-          isHost: isHost,
-          isJoiningPlayer: isJoiningPlayer,
-          player1Id: lobby.player1Id,
-          player2Id: lobby.player2Id,
-          hasPlayer2: !!lobby.player2Id
-        });
-        
-        // Trigger for both host and joining player when lobby has both players and is playing
-        if ((isHost || isJoiningPlayer) && lobby.player2Id && lobby.status === 'playing') {
-          console.log('🚀 [BETTING LOBBY] Conditions met, starting betting game immediately:', {
-            isHost: isHost,
-            isJoiningPlayer: isJoiningPlayer,
-            hasPlayer2: !!lobby.player2Id,
-            status: lobby.status
-          });
-          handleGameStart(lobby, isHost);
-        } else {
-          console.log('⏸️ [BETTING LOBBY] Game start conditions not met:', {
-            isHost: isHost,
-            isJoiningPlayer: isJoiningPlayer,
-            hasPlayer2: !!lobby.player2Id,
-            status: lobby.status,
-            reason: !isHost && !isJoiningPlayer ? 'Not host or joining player' :
-                    !lobby.player2Id ? 'No player 2' :
-                    lobby.status !== 'playing' ? 'Status not playing' : 'Unknown'
-          });
-        }
-      }
-    });
-    
-    return unsubscribe;
-  }, [gameType, onBettingLobbyJoined, currentUserId, handleGameStart]);
+  // Note: Removed problematic lobby joined callback to prevent infinite loops
+  // The payment screen now handles the complete flow directly
 
   const handleCreateBettingLobby = async () => {
     if (!isConnected || !account) {
@@ -221,70 +173,10 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       return;
     }
 
-    setIsCreating(true);
-    setLoadingStep('Initializing betting service...');
-    setLoadingProgress(10);
-    
-    try {
-      const service = await createService();
-      setLoadingStep('Checking token allowance...');
-      setLoadingProgress(25);
-      
-      const hasAllowance = await service.checkAllowance(account, betAmount);
-      if (!hasAllowance) {
-        setLoadingStep('Requesting token approval...');
-        setLoadingProgress(40);
-        toast({
-          title: "Approving Tokens",
-          description: "Please approve the transaction to allow betting with ARC tokens."
-        });
-        
-        const approveTx = await service.approveTokens(betAmount);
-        setLoadingStep('Waiting for approval confirmation...');
-        setLoadingProgress(55);
-        await approveTx.wait();
-        
-        toast({
-          title: "Tokens Approved",
-          description: "You can now create betting lobbies."
-        });
-      }
-      
-      setLoadingStep('Creating lobby...');
-      setLoadingProgress(70);
-      const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, betAmount);
-      
-      setLoadingStep('Creating blockchain bet...');
-      setLoadingProgress(85);
-      const createBetTx = await service.createBet(betAmount, gameType, lobby.id);
-      setLoadingStep('Confirming bet transaction...');
-      setLoadingProgress(95);
-      await createBetTx.wait();
-      
-      setLoadingStep('Lobby created successfully!');
-      setLoadingProgress(100);
-      
-      toast({
-        title: "Betting Lobby Created",
-        description: `Created ${gameType} betting lobby with ${betAmount} ARC tokens.`
-      });
-      
-      setGameStarting(true);
-      setLoadingStep('Waiting for opponent...');
-      setLoadingProgress(100);
-      
-    } catch (error: any) {
-      console.error('Error creating betting lobby:', error);
-      toast({
-        title: "Error Creating Lobby",
-        description: error.message || "Failed to create betting lobby.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCreating(false);
-      setLoadingStep('');
-      setLoadingProgress(0);
-    }
+    // Show payment screen for lobby creation
+    setPaymentMode('create');
+    setSelectedLobby(null);
+    setShowPaymentScreen(true);
   };
 
   const handleJoinBettingLobby = async (lobby: Lobby) => {
@@ -307,116 +199,11 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       return;
     }
 
-    // Show payment screen instead of small popups
-    setCurrentLobby(lobby);
+    // Show payment screen for joining lobby
+    setPaymentMode('join');
+    setSelectedLobby(lobby);
     setShowPaymentScreen(true);
-    setPaymentStatus('waiting');
-    setPaymentProgress(0);
-    setStatusMessage('Preparing to join betting lobby...');
-    setTimeLeft(120);
-    
-    // Start payment process
-    await processPayment(lobby);
   };
-  
-  const processPayment = async (lobby: Lobby) => {
-    try {
-      setStatusMessage('Initializing betting service...');
-      setPaymentProgress(10);
-      setPaymentStatus('processing');
-      
-      const service = await createService();
-      setStatusMessage('Checking token allowance...');
-      setPaymentProgress(25);
-      
-      const hasAllowance = await service.checkAllowance(account!, lobby.betAmount || '0');
-      if (!hasAllowance) {
-        setStatusMessage('Requesting token approval...');
-        setPaymentProgress(40);
-        
-        const approveTx = await service.approveTokens(lobby.betAmount || '0');
-        setStatusMessage('Waiting for approval confirmation...');
-        setPaymentProgress(55);
-        await approveTx.wait();
-      }
-      
-      setStatusMessage('Joining blockchain bet...');
-      setPaymentProgress(70);
-      const joinBetTx = await service.joinBet(lobby.id);
-      setTxHash(joinBetTx.hash);
-      setStatusMessage('Confirming bet transaction...');
-      setPaymentProgress(85);
-      await joinBetTx.wait();
-      
-      setStatusMessage('Joining lobby...');
-      setPaymentProgress(95);
-      await joinBettingLobby(lobby.id, currentUserName, currentUserId);
-      
-      setPaymentProgress(100);
-      setPaymentStatus('completed');
-      setStatusMessage('Successfully joined betting lobby!');
-      
-      // Auto-close payment screen and start game after success
-      setTimeout(() => {
-        setShowPaymentScreen(false);
-        // The game will start automatically via the lobby joined callback
-      }, 1500);
-      
-    } catch (error: any) {
-      console.error('Error joining betting lobby:', error);
-      setPaymentStatus('failed');
-      setStatusMessage(error.message || 'Failed to join betting lobby. Please try again.');
-      setPaymentProgress(0);
-    }
-  };
-  
-  const handlePaymentCancel = () => {
-    setShowPaymentScreen(false);
-    setPaymentStatus('waiting');
-    setPaymentProgress(0);
-    setCurrentLobby(null);
-    setTxHash('');
-  };
-  
-  // Payment screen helper functions
-  const getStatusIcon = () => {
-    switch (paymentStatus) {
-      case 'waiting':
-      case 'processing':
-        return <Loader2 className="w-16 h-16 animate-spin" />;
-      case 'completed':
-        return <CheckCircle className="w-16 h-16 text-green-400" />;
-      case 'failed':
-      case 'timeout':
-        return <XCircle className="w-16 h-16 text-red-400" />;
-      default:
-        return <Clock className="w-16 h-16" />;
-    }
-  };
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-  
-  // Timeout timer for payment screen
-  useEffect(() => {
-    if (!showPaymentScreen) return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1 && paymentStatus !== 'completed') {
-          setPaymentStatus('timeout');
-          setStatusMessage('Payment timeout. Please try again.');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [showPaymentScreen, paymentStatus]);
 
   const showWalletPrompt = !isConnected && (activeTab === 'create' || filteredLobbies.length === 0);
 
@@ -451,126 +238,51 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
 
   const themeColors = getGameThemeColors();
 
-  // Show payment screen when joining a betting lobby
-  if (showPaymentScreen && currentLobby) {
+  // Handle payment completion
+  const handlePaymentComplete = (lobby: Lobby, isHost: boolean) => {
+    setShowPaymentScreen(false);
+    setSelectedLobby(null);
+    
+    // Call the game start callback
+    if (onStartGame) {
+      onStartGame(lobby, isHost);
+    }
+  };
+
+  // Handle payment cancellation
+  const handlePaymentCancel = () => {
+    setShowPaymentScreen(false);
+    setSelectedLobby(null);
+    setPaymentMode('create');
+  };
+
+  // Show payment screen if needed
+  if (showPaymentScreen) {
     return (
-      <div className={`w-full h-full flex flex-col justify-center items-center text-white font-headline relative overflow-hidden ${theme.bg}`}>
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
-        </div>
-
-        <div className="relative z-10 flex flex-col items-center space-y-8 p-8 max-w-md mx-auto text-center">
-          {/* Game Title */}
-          <h1 className="text-4xl md:text-6xl font-bold uppercase tracking-wider">
-            {gameType.toUpperCase()}
-          </h1>
-
-          {/* Bet Amount */}
-          <div className={`text-2xl md:text-3xl font-bold ${theme.accent}`}>
-            Betting: {currentLobby.betAmount} ARC
-          </div>
-
-          {/* Status Icon */}
-          <div className="flex justify-center">
-            {getStatusIcon()}
-          </div>
-
-          {/* Status Message */}
-          <div className="text-xl md:text-2xl font-semibold">
-            {statusMessage}
-          </div>
-          
-          {/* Connect Wallet Button */}
-          {!account && (
-            <div className="mt-4">
-              <ConnectWallet />
-            </div>
-          )}
-
-          {/* Progress Bar */}
-          {(paymentStatus === 'waiting' || paymentStatus === 'processing') && (
-            <div className="w-full bg-black/30 rounded-full h-4">
-              <div 
-                className={`h-4 rounded-full transition-all duration-300 ${theme.accent.replace('text-', 'bg-')}`}
-                style={{ width: `${paymentProgress}%` }}
-              />
-            </div>
-          )}
-
-          {/* Timer */}
-          {(paymentStatus === 'waiting' || paymentStatus === 'processing') && (
-            <div className="text-lg">
-              Time remaining: {formatTime(timeLeft)}
-            </div>
-          )}
-
-          {/* Transaction Hash */}
-          {txHash && (
-            <div className="text-center">
-              <p className="text-white/70 text-sm mb-2">Transaction:</p>
-              <a 
-                href={`https://sonicscan.org/tx/${txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:underline text-sm break-all"
-              >
-                {txHash.slice(0, 10)}...{txHash.slice(-8)}
-              </a>
-            </div>
-          )}
-
-          {/* Payment Instructions */}
-          {paymentStatus === 'waiting' && (
-            <div className="text-sm opacity-75 max-w-sm">
-              Please confirm the transaction in your wallet. The betting lobby will start automatically once payment is confirmed on the blockchain.
-            </div>
-          )}
-          
-          {paymentStatus === 'processing' && (
-            <div className="text-sm opacity-75 max-w-sm">
-              Transaction submitted! Waiting for blockchain confirmation. This may take a few moments.
-            </div>
-          )}
-
-          {/* Cancel Button */}
-          {(paymentStatus === 'failed' || paymentStatus === 'timeout') && (
-            <div className="flex gap-4">
-              <Button
-                onClick={handlePaymentCancel}
-                variant="outline"
-                className="bg-transparent text-white border-white/50 hover:bg-white/10"
-              >
-                Back to Lobby
-              </Button>
-              <Button
-                onClick={() => processPayment(currentLobby)}
-                className={theme.button}
-              >
-                Try Again
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+      <BettingPaymentScreen
+        onPaymentComplete={handlePaymentComplete}
+        onCancel={handlePaymentCancel}
+        gameType={gameType}
+        betAmount={paymentMode === 'create' ? betAmount : selectedLobby?.betAmount || '0'}
+        mode={paymentMode}
+        lobbyToJoin={selectedLobby || undefined}
+      />
     );
   }
 
   return (
-    <div className={`w-full h-full flex flex-col items-center justify-center p-4 ${theme.bg} text-white overflow-auto`}>
-      <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6 pt-20 md:pt-24 lg:pt-28">
-        <div className={`${theme.cardBg} border ${theme.border} rounded-xl p-4 sm:p-6 flex-1 min-h-[90vh] sm:min-h-[95vh] overflow-auto relative z-10`}>
-          <div className="text-center mb-4 sm:mb-6">
-            <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
-              {theme.title} Betting
-            </h1>
-            <div className="flex justify-center items-center gap-4 mb-4">
-              <div className="text-center">
-                <p className="text-sm text-white/70">Your Balance</p>
-                <p className={`text-xl font-bold ${theme.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
-              </div>
-            </div>
+    <div className={`w-full h-full ${theme.bg} text-white overflow-auto`}>
+      <div className="text-center mb-4 sm:mb-6 pt-20 md:pt-24 lg:pt-28">
+        <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
+          {theme.title} Betting
+        </h1>
+        <div className="flex justify-center items-center gap-4 mb-4">
+          <div className="text-center">
+            <p className="text-sm text-white/70">Your Balance</p>
+            <p className={`text-xl font-bold ${theme.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
           </div>
+        </div>
+      </div>
           
           {gameStarting && loadingStep === 'Waiting for opponent...' ? (
             <div className="flex justify-center items-center h-full">
@@ -750,12 +462,21 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                                 <div className="flex gap-2">
                                   <Button
                                     onClick={() => handleJoinBettingLobby(lobby)}
-                                    disabled={!isConnected || parseFloat(arcBalance || '0') < parseFloat(lobby.betAmount || '0')}
+                                    disabled={isJoining || !isConnected || parseFloat(arcBalance || '0') < parseFloat(lobby.betAmount || '0')}
                                     className={theme.button}
                                     size="sm"
                                   >
-                                    <Users className="w-4 h-4 mr-2" />
-                                    Join Bet
+                                    {isJoining ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Joining...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Users className="w-4 h-4 mr-2" />
+                                        Join Bet
+                                      </>
+                                    )}
                                   </Button>
                                 </div>
                               )}
@@ -769,8 +490,6 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
               </div>
             </Tabs>
           )}
-        </div>
-      </div>
     </div>
   );
 }
