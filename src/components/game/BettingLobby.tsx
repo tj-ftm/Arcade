@@ -154,19 +154,24 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
           hasPlayer2: !!lobby.player2Id
         });
         
-        // Trigger for both host and joining player when lobby has both players
-        if ((isHost || isJoiningPlayer) && lobby.player2Id) {
-          console.log('🚀 [BETTING LOBBY] Conditions met, starting betting game:', {
+        // Trigger for both host and joining player when lobby has both players and is playing
+        if ((isHost || isJoiningPlayer) && lobby.player2Id && lobby.status === 'playing') {
+          console.log('🚀 [BETTING LOBBY] Conditions met, starting betting game immediately:', {
             isHost: isHost,
             isJoiningPlayer: isJoiningPlayer,
-            hasPlayer2: !!lobby.player2Id
+            hasPlayer2: !!lobby.player2Id,
+            status: lobby.status
           });
           handleGameStart(lobby, isHost);
         } else {
           console.log('⏸️ [BETTING LOBBY] Game start conditions not met:', {
             isHost: isHost,
             isJoiningPlayer: isJoiningPlayer,
-            hasPlayer2: !!lobby.player2Id
+            hasPlayer2: !!lobby.player2Id,
+            status: lobby.status,
+            reason: !isHost && !isJoiningPlayer ? 'Not host or joining player' :
+                    !lobby.player2Id ? 'No player 2' :
+                    lobby.status !== 'playing' ? 'Status not playing' : 'Unknown'
           });
         }
       }

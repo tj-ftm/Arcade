@@ -108,21 +108,24 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
         hasPlayer2: !!lobby.player2Id
       });
       
-      // Trigger for both host and joining player when lobby has both players
-      if ((isHost || isJoiningPlayer) && lobby.player2Id) {
-        console.log('🚀 [MULTIPLAYER LOBBY] Conditions met, starting game:', {
+      // Trigger for both host and joining player when lobby has both players and is playing
+      if ((isHost || isJoiningPlayer) && lobby.player2Id && lobby.status === 'playing') {
+        console.log('🚀 [MULTIPLAYER LOBBY] Conditions met, starting game immediately:', {
           isHost: isHost,
           isJoiningPlayer: isJoiningPlayer,
-          hasPlayer2: !!lobby.player2Id
+          hasPlayer2: !!lobby.player2Id,
+          status: lobby.status
         });
         handleGameStart(lobby, isHost);
       } else {
         console.log('⏸️ [MULTIPLAYER LOBBY] Game start conditions not met:', {
           isHostOrJoining: isHost || isJoiningPlayer,
           hasPlayer2: !!lobby.player2Id,
+          status: lobby.status,
           gameStarting: gameStartingRef.current,
           reason: !isHost && !isJoiningPlayer ? 'Not host or joining player' :
                   !lobby.player2Id ? 'No player 2' :
+                  lobby.status !== 'playing' ? 'Status not playing' :
                   gameStartingRef.current ? 'Game already starting' : 'Unknown'
         });
       }
