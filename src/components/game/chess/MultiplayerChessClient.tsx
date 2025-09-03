@@ -325,12 +325,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
     setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
     
-    // Send initial game state using chess-update type to trigger immediate visibility
+    // Send initial game state using chess-init type for proper initialization
     sendGameMove(lobby.id, {
-      type: 'chess-update',
+      type: 'chess-init',
       gameState: initialGameState
     });
-    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-update to trigger immediate visibility');
+    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-init for proper player 2 visibility');
   };
 
   const addGameLog = useCallback((message: string) => {
