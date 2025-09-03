@@ -162,8 +162,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       status: lobby.status
     });
     
-    if (!chessGameState && isHost) {
-      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state');
+    if (!chessGameState && isHost && lobby.player2Id) {
+      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state with both players present');
       
       // Add a small delay to ensure Firebase listeners are set up
       setTimeout(() => {
@@ -174,13 +174,13 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         } else {
           console.log('🎮 [CHESS MULTIPLAYER] Game state already exists, skipping initialization');
         }
-      }, 500); // Reduced delay
+      }, 1000); // Increased delay to ensure both players are connected
     } else if (!chessGameState && !isHost) {
       console.log('👥 [CHESS MULTIPLAYER] Non-host waiting for game state from host');
     } else {
       console.log('✅ [CHESS MULTIPLAYER] Game state already exists');
     }
-  }, [chessGameState, isHost]);
+  }, [chessGameState, isHost, lobby.player2Id]);
 
   // Handle loading state - always show game interface
   useEffect(() => {

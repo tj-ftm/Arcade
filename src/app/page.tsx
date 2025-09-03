@@ -612,7 +612,10 @@ export default function HomePage() {
         'uno', 'chess', 'pool', 'snake', 'platformer'
       ].includes(activeView);
       
-      if (isInActiveLobby || isInMultiplayerGame || isInSinglePlayerGame) {
+      // Don't show confirmation for start screens - users aren't actually in a game yet
+      const isOnStartScreen = activeView === 'uno' || activeView === 'chess' || activeView === 'snake';
+      
+      if ((isInActiveLobby || isInMultiplayerGame || isInSinglePlayerGame) && !isOnStartScreen) {
         setPendingNavigation(view);
         setShowMainMenuConfirmation(true);
         return;
