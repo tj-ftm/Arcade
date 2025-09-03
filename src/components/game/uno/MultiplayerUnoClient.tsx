@@ -365,32 +365,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setGameState(initialGameState);
         setGameStartTime(Date.now());
         
-        // Send initial game state to both players immediately
+        // Send initial game state using uno-update type to trigger immediate visibility
         sendGameMove(lobby.id, {
-            type: 'uno-init',
+            type: 'uno-update',
             gameState: initialGameState
         });
-        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent to all players (player2Id:', lobby.player2Id || 'missing', ')');
-        
-        // Also send a game-ready signal to ensure both players see the game immediately
-        setTimeout(() => {
-            sendGameMove(lobby.id, {
-                type: 'game-ready',
-                gameState: initialGameState,
-                message: 'Both players ready - game starting now!'
-            });
-            console.log('🎯 [UNO MULTIPLAYER] Game-ready signal sent to ensure immediate visibility');
-        }, 100);
-        
-        // Send a mock move to trigger game visibility for player 2
-        setTimeout(() => {
-            sendGameMove(lobby.id, {
-                type: 'mock-move',
-                gameState: initialGameState,
-                message: 'Mock move to trigger game display'
-            });
-            console.log('🎭 [UNO MULTIPLAYER] Mock move sent to trigger game visibility for player 2');
-        }, 200);
+        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-update to trigger immediate visibility');
     };
 
     // Listen for game state updates from opponent
@@ -450,68 +430,6 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                         }, 1600); // Show after turn message
                     }
                 }
-            } else if (moveData.type === 'game-ready' && moveData.gameState) {
-                console.log('🎯 [UNO MULTIPLAYER] Received game-ready signal - ensuring game visibility');
-                const readyGameState = moveData.gameState;
-                if (!isHost) {
-                    // Adjust game state for non-host player
-                    const adjustedGameState = {
-                        ...readyGameState,
-                        playerHand: readyGameState.players[1].hand,
-                        players: [
-                            readyGameState.players[0],
-                            readyGameState.players[1]
-                        ]
-                    };
-                    setGameState(adjustedGameState);
-                    
-                    // Show initial turn message
-                    const currentPlayer = adjustedGameState.players[adjustedGameState.activePlayerIndex];
-                    const currentPlayerId = adjustedGameState.players[adjustedGameState.activePlayerIndex].id;
-                    const isMyTurn = currentPlayerId === account;
-                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
-                } else {
-                    setGameState(readyGameState);
-                    
-                    // Show initial turn message for host
-                    const currentPlayer = readyGameState.players[readyGameState.activePlayerIndex];
-                    const currentPlayerId = readyGameState.players[readyGameState.activePlayerIndex].id;
-                    const isMyTurn = currentPlayerId === account;
-                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
-                }
-                setIsLoadingGame(false);
-                console.log('✅ [UNO MULTIPLAYER] Game-ready processed - both players should see game now');
-            } else if (moveData.type === 'mock-move' && moveData.gameState) {
-                console.log('🎭 [UNO MULTIPLAYER] Received mock move - forcing game visibility for player 2');
-                const mockGameState = moveData.gameState;
-                if (!isHost) {
-                    // Adjust game state for non-host player
-                    const adjustedGameState = {
-                        ...mockGameState,
-                        playerHand: mockGameState.players[1].hand,
-                        players: [
-                            mockGameState.players[0],
-                            mockGameState.players[1]
-                        ]
-                    };
-                    setGameState(adjustedGameState);
-                    
-                    // Show turn message
-                    const currentPlayer = adjustedGameState.players[adjustedGameState.activePlayerIndex];
-                    const currentPlayerId = adjustedGameState.players[adjustedGameState.activePlayerIndex].id;
-                    const isMyTurn = currentPlayerId === account;
-                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
-                } else {
-                    setGameState(mockGameState);
-                    
-                    // Show turn message for host
-                    const currentPlayer = mockGameState.players[mockGameState.activePlayerIndex];
-                    const currentPlayerId = mockGameState.players[mockGameState.activePlayerIndex].id;
-                    const isMyTurn = currentPlayerId === account;
-                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
-                }
-                setIsLoadingGame(false);
-                console.log('✅ [UNO MULTIPLAYER] Mock move processed - player 2 should now see the game');
             } else if (moveData.type === 'uno-call') {
                 if (gameState) {
                     const newGameState = { ...gameState };

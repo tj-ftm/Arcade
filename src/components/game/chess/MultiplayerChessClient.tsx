@@ -268,43 +268,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         } catch (error) {
           console.error('Invalid move received:', error);
         }
-      } else if (moveData.type === 'game-ready' && moveData.gameState) {
-        console.log('🎯 [CHESS MULTIPLAYER] Received game-ready signal - ensuring game visibility');
-        const readyGameState = moveData.gameState;
-        setChessGameState(readyGameState);
-        
-        // Load the game position from FEN
-        game.load(readyGameState.fen);
-        setBoard(game.board());
-        setIsLoadingGame(false);
-        
-        // Show initial turn message
-        const myColor = isHost ? readyGameState.player1.color : readyGameState.player2.color;
-        const currentChessTurn = game.turn();
-        const isMyTurn = myColor === currentChessTurn;
-        const currentPlayerName = currentChessTurn === readyGameState.player1.color ? readyGameState.player1.name : readyGameState.player2.name;
-        setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
-        
-        console.log('✅ [CHESS MULTIPLAYER] Game-ready processed - both players should see chess game now');
-       } else if (moveData.type === 'mock-move' && moveData.gameState) {
-         console.log('🎭 [CHESS MULTIPLAYER] Received mock move - forcing game visibility for player 2');
-         const mockGameState = moveData.gameState;
-         setChessGameState(mockGameState);
-         
-         // Load the game position from FEN
-         game.load(mockGameState.fen);
-         setBoard(game.board());
-         setIsLoadingGame(false);
-         
-         // Show initial turn message
-         const myColor = isHost ? mockGameState.player1.color : mockGameState.player2.color;
-         const currentChessTurn = game.turn();
-         const isMyTurn = myColor === currentChessTurn;
-         const currentPlayerName = currentChessTurn === mockGameState.player1.color ? mockGameState.player1.name : mockGameState.player2.name;
-         setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
-         
-         console.log('✅ [CHESS MULTIPLAYER] Mock move processed - player 2 should now see the chess game');
-       } else if (moveData.type === 'game-end') {
+      } else if (moveData.type === 'game-end') {
         if (chessGameState) {
           const newGameState = { ...chessGameState };
           newGameState.winner = moveData.winner;
@@ -368,32 +332,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
     setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
     
-    // Send initial game state to both players immediately
+    // Send initial game state using chess-update type to trigger immediate visibility
     sendGameMove(lobby.id, {
-      type: 'chess-init',
+      type: 'chess-update',
       gameState: initialGameState
     });
-    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent to all players (player2Id:', lobby.player2Id || 'missing', ')');
-    
-    // Also send a game-ready signal to ensure both players see the game immediately
-    setTimeout(() => {
-      sendGameMove(lobby.id, {
-        type: 'game-ready',
-        gameState: initialGameState,
-        message: 'Both players ready - chess game starting now!'
-      });
-      console.log('🎯 [CHESS MULTIPLAYER] Game-ready signal sent to ensure immediate visibility');
-    }, 100);
-    
-    // Send a mock move to trigger game visibility for player 2
-    setTimeout(() => {
-      sendGameMove(lobby.id, {
-        type: 'mock-move',
-        gameState: initialGameState,
-        message: 'Mock move to trigger game display'
-      });
-      console.log('🎭 [CHESS MULTIPLAYER] Mock move sent to trigger game visibility for player 2');
-    }, 200);
+    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-update to trigger immediate visibility');
   };
 
   const addGameLog = useCallback((message: string) => {
