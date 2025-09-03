@@ -15,6 +15,7 @@ import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationRes
 import { UnoEndGameScreen } from './UnoEndGameScreen';
 import { UnoStartScreen } from './UnoStartScreen';
 import { PaymentLoadingScreen } from './PaymentLoadingScreen';
+import { WalletConnectionDialog } from './WalletConnectionDialog';
 import { ErrorReportButton } from './ErrorReportButton';
 import { errorLogger } from '@/lib/error-logger';
 
@@ -195,6 +196,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
     const [showUnoButton, setShowUnoButton] = useState(false);
     const [selectedCards, setSelectedCards] = useState<number[]>([]);
     const [showPlayButton, setShowPlayButton] = useState(false);
+    const [showWalletDialog, setShowWalletDialog] = useState(false);
 
 
     const playerHandRef = useRef<HTMLDivElement>(null);
@@ -419,7 +421,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         const signer = getSigner();
         
         if (!provider || !signer || !account) {
-            alert('Please connect your wallet first');
+            setShowWalletDialog(true);
             return;
         }
 
@@ -584,12 +586,25 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
             return;
         }
 
+        // Count how many cards of the same value are available
+        const sameValueCards = gameState!.players[0].hand.filter((c, i) => 
+            c.value === card.value && isCardPlayable(c, topCard, gameState!.activeColor)
+        );
+
+        // If only one card of this value is playable, play it directly
+        if (sameValueCards.length === 1) {
+            setSelectedCards([]);
+            setShowPlayButton(false);
+            handlePlayCard(cardIndex);
+            return;
+        }
+
         // Check if card is already selected
         if (selectedCards.includes(cardIndex)) {
             // Deselect card
             const newSelected = selectedCards.filter(i => i !== cardIndex);
             setSelectedCards(newSelected);
-            setShowPlayButton(newSelected.length > 0);
+            setShowPlayButton(newSelected.length > 1);
             return;
         }
 
@@ -599,7 +614,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
             if (firstSelectedCard.value !== card.value) {
                 // Can't mix different values, start new selection
                 setSelectedCards([cardIndex]);
-                setShowPlayButton(true);
+                setShowPlayButton(false); // Don't show button for single selection
                 return;
             }
         }
@@ -607,7 +622,27 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         // Add card to selection
         const newSelected = [...selectedCards, cardIndex];
         setSelectedCards(newSelected);
-        setShowPlayButton(true);
+        setShowPlayButton(newSelected.length > 1);
+    };
+
+    const handlePlayCard = (cardIndex: number) => {
+        if (gameState?.winner || flyingCard || gameState?.activePlayerIndex !== 0) return;
+
+        const card = gameState!.players[0].hand[cardIndex];
+        const topCard = gameState!.discardPile[gameState!.discardPile.length - 1];
+
+        if (!isCardPlayable(card, topCard, gameState!.activeColor)) {
+            return;
+        }
+
+        if (card.color === 'Wild') {
+            setSelectedCards([cardIndex]);
+            setShowColorPicker(true);
+        } else {
+            setTimeout(() => {
+                playCard(cardIndex);
+            }, 100);
+        }
     };
 
     const handlePlaySelectedCards = () => {
@@ -622,19 +657,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         }
     };
 
-    const handlePlayCard = (cardIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
-        // For backward compatibility, if no cards are selected, play immediately
-        if (selectedCards.length === 0) {
-            handleCardSelection(cardIndex, e);
-            setTimeout(() => {
-                if (selectedCards.length === 1) {
-                    handlePlaySelectedCards();
-                }
-            }, 100);
-        } else {
-            handleCardSelection(cardIndex, e);
-        }
-    };
+
 
     const handleColorPick = (color: UnoColor) => {
         setShowColorPicker(false);
@@ -1112,6 +1135,14 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                 gameType="uno"
             />
             
+            {/* Wallet Connection Dialog */}
+            <WalletConnectionDialog
+                isOpen={showWalletDialog}
+                onClose={() => setShowWalletDialog(false)}
+                gameType="uno"
+                message="Please connect your wallet first to play Pay & Earn mode and earn ARC tokens."
+            />
+            
             {/* Game Controls - positioned under connect wallet */}
             <div className={cn("absolute top-24 right-2 z-20 flex flex-col gap-1", winner && "hidden")}>
                 <Button 
@@ -1231,13 +1262,13 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                                 UNO!
                             </Button>
                         )}
-                        {showPlayButton && selectedCards.length > 0 && (
+                        {showPlayButton && selectedCards.length > 1 && (
                             <Button 
                                 onClick={handlePlaySelectedCards}
                                 className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-2 rounded-full text-lg"
                                 size="lg"
                             >
-                                Play {selectedCards.length} Card{selectedCards.length > 1 ? 's' : ''}
+                                Play {selectedCards.length} Cards
                             </Button>
                         )}
                     </div>

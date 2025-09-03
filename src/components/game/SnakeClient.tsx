@@ -15,6 +15,7 @@ import { MintSuccessModal } from './MintSuccessModal';
 import { SnakeStartScreen } from './snake/SnakeStartScreen';
 import { SnakeEndGameScreen } from './snake/SnakeEndGameScreen';
 import { PaymentLoadingScreen } from './PaymentLoadingScreen';
+import { WalletConnectionDialog } from './WalletConnectionDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const GRID_SIZE = 20;
@@ -56,6 +57,7 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     const [isBonusMode, setIsBonusMode] = useState(false);
     const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
     const [paymentTxHash, setPaymentTxHash] = useState<string>('');
+    const [showWalletDialog, setShowWalletDialog] = useState(false);
 
     const generateFood = useCallback(() => {
         let newFoodPosition: { x: number; y: number };
@@ -151,7 +153,7 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
         const signer = getSigner();
         
         if (!provider || !signer || !account) {
-            alert('Please connect your wallet first');
+            setShowWalletDialog(true);
             return;
         }
 
@@ -301,6 +303,14 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
                     setShowStartScreen(false);
                 }}
                 gameType="snake"
+            />
+            
+            {/* Wallet Connection Dialog */}
+            <WalletConnectionDialog
+                isOpen={showWalletDialog}
+                onClose={() => setShowWalletDialog(false)}
+                gameType="snake"
+                message="Please connect your wallet first to play Pay & Earn mode and earn ARC tokens."
             />
             {showStartScreen && (
                 <SnakeStartScreen 

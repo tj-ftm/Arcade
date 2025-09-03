@@ -1,3 +1,13 @@
+"use client";
+
+import { useState, useCallback, useEffect } from 'react'; // Added a comment to force re-compilation
+import { Button } from "@/components/ui/button";
+
+import { Swords, Users, BarChart, Gamepad2, BrainCircuit, Mountain, Home as HomeIcon, Settings, Play, Ticket, ArrowLeft, Save, Loader2, Coins, Trophy, Target, Clock, TrendingUp } from "lucide-react";
+import TokenomicsChart from "@/components/web3/TokenomicsChart";
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileSidebar } from '@/components/layout/MobileSidebar';
+
 import { ChessClient } from '@/components/game/ChessClient';
 
 export default function MultiplayerChessPage() {

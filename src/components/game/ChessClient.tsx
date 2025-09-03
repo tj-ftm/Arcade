@@ -13,6 +13,7 @@ import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationRes
 import { ChessStartScreen } from './chess/ChessStartScreen';
 import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
 import { PaymentLoadingScreen } from './PaymentLoadingScreen';
+import { WalletConnectionDialog } from './WalletConnectionDialog';
 import { ErrorReportButton } from './ErrorReportButton';
 import { errorLogger } from '@/lib/error-logger';
 // import { MobileRotateButton } from './MobileRotateButton'; // Removed as requested
@@ -85,6 +86,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
     const [paymentTxHash, setPaymentTxHash] = useState<string>('');
     const [endReason, setEndReason] = useState<string>('');
     const [hasWon, setHasWon] = useState<boolean>(false);
+    const [showWalletDialog, setShowWalletDialog] = useState(false);
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -278,7 +280,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
         const signer = getSigner();
         
         if (!provider || !signer || !account) {
-            alert('Please connect your wallet first');
+            setShowWalletDialog(true);
             return;
         }
 
@@ -457,6 +459,14 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                     setShowStartScreen(false);
                 }}
                 gameType="chess"
+            />
+            
+            {/* Wallet Connection Dialog */}
+            <WalletConnectionDialog
+                isOpen={showWalletDialog}
+                onClose={() => setShowWalletDialog(false)}
+                gameType="chess"
+                message="Please connect your wallet first to play Pay & Earn mode and earn ARC tokens."
             />
             {showStartScreen && (
                 <ChessStartScreen 
