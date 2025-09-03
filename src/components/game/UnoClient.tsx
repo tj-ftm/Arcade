@@ -14,9 +14,9 @@ import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationRes
 
 import { UnoEndGameScreen } from './UnoEndGameScreen';
 import PaymentLoadingScreen from './PaymentLoadingScreen';
+import CountdownScreen from './CountdownScreen';
 import { UnoStartScreen } from './UnoStartScreen';
 import { ErrorReportButton } from './ErrorReportButton';
-import CountdownScreen from './CountdownScreen';
 import { errorLogger } from '@/lib/error-logger';
 
 const colors: UnoColor[] = ['Red', 'Green', 'Blue', 'Yellow'];
@@ -451,15 +451,12 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
 
     const handlePaymentComplete = () => {
         setShowPaymentScreen(false);
-        // Show countdown before starting bonus mode
         setShowCountdown(true);
     };
-
+    
     const handleCountdownComplete = () => {
         setShowCountdown(false);
-        // Check if we're in bonus mode or free play
-        const bonusMode = showPaymentScreen || isBonusMode;
-        handleNewGame(bonusMode);
+        handleNewGame(isBonusMode); // Start the actual game
     };
 
     const handlePaymentCancel = () => {
@@ -960,15 +957,6 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         }
     }, [gameState?.activePlayerIndex, gameState?.winner, handleBotTurn, showColorPicker, showStartScreen, showEndGameScreen, gameState?.discardPile?.length]);
 
-    if (showCountdown) {
-        return (
-            <CountdownScreen
-                onCountdownComplete={handleCountdownComplete}
-                gameType="uno"
-            />
-        );
-    }
-
     if (showPaymentScreen) {
         return (
             <div className="w-full h-full flex flex-col justify-center items-center text-white font-headline relative overflow-hidden">
@@ -982,12 +970,24 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         );
     }
 
+    if (showCountdown) {
+        return (
+            <div className="w-full h-full flex flex-col justify-center items-center text-white font-headline relative overflow-hidden">
+                <CountdownScreen
+                    onCountdownComplete={handleCountdownComplete}
+                    gameType="uno"
+                />
+            </div>
+        );
+    }
+
     if (showStartScreen) {
         return (
             <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
                 <UnoStartScreen
                     onStartGame={() => {
                         setShowStartScreen(false);
+                        setIsBonusMode(false);
                         setShowCountdown(true);
                     }}
                     onGoToMenu={onGameEnd || (() => {})}

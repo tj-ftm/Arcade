@@ -440,41 +440,56 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
     if (!isConnected) return;
 
     try {
-      const lobbiesRef = ref(database, 'lobbies');
-      const snapshot = await get(lobbiesRef);
-      const lobbiesData = snapshot.val();
+      // Clean up lobbies for each game type
+      const gameTypes = ['chess', 'uno', 'pool'];
+      let totalCleaned = 0;
       
-      if (lobbiesData) {
-        const currentTime = Date.now();
-        const expiredLobbies: string[] = [];
+      for (const gameType of gameTypes) {
+        const collectionPath = `multiplayer-lobbies-${chain}-${gameType}`;
+        const lobbiesRef = ref(database, collectionPath);
+        const snapshot = await get(lobbiesRef);
+        const lobbiesData = snapshot.val();
         
-        Object.entries(lobbiesData).forEach(([lobbyId, lobbyData]: [string, any]) => {
-          // Check if lobby has expired (1 hour of inactivity or explicit expiration)
-          const expiresAt = lobbyData.expiresAt || (lobbyData.createdAt + (60 * 60 * 1000));
-          const lastActivity = lobbyData.lastActivity || lobbyData.createdAt;
-          const inactiveTime = currentTime - (lastActivity.seconds ? lastActivity.seconds * 1000 : lastActivity);
+        if (lobbiesData) {
+          const currentTime = Date.now();
+          const expiredLobbies: string[] = [];
           
-          // Mark for cleanup if expired or inactive for more than 1 hour
-          if (currentTime > expiresAt || inactiveTime > (60 * 60 * 1000)) {
-            expiredLobbies.push(lobbyId);
+          Object.entries(lobbiesData).forEach(([lobbyId, lobbyData]: [string, any]) => {
+            // Check if lobby has expired (2 minutes of inactivity for waiting lobbies, 1 hour for playing)
+            const timeoutDuration = lobbyData.status === 'waiting' ? (2 * 60 * 1000) : (60 * 60 * 1000); // 2 minutes for waiting, 1 hour for playing
+            const expiresAt = lobbyData.expiresAt || (lobbyData.createdAt + timeoutDuration);
+            const lastActivity = lobbyData.lastActivity || lobbyData.createdAt;
+            const lastActivityTime = lastActivity.seconds ? lastActivity.seconds * 1000 : lastActivity;
+            const inactiveTime = currentTime - lastActivityTime;
+            
+            // Mark for cleanup if expired, inactive, or if it's a waiting lobby with no player2 after 2 minutes
+            const shouldCleanup = currentTime > expiresAt || 
+                                inactiveTime > timeoutDuration ||
+                                (lobbyData.status === 'waiting' && !lobbyData.player2Id && inactiveTime > (2 * 60 * 1000));
+            
+            if (shouldCleanup) {
+              expiredLobbies.push(lobbyId);
+            }
+          });
+          
+          // Clean up expired lobbies
+          for (const lobbyId of expiredLobbies) {
+            const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
+            const gameMovesRef = ref(database, `multiplayer-game-moves-${chain}-${gameType}/${lobbyId}`);
+            await remove(lobbyRef);
+            await remove(gameMovesRef);
+            console.log(`🧹 [CLEANUP] Removed expired ${gameType} lobby: ${lobbyId}`);
           }
-        });
-        
-        // Clean up expired lobbies
-        for (const lobbyId of expiredLobbies) {
-          const lobbyRef = ref(database, `lobbies/${lobbyId}`);
-          const gameMovesRef = ref(database, `game-moves/${lobbyId}`);
-          await remove(lobbyRef);
-          await remove(gameMovesRef);
-          console.log(`Cleaned up expired lobby: ${lobbyId}`);
-        }
-        
-        if (expiredLobbies.length > 0) {
-          console.log(`Cleaned up ${expiredLobbies.length} expired lobbies`);
+          
+          totalCleaned += expiredLobbies.length;
         }
       }
+      
+      if (totalCleaned > 0) {
+        console.log(`🧹 [CLEANUP] Cleaned up ${totalCleaned} expired lobbies across all game types`);
+      }
     } catch (error) {
-      console.error('Error cleaning up expired lobbies:', error);
+      console.error('❌ [CLEANUP] Error cleaning up expired lobbies:', error);
     }
   };
 

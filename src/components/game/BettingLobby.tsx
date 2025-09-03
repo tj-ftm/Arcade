@@ -41,6 +41,50 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const [loadingStep, setLoadingStep] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(0);
   
+  // Game-specific theming
+  const getGameTheme = () => {
+    switch (gameType) {
+      case 'uno':
+        return {
+          bg: 'bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900',
+          cardBg: 'bg-red-900/50',
+          border: 'border-red-500/50',
+          accent: 'text-yellow-400',
+          button: 'bg-red-600 hover:bg-red-700',
+          title: 'UNO'
+        };
+      case 'chess':
+        return {
+          bg: 'bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900',
+          cardBg: 'bg-purple-900/50',
+          border: 'border-purple-500/50',
+          accent: 'text-amber-400',
+          button: 'bg-purple-600 hover:bg-purple-700',
+          title: 'CHESS'
+        };
+      case 'pool':
+        return {
+          bg: 'bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-emerald-900',
+          cardBg: 'bg-green-900/50',
+          border: 'border-green-500/50',
+          accent: 'text-lime-400',
+          button: 'bg-green-600 hover:bg-green-700',
+          title: 'POOL'
+        };
+      default:
+        return {
+          bg: 'bg-gray-800',
+          cardBg: 'bg-gray-900/50',
+          border: 'border-gray-500/50',
+          accent: 'text-white',
+          button: 'bg-gray-600 hover:bg-gray-700',
+          title: gameType.toUpperCase()
+        };
+    }
+  };
+  
+  const theme = getGameTheme();
+  
   const { createService, account, isConnected } = useGameBetting();
   const { username, arcBalance } = useWeb3();
   const { toast } = useToast();
@@ -321,17 +365,17 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   };
 
   return (
-    <div className={`w-full h-full flex flex-col items-center justify-center p-4 ${getGameGradient()} text-white overflow-auto`}>
-      <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6">
-      <div className="bg-black/50 rounded-xl p-4 sm:p-6 flex-1 max-h-[85vh] sm:max-h-[90vh] overflow-hidden relative z-10">
+    <div className={`w-full h-full flex flex-col items-center justify-center p-4 ${theme.bg} text-white overflow-auto`}>
+      <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6 pt-20 md:pt-24 lg:pt-28">
+      <div className={`${theme.cardBg} border ${theme.border} rounded-xl p-4 sm:p-6 flex-1 max-h-[85vh] sm:max-h-[90vh] overflow-hidden relative z-10`}>
         <div className="text-center mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 text-white" style={{ WebkitTextStroke: '1px black', textShadow: '0 0 20px rgba(255, 255, 255, 0.3)' }}>
-            {gameType.toUpperCase()} Betting
+          <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
+            {theme.title} Betting
           </h1>
           <div className="flex justify-center items-center gap-4 mb-4">
             <div className="text-center">
               <p className="text-sm text-white/70">Your Balance</p>
-              <p className={`text-xl font-bold ${themeColors.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
+              <p className={`text-xl font-bold ${theme.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
             </div>
           </div>
         </div>
@@ -417,7 +461,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                         <Button
                           onClick={handleCreateBettingLobby}
                           disabled={isCreating || parseFloat(betAmount) <= 0 || parseFloat(betAmount) > parseFloat(arcBalance || '0')}
-                          className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500"
+                          className={`w-full ${theme.button} font-headline text-white border-2 border-white/20`}
                         >
                           {isCreating ? (
                             <>

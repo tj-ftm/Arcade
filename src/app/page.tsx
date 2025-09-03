@@ -612,10 +612,11 @@ export default function HomePage() {
         'uno', 'chess', 'pool', 'snake', 'platformer'
       ].includes(activeView);
       
-      // Don't show confirmation for start screens - users aren't actually in a game yet
-      const isOnStartScreen = activeView === 'uno' || activeView === 'chess' || activeView === 'snake';
+      // Only show confirmation if actually in an active game, not on start screens
+      // We need to check if the game components are actually showing game content
+      const shouldShowConfirmation = isInActiveLobby || isInMultiplayerGame;
       
-      if ((isInActiveLobby || isInMultiplayerGame || isInSinglePlayerGame) && !isOnStartScreen) {
+      if (shouldShowConfirmation) {
         setPendingNavigation(view);
         setShowMainMenuConfirmation(true);
         return;

@@ -14,7 +14,7 @@ import { errorLogger } from '@/lib/error-logger';
 import { MintSuccessModal } from './MintSuccessModal';
 import { SnakeStartScreen } from './snake/SnakeStartScreen';
 import { SnakeEndGameScreen } from './snake/SnakeEndGameScreen';
-import { PaymentLoadingScreen } from './PaymentLoadingScreen';
+import PaymentLoadingScreen from './PaymentLoadingScreen';
 import CountdownScreen from './CountdownScreen';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -185,15 +185,12 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
 
     const handlePaymentComplete = () => {
         setShowPaymentScreen(false);
-        // Show countdown before starting bonus mode
         setShowCountdown(true);
     };
-
+    
     const handleCountdownComplete = () => {
         setShowCountdown(false);
-        // Check if we're in bonus mode or free play
-        const bonusMode = showPaymentScreen || isBonusMode;
-        handleStartGame(bonusMode);
+        handleStartGame(isBonusMode);
     };
 
     const handlePaymentCancel = () => {
@@ -324,16 +321,19 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     return (
         <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in h-full w-full max-w-4xl mx-auto p-4 overflow-hidden touch-none">
             {showCountdown && (
-                <CountdownScreen
-                    onCountdownComplete={handleCountdownComplete}
-                    gameType="snake"
-                />
+                <div className="absolute inset-0 z-50">
+                    <CountdownScreen
+                        onCountdownComplete={handleCountdownComplete}
+                        gameType="snake"
+                    />
+                </div>
             )}
 
             {showStartScreen && (
                 <SnakeStartScreen 
                     onStartGame={() => {
                         setShowStartScreen(false);
+                        setIsBonusMode(false);
                         setShowCountdown(true);
                     }} 
                     onStartBonusMode={handleStartBonusMode}
