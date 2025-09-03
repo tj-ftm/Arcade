@@ -364,6 +364,25 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             gameState: initialGameState
         });
         console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-update to trigger immediate visibility');
+        
+        // Draw an additional card to the discard pile to trigger game visibility for player 2
+        setTimeout(() => {
+            if (deck.length > 0) {
+                const triggerCard = deck.pop()!;
+                const updatedGameState = {
+                    ...initialGameState,
+                    deck: deck,
+                    discardPile: [...initialGameState.discardPile, triggerCard]
+                };
+                
+                setGameState(updatedGameState);
+                sendGameMove(lobby.id, {
+                    type: 'uno-update',
+                    gameState: updatedGameState
+                });
+                console.log('🎯 [UNO MULTIPLAYER] Trigger card drawn to ensure player 2 visibility:', triggerCard);
+            }
+        }, 100);
     };
 
     // Listen for game state updates from opponent
