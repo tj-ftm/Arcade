@@ -94,7 +94,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
       console.error('Error connecting to Firebase for betting:', error);
       setIsConnected(false);
     }
-  }, []);
+  }, [chain, gameType]);
 
   const generateBettingLobbyId = (gameType: 'chess' | 'uno' | 'pool'): string => {
     const prefix = `BET-${gameType.toUpperCase()}`;

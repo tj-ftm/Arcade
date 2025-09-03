@@ -314,28 +314,22 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             topCard = deck.splice(0, 1)[0];
         }
         
-        // Handle special starting card effects
-        let initialActivePlayer = 0; // Player1 starts by default
-        let initialGameLog = ['Game started.'];
+        // Player 1 (lobby creator) always starts first
+        let initialActivePlayer = 0; // Player1 always starts
+        let initialGameLog = ['Game started.', 'Player1\'s turn!'];
         
+        // Handle special starting cards but don't change turn order
         if (topCard.value === 'Skip') {
-            initialActivePlayer = 1; // Skip first player, player2 goes first
-            initialGameLog.push('Starting card is Skip - Player1 skipped, Player2\'s turn!');
+            initialGameLog.push('Starting card is Skip - but Player1 still goes first!');
         } else if (topCard.value === 'Reverse') {
-            // With 2 players, Reverse acts as Skip
-            initialActivePlayer = 1; // Skip first player, player2 goes first  
-            initialGameLog.push('Starting card is Reverse - Player1 skipped, Player2\'s turn!');
+            initialGameLog.push('Starting card is Reverse - but Player1 still goes first!');
         } else if (topCard.value === 'Draw Two') {
-            // First player draws 2 and loses turn
+            // First player draws 2 but still gets to play first
             const drawnCards = deck.splice(0, 2);
             player1Hand.push(...drawnCards);
-            initialActivePlayer = 1; // Player2 goes first
-            initialGameLog.push('Starting card is Draw Two - Player1 draws 2 cards and is skipped, Player2\'s turn!');
+            initialGameLog.push('Starting card is Draw Two - Player1 draws 2 cards but still goes first!');
         } else if (topCard.value === 'Wild') {
-            // First player chooses color (default to Red for multiplayer)
-            initialGameLog.push('Starting card is Wild - Player1\'s turn!');
-        } else {
-            initialGameLog.push('Player1\'s turn!');
+            initialGameLog.push('Starting card is Wild - Player1 chooses color and goes first!');
         }
 
         // Ensure proper player assignment: lobby creator = player1, joiner = player2
