@@ -86,6 +86,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
     const [endReason, setEndReason] = useState<string>('');
     const [hasWon, setHasWon] = useState<boolean>(false);
     const [showPaymentScreen, setShowPaymentScreen] = useState(false);
+    const [currentTurn, setCurrentTurn] = useState<'white' | 'black'>('white');
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -247,6 +248,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
               setGame(newGame);
               setBoard(newGame.board());
               setMoveCount(prev => prev + 1);
+              setCurrentTurn(newGame.turn());
               addGameLog(`Bot: ${bestMove.san}`);
               checkGameState(newGame);
           }
@@ -428,6 +430,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                     setGame(newGame);
                     setBoard(newGame.board());
                     setMoveCount(prev => prev + 1);
+                    setCurrentTurn(newGame.turn());
                     addGameLog(`You: ${move.san}`);
                     checkGameState(newGame);
                 }
@@ -526,6 +529,28 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                     </div>
 
                     <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative mt-4 md:mt-0">
+                        {/* Turn Indicator */}
+                        {!winner && (
+                            <div className="mb-4 text-center">
+                                <div className={cn(
+                                    "px-6 py-3 rounded-full text-lg font-bold uppercase tracking-wider transition-all duration-500",
+                                    currentTurn === 'w' ? "bg-white text-black shadow-lg animate-pulse" : "bg-gray-800 text-white border-2 border-white/30"
+                                )}>
+                                    {currentTurn === 'w' ? (
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-3 h-3 bg-black rounded-full"></span>
+                                            Your Turn
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-3 h-3 bg-white rounded-full"></span>
+                                            {isBotThinking ? 'Bot Thinking...' : "Bot's Turn"}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        
                         <div className="w-full max-w-[98vw] max-h-[98vh] sm:max-w-[90vmin] md:max-w-[70vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl">
                             {board.map((row, rowIndex) =>
                                 row.map((piece, colIndex) => {

@@ -25,14 +25,6 @@ export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonus
       <div className="flex flex-col items-center gap-4 mt-4">
         <Button 
           size="lg" 
-          onClick={onStartGame}
-          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gray-600 hover:bg-gray-700 text-white border-2 border-white/20"
-        >
-          <Play className="mr-4 h-8 w-8" />
-          Free Play
-        </Button>
-        <Button 
-          size="lg" 
           onClick={onStartBonusMode}
           className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white border-2 border-green-400/30"
         >
