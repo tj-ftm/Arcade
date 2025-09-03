@@ -183,7 +183,8 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
 
     const handlePaymentComplete = () => {
         setShowPaymentScreen(false);
-        handleBonusPayment();
+        // Start the game directly without additional payment processing
+        handleStartGame(true); // true for bonus mode
     };
 
     const handlePaymentCancel = () => {

@@ -449,7 +449,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
 
     const handlePaymentComplete = () => {
         setShowPaymentScreen(false);
-        handleBonusPayment();
+        // Start the game directly without additional payment processing
+        handleNewGame(true); // true for bonus mode
     };
 
     const handlePaymentCancel = () => {

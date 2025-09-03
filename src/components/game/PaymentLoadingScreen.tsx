@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useWeb3 } from '../web3/Web3Provider';
+import { sendBonusPayment } from '@/lib/payment-verification';
 
 interface PaymentLoadingScreenProps {
   onPaymentComplete: () => void;
@@ -17,10 +19,12 @@ const PaymentLoadingScreen: React.FC<PaymentLoadingScreenProps> = ({
   gameType,
   amount
 }) => {
+  const { getProvider, getSigner, account } = useWeb3();
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('waiting');
   const [progress, setProgress] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds timeout
-  const [statusMessage, setStatusMessage] = useState('Waiting for payment...');
+  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes timeout for real transactions
+  const [statusMessage, setStatusMessage] = useState('Initiating payment...');
+  const [txHash, setTxHash] = useState<string>('');
 
   // Game-specific styling
   const getGameTheme = () => {
@@ -54,11 +58,71 @@ const PaymentLoadingScreen: React.FC<PaymentLoadingScreenProps> = ({
 
   const theme = getGameTheme();
 
-  // Simulate payment verification process
+  // Real payment processing
+  useEffect(() => {
+    const processPayment = async () => {
+      if (!account) {
+        setPaymentStatus('failed');
+        setStatusMessage('Please connect your wallet first.');
+        return;
+      }
+
+      try {
+        setStatusMessage('Preparing transaction...');
+        setProgress(10);
+        
+        const provider = getProvider();
+        const signer = getSigner();
+        
+        if (!provider || !signer) {
+          throw new Error('Wallet not connected');
+        }
+
+        setStatusMessage('Sending payment transaction...');
+        setProgress(30);
+        setPaymentStatus('processing');
+        
+        const paymentResult = await sendBonusPayment(provider, signer);
+        
+        if (paymentResult.success && paymentResult.transactionHash) {
+          setTxHash(paymentResult.transactionHash);
+          setStatusMessage('Transaction sent! Waiting for confirmation...');
+          setProgress(60);
+          
+          // Wait for transaction confirmation
+          const receipt = await provider.waitForTransaction(paymentResult.transactionHash);
+          
+          if (receipt && receipt.status === 1) {
+            setProgress(100);
+            setPaymentStatus('completed');
+            setStatusMessage('Payment confirmed! Starting game...');
+            
+            setTimeout(() => {
+              onPaymentComplete();
+            }, 1500);
+          } else {
+            throw new Error('Transaction failed');
+          }
+        } else {
+          throw new Error(paymentResult.error || 'Payment failed');
+        }
+      } catch (error: any) {
+        console.error('Payment error:', error);
+        setPaymentStatus('failed');
+        setStatusMessage(error.message || 'Payment failed. Please try again.');
+        setProgress(0);
+      }
+    };
+
+    // Start payment process immediately
+    processPayment();
+  }, [account, getProvider, getSigner, onPaymentComplete]);
+
+  // Timeout timer
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) {
+        if (prev <= 1 && paymentStatus !== 'completed') {
           setPaymentStatus('timeout');
           setStatusMessage('Payment timeout. Please try again.');
           return 0;
@@ -68,47 +132,7 @@ const PaymentLoadingScreen: React.FC<PaymentLoadingScreenProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  // Simulate payment progress
-  useEffect(() => {
-    if (paymentStatus === 'waiting') {
-      const progressTimer = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            setPaymentStatus('processing');
-            setStatusMessage('Processing payment...');
-            return 100;
-          }
-          return prev + 2;
-        });
-      }, 100);
-
-      return () => clearInterval(progressTimer);
-    }
   }, [paymentStatus]);
-
-  // Handle payment processing
-  useEffect(() => {
-    if (paymentStatus === 'processing') {
-      const processingTimer = setTimeout(() => {
-        // Simulate random success/failure (90% success rate)
-        const success = Math.random() > 0.1;
-        if (success) {
-          setPaymentStatus('completed');
-          setStatusMessage('Payment successful! Redirecting to game...');
-          setTimeout(() => {
-            onPaymentComplete();
-          }, 2000);
-        } else {
-          setPaymentStatus('failed');
-          setStatusMessage('Payment failed. Please try again.');
-        }
-      }, 3000);
-
-      return () => clearTimeout(processingTimer);
-    }
-  }, [paymentStatus, onPaymentComplete]);
 
   const getStatusIcon = () => {
     switch (paymentStatus) {
@@ -198,10 +222,26 @@ const PaymentLoadingScreen: React.FC<PaymentLoadingScreenProps> = ({
           )}
         </div>
 
+        {/* Transaction Hash */}
+        {txHash && (
+          <div className="text-sm opacity-75 max-w-sm break-all">
+            <div className="text-center mb-2">Transaction Hash:</div>
+            <div className="bg-black/30 rounded p-2 font-mono text-xs">
+              {txHash}
+            </div>
+          </div>
+        )}
+
         {/* Payment Instructions */}
         {paymentStatus === 'waiting' && (
           <div className="text-sm opacity-75 max-w-sm">
-            Please complete the payment in your wallet to continue. The game will start automatically once payment is confirmed.
+            Please confirm the transaction in your wallet. The game will start automatically once payment is confirmed on the blockchain.
+          </div>
+        )}
+        
+        {paymentStatus === 'processing' && (
+          <div className="text-sm opacity-75 max-w-sm">
+            Transaction submitted! Waiting for blockchain confirmation. This may take a few moments.
           </div>
         )}
       </div>

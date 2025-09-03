@@ -311,7 +311,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
 
     const handlePaymentComplete = () => {
         setShowPaymentScreen(false);
-        handleBonusPayment();
+        // Start the game directly without additional payment processing
+        handleNewGame(true); // true for bonus mode
+        setShowStartScreen(false);
     };
 
     const handlePaymentCancel = () => {
