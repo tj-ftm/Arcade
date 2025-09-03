@@ -799,26 +799,20 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         onGameEnd();
     };
 
-    // Show loading screen
-    if (isLoadingGame || !gameState) {
-        let message = "Starting game...";
-        if (!lobby.player2Id) {
-            message = "Waiting for opponent...";
-        } else if (!gameState && !isHost) {
-            message = "Waiting for host to start game...";
-        } else if (!gameState && isHost) {
-            message = "Initializing game...";
-        }
-            
+    // Only show loading screen if waiting for player 2 to join
+    if (!lobby.player2Id) {
         return (
             <div className="w-full h-full flex items-center justify-center text-white">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
-                    <p className="text-2xl font-headline">{message}</p>
+                    <p className="text-2xl font-headline">Waiting for opponent...</p>
                 </div>
             </div>
         );
     }
+    
+    // Show game interface immediately when both players are present
+    // Game state will be initialized in the background
 
     // Check if game has ended and show end screen automatically
     if (gameState.winner && !showEndGameScreen) {
@@ -833,17 +827,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const isMyTurn = gameState && currentPlayerId === account;
     const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor)) || false;
 
-    // Additional safety checks
-    if (!player || !opponent || !topCard) {
-        return (
-            <div className="w-full h-full flex items-center justify-center text-white">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
-                    <p className="text-2xl">Loading game data...</p>
-                </div>
-            </div>
-        );
-    }
+    // Show game interface even if data is not fully loaded yet
+    // This prevents player 2 from getting stuck on loading screens
 
     // Hand styling function - sophisticated spacing like singleplayer
     const handStyle = (index: number, handSize: number) => {

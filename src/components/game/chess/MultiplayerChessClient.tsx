@@ -602,26 +602,11 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
 
   return (
     <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
-      {(isLoadingGame || !chessGameState) ? (
+      {!lobby.player2Id ? (
         <div className="flex flex-col items-center justify-center w-full h-full">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4"></div>
-          <h2 className="text-4xl font-bold mb-4">
-            {(() => {
-              if (!lobby.player2Id) {
-                return 'Waiting for opponent...';
-              } else if (!chessGameState && !isHost) {
-                return 'Waiting for host to start game...';
-              } else if (!chessGameState && isHost) {
-                return 'Initializing game...';
-              } else {
-                return 'Starting game...';
-              }
-            })()}
-          </h2>
+          <h2 className="text-4xl font-bold mb-4">Waiting for opponent...</h2>
           <p className="text-lg">Lobby ID: {lobby.id}</p>
-          {lobby.player2Id && (
-            <p className="text-sm text-white/70 mt-2">Both players connected</p>
-          )}
         </div>
       ) : (
         !showEndGameScreen && (
