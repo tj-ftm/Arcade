@@ -40,7 +40,7 @@ interface UseFirebaseBettingReturn {
   onBettingLobbyClosed: (callback: () => void) => void;
 }
 
-export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?: 'chess' | 'uno' | 'pool'): UseFirebaseBettingReturn => {
+export const useFirebaseBetting = (gameType?: 'chess' | 'uno' | 'pool'): UseFirebaseBettingReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [bettingLobbies, setBettingLobbies] = useState<BettingLobby[]>([]);
   const [currentBettingLobby, setCurrentBettingLobby] = useState<BettingLobby | null>(null);
@@ -60,10 +60,10 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
         return;
       }
 
-      // Listen to chain and game-specific betting lobbies
+      // Listen to game-specific betting lobbies
       const collectionPath = gameType ? 
-        `betting-lobbies-${chain}-${gameType}` : 
-        `betting-lobbies-${chain}`;
+        `betting-lobbies-${gameType}` : 
+        `betting-lobbies`;
       
       const bettingLobbiesRef = ref(database, collectionPath);
       const unsubscribeLobbies = onValue(bettingLobbiesRef, (snapshot) => {
@@ -73,8 +73,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
           Object.entries(data).forEach(([key, value]: [string, any]) => {
             lobbiesArray.push({
               ...value,
-              id: key,
-              chain: chain // Add chain info to lobby data
+              id: key
             });
           });
           setBettingLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting'));
@@ -107,7 +106,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
 
     try {
       const lobbyId = generateBettingLobbyId(gameType);
-      const collectionPath = `betting-lobbies-${chain}-${gameType}`;
+      const collectionPath = `betting-lobbies-${gameType}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       
       // Set lobby to expire after 1 hour if no activity
@@ -125,8 +124,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
         betAmount,
         player1Paid: false,
         player2Paid: false,
-        contractDeployed: false,
-        chain
+        contractDeployed: false
       };
 
       console.log(`🏗️ [FIREBASE BETTING] Creating betting lobby in ${collectionPath}:`, lobbyId);
@@ -173,7 +171,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
       // Extract game type from lobby ID to determine collection path
       const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
                             lobbyId.includes('UNO') ? 'uno' : 'pool';
-      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const collectionPath = `betting-lobbies-${gameTypeFromId}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       
       const snapshot = await get(lobbyRef);
@@ -237,7 +235,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
     try {
       const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
                             lobbyId.includes('UNO') ? 'uno' : 'pool';
-      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const collectionPath = `betting-lobbies-${gameTypeFromId}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       
       if (currentBettingLobby.player1Id === playerId) {
@@ -267,7 +265,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
     try {
       const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
                             lobbyId.includes('UNO') ? 'uno' : 'pool';
-      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const collectionPath = `betting-lobbies-${gameTypeFromId}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       const snapshot = await get(lobbyRef);
       const lobbyData = snapshot.val();
@@ -292,7 +290,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
     try {
       const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
                             lobbyId.includes('UNO') ? 'uno' : 'pool';
-      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const collectionPath = `betting-lobbies-${gameTypeFromId}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       const snapshot = await get(lobbyRef);
       const lobbyData = snapshot.val();

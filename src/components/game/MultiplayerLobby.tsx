@@ -38,7 +38,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const gameStartingRef = useRef(false);
   
   const { account, currentChain } = useWeb3();
-  const { onLobbyJoined, startGame, checkForExistingLobby, leaveLobby } = useFirebaseMultiplayer(currentChain, gameType);
+  const { onLobbyJoined, startGame, checkForExistingLobby, leaveLobby } = useFirebaseMultiplayer(gameType);
   
   const currentUserId = account || `guest-${Date.now()}`;
   

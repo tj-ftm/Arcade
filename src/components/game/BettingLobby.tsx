@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, ArrowLeft, Coins, Trophy, Loader2 } from 'lucide-react';
+import { Plus, Users, Trophy, Coins, Loader2 } from 'lucide-react';
+import PaymentLoadingScreen from './PaymentLoadingScreen';
 import { useGameBetting } from '@/lib/game-betting';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +41,10 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const [gameStarting, setGameStarting] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showPaymentScreen, setShowPaymentScreen] = useState(false);
+  const [currentBetAmount, setCurrentBetAmount] = useState('');
+  const [isJoiningLobby, setIsJoiningLobby] = useState(false);
+  const [currentLobbyToJoin, setCurrentLobbyToJoin] = useState<Lobby | null>(null);
   
   // Game-specific theming
   const getGameTheme = () => {
@@ -88,7 +93,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const { createService, account, isConnected } = useGameBetting();
   const { username, arcBalance } = useWeb3();
   const { toast } = useToast();
-  const { createBettingLobby, joinBettingLobby, bettingLobbies, onBettingLobbyJoined, startBettingGame } = useFirebaseBetting();
+  const { createBettingLobby, joinBettingLobby, bettingLobbies, onBettingLobbyJoined, startBettingGame } = useFirebaseBetting(gameType);
   
   const currentUserId = account || `guest-${Date.now()}`;
   const currentUserName = username || 'Anonymous';
@@ -144,29 +149,44 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       return;
     }
 
-    setIsCreating(true);
-    setLoadingStep('Initializing betting service...');
-    setLoadingProgress(10);
+    setCurrentBetAmount(betAmount);
+    setShowPaymentScreen(true);
+  };
+
+  const handlePaymentComplete = async () => {
+    setShowPaymentScreen(false);
+    
+    if (isJoiningLobby && currentLobbyToJoin) {
+      await handleJoinPaymentComplete();
+    } else {
+      setIsCreating(true);
+      setLoadingStep('Creating betting lobby...');
+      setLoadingProgress(50);
+      await handleCreateAfterPayment();
+    }
+  };
+
+  const handleCreateAfterPayment = async () => {
     
     try {
       // Create betting service
       const service = await createService();
       setLoadingStep('Checking token allowance...');
-      setLoadingProgress(25);
+      setLoadingProgress(60);
       
       // Check allowance and approve if needed
       const hasAllowance = await service.checkAllowance(account, betAmount);
       if (!hasAllowance) {
         setLoadingStep('Requesting token approval...');
-        setLoadingProgress(40);
+        setLoadingProgress(70);
         toast({
           title: "Approving Tokens",
           description: "Please approve the transaction to allow betting with ARC tokens."
         });
         
-        const approveTx = await service.approveTokens(betAmount);
+        const approveTx = await service.approveTokens(currentBetAmount);
         setLoadingStep('Waiting for approval confirmation...');
-        setLoadingProgress(55);
+        setLoadingProgress(80);
         await approveTx.wait();
         
         toast({
@@ -176,14 +196,14 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       }
       
       setLoadingStep('Creating lobby...');
-      setLoadingProgress(70);
+      setLoadingProgress(85);
       // Create Firebase lobby with betting info
-      const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, betAmount);
+      const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, currentBetAmount);
       
       setLoadingStep('Creating blockchain bet...');
-      setLoadingProgress(85);
+      setLoadingProgress(90);
       // Create blockchain bet
-      const createBetTx = await service.createBet(betAmount, gameType, lobby.id);
+      const createBetTx = await service.createBet(currentBetAmount, gameType, lobby.id);
       setLoadingStep('Confirming bet transaction...');
       setLoadingProgress(95);
       await createBetTx.wait();
@@ -193,7 +213,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       
       toast({
         title: "Betting Lobby Created",
-        description: `Created ${gameType} betting lobby with ${betAmount} ARC tokens.`
+        description: `Created ${gameType} betting lobby with ${currentBetAmount} ARC tokens.`
       });
       
       // Show waiting screen for the created lobby
@@ -213,6 +233,13 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       setLoadingStep('');
       setLoadingProgress(0);
     }
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentScreen(false);
+    setCurrentBetAmount('');
+    setIsJoiningLobby(false);
+    setCurrentLobbyToJoin(null);
   };
 
   const handleJoinBettingLobby = async (lobby: Lobby) => {
@@ -235,36 +262,44 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       return;
     }
 
+    setCurrentBetAmount(lobby.betAmount || '0');
+    setCurrentLobbyToJoin(lobby);
+    setIsJoiningLobby(true);
+    setShowPaymentScreen(true);
+  };
+
+  const handleJoinPaymentComplete = async () => {
+    setShowPaymentScreen(false);
     setIsJoining(true);
-    setLoadingStep('Initializing betting service...');
-    setLoadingProgress(15);
+    setLoadingStep('Joining betting lobby...');
+    setLoadingProgress(50);
     
     try {
       // Create betting service
       const service = await createService();
       setLoadingStep('Checking token allowance...');
-      setLoadingProgress(30);
+      setLoadingProgress(60);
       
       // Check allowance and approve if needed
-      const hasAllowance = await service.checkAllowance(account, lobby.betAmount || '0');
+      const hasAllowance = await service.checkAllowance(account, currentBetAmount);
       if (!hasAllowance) {
         setLoadingStep('Requesting token approval...');
-        setLoadingProgress(45);
+        setLoadingProgress(70);
         toast({
           title: "Approving Tokens",
           description: "Please approve the transaction to join this betting lobby."
         });
         
-        const approveTx = await service.approveTokens(lobby.betAmount || '0');
+        const approveTx = await service.approveTokens(currentBetAmount);
         setLoadingStep('Waiting for approval confirmation...');
-        setLoadingProgress(60);
+        setLoadingProgress(80);
         await approveTx.wait();
       }
       
       setLoadingStep('Joining blockchain bet...');
-      setLoadingProgress(75);
+      setLoadingProgress(85);
       // Join blockchain bet
-      const joinBetTx = await service.joinBet(lobby.id);
+      const joinBetTx = await service.joinBet(currentLobbyToJoin!.id);
       setLoadingStep('Confirming bet transaction...');
       setLoadingProgress(90);
       await joinBetTx.wait();
@@ -272,14 +307,14 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       setLoadingStep('Joining lobby...');
       setLoadingProgress(95);
       // Join Firebase lobby
-      await joinBettingLobby(lobby.id, currentUserName, currentUserId);
+      await joinBettingLobby(currentLobbyToJoin!.id, currentUserName, currentUserId);
       
       setLoadingStep('Successfully joined!');
       setLoadingProgress(100);
       
       toast({
         title: "Joined Betting Lobby",
-        description: `Joined ${gameType} betting lobby with ${lobby.betAmount} ARC tokens.`
+        description: `Joined ${gameType} betting lobby with ${currentBetAmount} ARC tokens.`
       });
       
     } catch (error: any) {
@@ -291,6 +326,8 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       });
     } finally {
       setIsJoining(false);
+      setIsJoiningLobby(false);
+      setCurrentLobbyToJoin(null);
       setLoadingStep('');
       setLoadingProgress(0);
     }
@@ -382,8 +419,16 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
           </div>
         </div>
         
-        {/* Waiting Screen for Created Betting Lobby */}
-        {gameStarting && loadingStep === 'Waiting for opponent...' ? (
+        {/* Payment Loading Screen */}
+         {showPaymentScreen ? (
+           <PaymentLoadingScreen
+             onPaymentComplete={handlePaymentComplete}
+             onCancel={handlePaymentCancel}
+             gameType={gameType}
+             amount={currentBetAmount}
+           />
+         ) : gameStarting && loadingStep === 'Waiting for opponent...' ? (
+         {/* Waiting Screen for Created Betting Lobby */}
           <div className="flex justify-center items-center h-full">
             <Card className="bg-black/50 border-white/10 w-full max-w-md">
               <CardHeader className="text-center pb-3 sm:pb-4">

@@ -53,7 +53,7 @@ interface UseFirebaseMultiplayerReturn {
   checkForExistingLobby: () => Promise<{ lobby: Lobby; isHost: boolean } | null>;
 }
 
-export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameType?: 'chess' | 'uno' | 'pool'): UseFirebaseMultiplayerReturn => {
+export const useFirebaseMultiplayer = (gameType?: 'chess' | 'uno' | 'pool'): UseFirebaseMultiplayerReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
@@ -67,7 +67,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       timestamp: Date.now()
     };
     localStorage.setItem('currentLobby', JSON.stringify(lobbyInfo));
-  }, [chain, gameType]);
+  }, [gameType]);
   
   // Clear stored lobby info
   const clearLobbyInfo = useCallback(() => {
@@ -82,7 +82,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
         const lobbyInfo = JSON.parse(storedLobbyInfo);
         // Check if lobby info is not too old (24 hours)
         if (Date.now() - lobbyInfo.timestamp < 24 * 60 * 60 * 1000) {
-          const collectionPath = `multiplayer-lobbies-${chain}-${lobbyInfo.gameType}`;
+          const collectionPath = `multiplayer-lobbies-${lobbyInfo.gameType}`;
           const lobbyRef = ref(database, `${collectionPath}/${lobbyInfo.lobbyId}`);
           const snapshot = await get(lobbyRef);
           if (snapshot.exists()) {
@@ -125,8 +125,8 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
 
       // Listen to chain and game-specific multiplayer lobbies
       const collectionPath = gameType ? 
-        `multiplayer-lobbies-${chain}-${gameType}` : 
-        `multiplayer-lobbies-${chain}`;
+        `multiplayer-lobbies-${gameType}` : 
+        `multiplayer-lobbies`;
       
       const multiplayerLobbiesRef = ref(database, collectionPath);
       const unsubscribeLobbies = onValue(multiplayerLobbiesRef, (snapshot) => {
@@ -176,7 +176,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
 
     try {
       const lobbyId = generateLobbyId(gameType);
-      const collectionPath = `multiplayer-lobbies-${chain}-${gameType}`;
+      const collectionPath = `multiplayer-lobbies-${gameType}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       
       // Set lobby to expire after 1 hour if no activity
@@ -264,7 +264,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       // Extract game type from lobby ID to determine collection path
       const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
                             lobbyId.includes('UNO') ? 'uno' : 'pool';
-      const collectionPath = `multiplayer-lobbies-${chain}-${gameTypeFromId}`;
+      const collectionPath = `multiplayer-lobbies-${gameTypeFromId}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       
       // Get current lobby data
@@ -384,9 +384,9 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
     try {
       const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
                             lobbyId.includes('UNO') ? 'uno' : 'pool';
-      const collectionPath = `multiplayer-lobbies-${chain}-${gameTypeFromId}`;
+      const collectionPath = `multiplayer-lobbies-${gameTypeFromId}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
-      const gameMovesRef = ref(database, `multiplayer-game-moves-${chain}-${gameTypeFromId}/${lobbyId}`);
+      const gameMovesRef = ref(database, `multiplayer-game-moves-${gameTypeFromId}/${lobbyId}`);
       
       if (currentLobby.player1Id === playerId) {
         // Host is leaving, delete the lobby and cleanup game moves
@@ -417,7 +417,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
     try {
       const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
                             lobbyId.includes('UNO') ? 'uno' : 'pool';
-      const collectionPath = `multiplayer-lobbies-${chain}-${gameTypeFromId}`;
+      const collectionPath = `multiplayer-lobbies-${gameTypeFromId}`;
       const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       const snapshot = await get(lobbyRef);
       const lobbyData = snapshot.val();
@@ -508,7 +508,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       let totalCleaned = 0;
       
       for (const gameType of gameTypes) {
-        const collectionPath = `multiplayer-lobbies-${chain}-${gameType}`;
+        const collectionPath = `multiplayer-lobbies-${gameType}`;
         const lobbiesRef = ref(database, collectionPath);
         const snapshot = await get(lobbiesRef);
         const lobbiesData = snapshot.val();
