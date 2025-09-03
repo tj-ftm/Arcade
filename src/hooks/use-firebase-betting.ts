@@ -134,6 +134,30 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
       const createdLobby = { ...newLobby, id: lobbyId };
       setCurrentBettingLobby(createdLobby);
       
+      // Listen for lobby updates (when player 2 joins)
+      const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
+        const data = snapshot.val();
+        console.log('🔄 [BETTING CREATE] Host received lobby update:', data);
+        if (data) {
+          const updatedLobby = { ...data, id: lobbyId };
+          setCurrentBettingLobby(updatedLobby);
+          
+          // Check if someone joined and game is ready to start
+          if (data.player2Id && data.status === 'playing') {
+            console.log('🎮 [BETTING CREATE] Player joined betting lobby, triggering game start for host');
+            lobbyJoinedCallbacks.forEach(callback => {
+              console.log('📞 [BETTING CREATE] Calling lobby joined callback for host');
+              callback(updatedLobby);
+            });
+          }
+        } else {
+          // Lobby was deleted
+          console.log('🗑️ [BETTING CREATE] Betting lobby was deleted');
+          setCurrentBettingLobby(null);
+          lobbyClosedCallbacks.forEach(callback => callback());
+        }
+      });
+      
       return createdLobby;
     } catch (error) {
       console.error('❌ [FIREBASE BETTING] Error creating betting lobby:', error);
@@ -166,23 +190,40 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
       if (lobbyData.player2Id) {
         throw new Error('Betting lobby is full');
       }
+      
+      // If the joining player is the same as player1, assign them as player2
+      let finalPlayer2Id = player2Id;
+      let finalPlayer2Name = player2Name;
+      
+      if (player2Id === lobbyData.player1Id) {
+        console.log('🔄 [BETTING JOIN] Player is same as host, assigning as player2');
+        // Keep the same ID but ensure they are treated as player2
+        finalPlayer2Id = player2Id;
+        finalPlayer2Name = player2Name;
+      }
 
       const updatedLobbyData = {
         ...lobbyData,
-        player2Id,
-        player2Name,
-        status: 'waiting',
+        player2Id: finalPlayer2Id,
+        player2Name: finalPlayer2Name,
+        status: 'playing', // Change status to playing when both players are present
         lastActivity: serverTimestamp(),
+        gameStartTime: serverTimestamp()
       };
       
-      console.log('💾 [BETTING JOIN] Updating betting lobby with player 2');
+      console.log('💾 [BETTING JOIN] Updating betting lobby with player 2 and starting game');
       await set(lobbyRef, updatedLobbyData);
       
       const joinedLobby = { ...updatedLobbyData, id: lobbyId };
       setCurrentBettingLobby(joinedLobby);
       
-      console.log('✅ [BETTING JOIN] Successfully joined betting lobby');
-      lobbyJoinedCallbacks.forEach(callback => callback(joinedLobby));
+      console.log('✅ [BETTING JOIN] Successfully joined betting lobby, triggering game start');
+      
+      // Trigger callbacks for both players
+      lobbyJoinedCallbacks.forEach(callback => {
+        console.log('📞 [BETTING JOIN] Calling lobby joined callback');
+        callback(joinedLobby);
+      });
 
     } catch (error) {
       console.error('💥 [BETTING JOIN] Error joining betting lobby:', error);

@@ -289,13 +289,14 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
         throw new Error('Lobby is full');
       }
 
-      // Update lobby with player 2 - keep status as 'waiting' until game actually starts
+      // Update lobby with player 2 and start the game immediately
       const updatedLobbyData = {
         ...lobbyData,
         player2Id,
         player2Name,
-        status: 'waiting', // Keep as waiting until both players are ready
+        status: 'playing', // Change to playing when both players are present
         lastActivity: serverTimestamp(),
+        gameStartTime: serverTimestamp()
       };
       
       console.log('💾 [JOIN LOBBY] Updating lobby with player 2 data:', updatedLobbyData);

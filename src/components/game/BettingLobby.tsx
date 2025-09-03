@@ -196,8 +196,10 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
         description: `Created ${gameType} betting lobby with ${betAmount} ARC tokens.`
       });
       
-      // Switch to browse tab to see the created lobby
-      setActiveTab('browse');
+      // Show waiting screen for the created lobby
+      setGameStarting(true);
+      setLoadingStep('Waiting for opponent...');
+      setLoadingProgress(100);
       
     } catch (error: any) {
       console.error('Error creating betting lobby:', error);
@@ -379,6 +381,63 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
             </div>
           </div>
         </div>
+        
+        {/* Waiting Screen for Created Betting Lobby */}
+        {gameStarting && loadingStep === 'Waiting for opponent...' ? (
+          <div className="flex justify-center items-center h-full">
+            <Card className="bg-black/50 border-white/10 w-full max-w-md">
+              <CardHeader className="text-center pb-3 sm:pb-4">
+                <CardTitle className="text-lg sm:text-xl lg:text-2xl font-headline uppercase tracking-wider text-white" style={{ WebkitTextStroke: '1px black' }}>
+                  Betting Lobby Created
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 text-center pb-4 sm:pb-6">
+                <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 lg:h-16 lg:w-16 animate-spin text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 sm:mb-2">
+                      Waiting for opponent...
+                    </h3>
+                    <p className="text-white/70 text-xs sm:text-sm lg:text-base">
+                      Another player will join your betting lobby soon
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 rounded-lg p-2 sm:p-3 lg:p-4 space-y-1 sm:space-y-2">
+                  <p className="text-xs sm:text-sm text-white/70">Bet Amount:</p>
+                  <p className="font-mono text-sm sm:text-lg lg:text-xl text-primary">
+                    {betAmount} ARC
+                  </p>
+                </div>
+
+                <div className="space-y-1 sm:space-y-2">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
+                    <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>Game: {gameType.toUpperCase()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70 justify-center">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <span>Status: Waiting for Player 2</span>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => {
+                    setGameStarting(false);
+                    setActiveTab('browse');
+                  }}
+                  variant="outline"
+                  className="w-full bg-transparent text-white border-white/50 hover:bg-white/10"
+                >
+                  Back to Lobby List
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
           <div className="flex justify-center items-center mb-3 sm:mb-4">
             <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/10">
@@ -571,6 +630,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
             </TabsContent>
           </div>
         </Tabs>
+        )}
       </div>
     </div>
     </div>

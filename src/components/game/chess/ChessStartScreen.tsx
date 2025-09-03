@@ -51,14 +51,7 @@ export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonus
             Bet Mode
           </Button>
         )}
-        <Button 
-          size="lg" 
-          onClick={onStartBonusMode}
-          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600 text-white border-2 border-yellow-400/30"
-        >
-          <Play className="mr-4 h-8 w-8" />
-          Bonus Mode (0.1 S)
-        </Button>
+
         {/* Rewards Info */}
         <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 rounded-xl p-4 border border-yellow-400/30">
           <div className="flex items-center justify-center gap-3">
