@@ -104,7 +104,9 @@ interface MintStats {
 }
 
 const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
-  const [totalSupply, setTotalSupply] = useState<string | null>(null);
+  const [sonicSupply, setSonicSupply] = useState<string>('0');
+  const [baseSupply, setBaseSupply] = useState<string>('0');
+  const [totalSupply, setTotalSupply] = useState<string>('0');
   const [mintEvents, setMintEvents] = useState<MintEvent[]>([]);
   const [chartData, setChartData] = useState<{ date: string; minted: number }[]>([]);
   const [gameMintLogs, setGameMintLogs] = useState<GameMintLog[]>([]);
@@ -160,21 +162,40 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
     setLoading(true);
     setError(null);
     
-    const provider = getProvider();
-    if (!provider) {
-      const errorMsg = "No Ethereum provider available. Please connect a wallet or check your network connection.";
-      console.error(errorMsg);
-      setError(errorMsg);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const contract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_FULL_ABI, provider);
+      // Create providers for both chains
+      const sonicProvider = new ethers.JsonRpcProvider('https://rpc.soniclabs.com');
+      const baseProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+      
+      const arcTokenAddress = '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d';
+      
+      // Create contracts for both chains
+      const sonicContract = new ethers.Contract(arcTokenAddress, ARC_TOKEN_FULL_ABI, sonicProvider);
+      const baseContract = new ethers.Contract(arcTokenAddress, ARC_TOKEN_FULL_ABI, baseProvider);
 
-      // Fetch total supply
-      const supply = await contract.totalSupply();
-      setTotalSupply(formatEther(supply));
+      // Fetch supplies from both chains
+      const [sonicSupplyRaw, baseSupplyRaw] = await Promise.all([
+        sonicContract.totalSupply(),
+        baseContract.totalSupply()
+      ]);
+      
+      const sonicSupplyFormatted = formatEther(sonicSupplyRaw);
+      const baseSupplyFormatted = formatEther(baseSupplyRaw);
+      const totalSupplyFormatted = (parseFloat(sonicSupplyFormatted) + parseFloat(baseSupplyFormatted)).toString();
+      
+      setSonicSupply(sonicSupplyFormatted);
+      setBaseSupply(baseSupplyFormatted);
+      setTotalSupply(totalSupplyFormatted);
+      
+      console.log('Multi-chain supplies:', {
+        sonic: sonicSupplyFormatted,
+        base: baseSupplyFormatted,
+        total: totalSupplyFormatted
+      });
+
+      // Use Sonic provider for historical events (main chain)
+      const provider = sonicProvider;
+      const contract = sonicContract;
 
       // Fetch all historical minting events using pagination to avoid timeout
       const currentBlock = await provider.getBlockNumber();
@@ -301,27 +322,40 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
         {/* ARC Contract Address */}
         <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 mb-6 border border-orange-300/20">
           <div className="text-center">
-            <p className="text-sm text-gray-400 mb-2">ARC Token Contract Address</p>
-            <div className="flex items-center justify-center gap-2">
+            <p className="text-sm text-gray-400 mb-2">ARC Token Contract Address (Same on Both Chains)</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               <code className="bg-black/30 px-3 py-1 rounded text-orange-300 font-mono text-sm">
                 {ARC_TOKEN_ADDRESS}
               </code>
-              <button
-                onClick={() => navigator.clipboard.writeText(ARC_TOKEN_ADDRESS)}
-                className="text-xs bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded transition-colors"
-                title="Copy to clipboard"
-              >
-                Copy
-              </button>
-              <a
-                href={`https://sonicscan.org/token/${ARC_TOKEN_ADDRESS}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded transition-colors"
-                title="View on SonicScan"
-              >
-                View on Explorer
-              </a>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigator.clipboard.writeText(ARC_TOKEN_ADDRESS)}
+                  className="text-xs bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded transition-colors"
+                  title="Copy to clipboard"
+                >
+                  Copy
+                </button>
+                <a
+                  href={`https://sonicscan.org/token/${ARC_TOKEN_ADDRESS}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                  title="View on SonicScan"
+                >
+                  <img src="/sonic_icon.png" alt="Sonic" className="w-3 h-3" />
+                  Sonic Explorer
+                </a>
+                <a
+                  href={`https://basescan.org/token/${ARC_TOKEN_ADDRESS}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                  title="View on BaseScan"
+                >
+                  <img src="/base_icon.png" alt="Base" className="w-3 h-3" />
+                  Base Explorer
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -329,21 +363,118 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
       </div>
       
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-      <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-accent">Current Total Supply</CardTitle>
-        </CardHeader>
-        <CardContent className="min-h-[200px] md:min-h-[250px]">
-          {loading ? (
-            <p className="text-2xl font-bold">Loading...</p>
-          ) : error ? (
-            <p className="text-red-400">Error loading data</p>
-          ) : (
-            <p className="text-2xl font-bold">{totalSupply ? `${totalSupply} ARC` : 'No data'}</p>
-          )}
-        </CardContent>
-      </Card>
+        {/* Multi-Chain Supply Display */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Sonic Chain Supply */}
+          <Card className="bg-black/50 backdrop-blur-sm border border-orange-300/20">
+            <CardHeader>
+              <CardTitle className="text-orange-300 text-center text-xl flex items-center justify-center gap-2">
+                <img src="/sonic_icon.png" alt="Sonic" className="w-6 h-6" />
+                Sonic Chain Supply
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-10 bg-orange-300/20 rounded mb-2"></div>
+                  </div>
+                ) : (
+                  <p className="text-3xl font-bold text-orange-300">
+                    {parseFloat(sonicSupply).toLocaleString()} ARC
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Base Chain Supply */}
+          <Card className="bg-black/50 backdrop-blur-sm border border-blue-300/20">
+            <CardHeader>
+              <CardTitle className="text-blue-300 text-center text-xl flex items-center justify-center gap-2">
+                <img src="/base_icon.png" alt="Base" className="w-6 h-6" />
+                Base Chain Supply
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-10 bg-blue-300/20 rounded mb-2"></div>
+                  </div>
+                ) : (
+                  <p className="text-3xl font-bold text-blue-300">
+                    {parseFloat(baseSupply).toLocaleString()} ARC
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Total Supply */}
+          <Card className="bg-black/50 backdrop-blur-sm border border-green-300/20">
+            <CardHeader>
+              <CardTitle className="text-green-300 text-center text-xl">Total Supply</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-10 bg-green-300/20 rounded mb-2"></div>
+                  </div>
+                ) : error ? (
+                  <div className="text-red-400">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold text-green-300">
+                      {parseFloat(totalSupply).toLocaleString()} ARC
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Combined across all chains</p>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Per-Game ARC Mint Tracker */}
+         {mintStats && (
+           <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl mb-6">
+             <CardHeader>
+               <CardTitle className="text-accent">ARC Minted Per Game</CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                 {Object.entries(mintStats.mintsByGameType).map(([gameType, stats]) => {
+                   const gameIcons = {
+                     chess: '♔',
+                     uno: '🎴',
+                     pool: '🎱',
+                     snake: '🐍',
+                     platformer: '🏃'
+                   };
+                   const gameIcon = gameIcons[gameType as keyof typeof gameIcons] || '🎮';
+                   
+                   return (
+                     <div key={gameType} className="bg-black/30 rounded-lg p-3 text-center border border-orange-300/20">
+                       <div className="text-2xl mb-2">{gameIcon}</div>
+                       <div className="text-sm font-semibold text-orange-300 capitalize mb-1">{gameType}</div>
+                       <div className="text-lg font-bold text-green-400">{stats.amount} ARC</div>
+                       <div className="text-xs text-gray-400">{stats.count} mints</div>
+                     </div>
+                   );
+                 })}
+               </div>
+               <div className="mt-4 text-center text-sm text-gray-400">
+                 Total across all games: {mintStats.totalAmountMinted} ARC from {mintStats.totalMints} mints
+               </div>
+             </CardContent>
+           </Card>
+         )}
+         
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
 
       <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
         <CardHeader>
@@ -398,38 +529,53 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
           ) : gameMintLogs.length > 0 ? (
             <ScrollArea className="h-[200px] md:h-[250px]">
               <div className="space-y-2">
-                {gameMintLogs.slice(0, 20).map((mint) => (
-                  <div key={mint.id} className="bg-black/30 rounded-lg p-3 border border-gray-600">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-semibold text-green-400">
-                            +{mint.amountFormatted} ARC
-                          </span>
-                          <span className="text-xs bg-blue-600 px-2 py-1 rounded uppercase">
-                            {mint.gameType}
-                          </span>
+                {gameMintLogs.slice(0, 20).map((mint) => {
+                  // Determine chain from mint data (you may need to add chain field to mint logs)
+                  const chain = mint.chain || 'sonic'; // Default to sonic for existing mints
+                  const chainIcon = chain === 'base' ? '/base_icon.png' : '/sonic_icon.png';
+                  const explorerUrl = chain === 'base' 
+                    ? `https://basescan.org/tx/${mint.txHash}`
+                    : `https://sonicscan.org/tx/${mint.txHash}`;
+                  
+                  return (
+                    <div key={mint.id} className="bg-black/30 rounded-lg p-3 border border-gray-600">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-green-400">
+                              +{mint.amountFormatted} ARC
+                            </span>
+                            <span className="text-xs bg-blue-600 px-2 py-1 rounded uppercase">
+                              {mint.gameType}
+                            </span>
+                            <img 
+                              src={chainIcon} 
+                              alt={`${chain} chain`} 
+                              className="w-4 h-4" 
+                              title={`Minted on ${chain === 'base' ? 'Base' : 'Sonic'} chain`}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            Player: {mint.playerAddress.slice(0, 6)}...{mint.playerAddress.slice(-4)}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(mint.timestamp).toLocaleDateString()} {new Date(mint.timestamp).toLocaleTimeString()}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-400">
-                          Player: {mint.playerAddress.slice(0, 6)}...{mint.playerAddress.slice(-4)}
+                        <div className="text-right">
+                          <a 
+                            href={explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 underline"
+                          >
+                            View TX
+                          </a>
                         </div>
-                        <div className="text-xs text-gray-400">
-                          {new Date(mint.timestamp).toLocaleDateString()} {new Date(mint.timestamp).toLocaleTimeString()}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <a 
-                          href={`https://sonicscan.org/tx/${mint.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-400 hover:text-blue-300 underline"
-                        >
-                          View TX
-                        </a>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {gameMintLogs.length > 20 && (
                   <div className="text-center text-sm text-gray-400 mt-4">
                     Showing latest 20 of {gameMintLogs.length} total mints

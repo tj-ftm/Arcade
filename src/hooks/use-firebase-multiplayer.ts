@@ -13,16 +13,8 @@ interface Lobby {
   createdAt: any; // Firebase timestamp
   lastActivity?: any; // Firebase timestamp for cleanup
   expiresAt?: any; // Firebase timestamp for auto-expiration
-  // Gambling specific properties
-  isGamble?: boolean;
-  betAmount?: string;
-  contractAddress?: string;
-  player1Paid?: boolean;
-  player2Paid?: boolean;
-  contractDeployed?: boolean;
-  player1TxHash?: string;
-  player2TxHash?: string;
   poolGameState?: any;
+  chain: 'sonic' | 'base'; // Chain identifier
 }
 
 interface GameResult {
@@ -46,7 +38,7 @@ interface UseFirebaseMultiplayerReturn {
   isConnected: boolean;
   lobbies: Lobby[];
   currentLobby: Lobby | null;
-  createLobby: (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>) => Promise<Lobby>;
+  createLobby: (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string) => Promise<Lobby>;
   joinLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
   leaveLobby: (lobbyId: string, playerId?: string) => Promise<void>;
   startGame: (lobbyId: string) => Promise<void>;
@@ -61,7 +53,7 @@ interface UseFirebaseMultiplayerReturn {
   checkForExistingLobby: () => Promise<{ lobby: Lobby; isHost: boolean } | null>;
 }
 
-export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
+export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameType?: 'chess' | 'uno' | 'pool'): UseFirebaseMultiplayerReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
@@ -90,7 +82,8 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         const lobbyInfo = JSON.parse(storedLobbyInfo);
         // Check if lobby info is not too old (24 hours)
         if (Date.now() - lobbyInfo.timestamp < 24 * 60 * 60 * 1000) {
-          const lobbyRef = ref(database, `lobbies/${lobbyInfo.lobbyId}`);
+          const collectionPath = `multiplayer-lobbies-${chain}-${lobbyInfo.gameType}`;
+          const lobbyRef = ref(database, `${collectionPath}/${lobbyInfo.lobbyId}`);
           const snapshot = await get(lobbyRef);
           if (snapshot.exists()) {
             const lobbyData = snapshot.val();
@@ -130,29 +123,36 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         return;
       }
 
-      // Listen to lobbies
-      const lobbiesRef = ref(database, 'lobbies');
-      const unsubscribeLobbies = onValue(lobbiesRef, (snapshot) => {
+      // Listen to chain and game-specific multiplayer lobbies
+      const collectionPath = gameType ? 
+        `multiplayer-lobbies-${chain}-${gameType}` : 
+        `multiplayer-lobbies-${chain}`;
+      
+      const multiplayerLobbiesRef = ref(database, collectionPath);
+      const unsubscribeLobbies = onValue(multiplayerLobbiesRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           const lobbiesArray: any[] = [];
           Object.entries(data).forEach(([key, value]: [string, any]) => {
             lobbiesArray.push({
               ...value,
-              id: key
+              id: key,
+              chain: chain // Add chain info to lobby data
             });
           });
-          // Filter lobbies to only show regular multiplayer (non-betting) lobbies
-          setLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting' && !lobby.isGamble));
+          // Only show waiting lobbies for regular multiplayer
+          setLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting'));
         } else {
           setLobbies([]);
         }
       });
+      
+      console.log(`🔗 [FIREBASE MULTIPLAYER] Connected to ${collectionPath} collection`);
 
       setIsConnected(true);
 
       return () => {
-        off(lobbiesRef);
+        off(multiplayerLobbiesRef);
         setIsConnected(false);
       };
     
@@ -171,12 +171,13 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
 
 
-  const createLobby = async (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, gambleData?: Partial<Lobby>): Promise<Lobby> => {
+  const createLobby = async (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string): Promise<Lobby> => {
     if (!isConnected) throw new Error('Not connected to Firebase');
 
     try {
-      const lobbyId = gambleData?.id || generateLobbyId(gameType);
-      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      const lobbyId = generateLobbyId(gameType);
+      const collectionPath = `multiplayer-lobbies-${chain}-${gameType}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       
       // Set lobby to expire after 1 hour if no activity
       const expirationTime = Date.now() + (60 * 60 * 1000); // 1 hour from now
@@ -189,10 +190,10 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         createdAt: serverTimestamp(),
         lastActivity: serverTimestamp(),
         expiresAt: expirationTime,
-        // Include gambling data if provided
-        ...gambleData,
+        chain: chain, // Add chain info
       };
 
+      console.log(`🏗️ [FIREBASE MULTIPLAYER] Creating lobby in ${collectionPath}:`, lobbyId);
       await set(lobbyRef, newLobby);
       const createdLobby = { ...newLobby, id: lobbyId };
       setCurrentLobby(createdLobby);
@@ -209,11 +210,12 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
           
           // Check if someone joined and game is ready to start
           if (data.player2Id) {
-            console.log('Player joined lobby, triggering game start for host');
+            console.log('🎮 [FIREBASE MULTIPLAYER] Player joined lobby, triggering game start for host');
             lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
           }
         } else {
           // Lobby was deleted
+          console.log('🗑️ [FIREBASE MULTIPLAYER] Lobby was deleted');
           setCurrentLobby(null);
           lobbyClosedCallbacks.forEach(callback => callback());
         };
@@ -221,7 +223,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       
       return createdLobby;
     } catch (error) {
-      console.error('Error creating lobby:', error);
+      console.error('❌ [FIREBASE MULTIPLAYER] Error creating lobby:', error);
       throw error;
     }
   };
@@ -236,7 +238,11 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
 
     try {
       console.log('📡 [JOIN LOBBY] Getting lobby reference for:', lobbyId);
-      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      // Extract game type from lobby ID to determine collection path
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const collectionPath = `multiplayer-lobbies-${chain}-${gameTypeFromId}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       
       // Get current lobby data
       console.log('📥 [JOIN LOBBY] Fetching current lobby data...');
@@ -313,8 +319,11 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     if (!isConnected || !currentLobby) return;
 
     try {
-      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
-      const gameMovesRef = ref(database, `game-moves/${lobbyId}`);
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const collectionPath = `multiplayer-lobbies-${chain}-${gameTypeFromId}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
+      const gameMovesRef = ref(database, `multiplayer-game-moves-${chain}-${gameTypeFromId}/${lobbyId}`);
       
       if (currentLobby.player1Id === playerId) {
         // Host is leaving, delete the lobby and cleanup game moves
@@ -340,10 +349,13 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
   };
 
   const startGame = async (lobbyId: string) => {
-    if (!isConnected) return;
+    if (!isConnected || !currentLobby) return;
 
     try {
-      const lobbyRef = ref(database, `lobbies/${lobbyId}`);
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const collectionPath = `multiplayer-lobbies-${chain}-${gameTypeFromId}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
       const snapshot = await get(lobbyRef);
       const lobbyData = snapshot.val();
       
@@ -466,16 +478,18 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
     }
   };
 
-  const sendGameMove = async (lobbyId: string, moveData: any, playerId?: string) => {
+  const sendGameMove = async (lobbyId: string, poolGameState: any) => {
     if (!isConnected) return;
 
     try {
-      const moveRef = ref(database, `game-moves/${lobbyId}`);
-      await push(moveRef, {
-        moveData,
-        playerId: playerId || 'unknown',
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const movesRef = ref(database, `multiplayer-game-moves-${chain}-${gameTypeFromId}/${lobbyId}`);
+      await push(movesRef, {
+        moveData: poolGameState,
         timestamp: serverTimestamp()
       });
+      console.log(`🔥 [FIREBASE] Game move sent for lobby ${lobbyId} on ${chain} chain`);
     } catch (error) {
       console.error('Error sending game move:', error);
     }
@@ -486,7 +500,9 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
       return; // Already listening to this lobby
     }
 
-    const movesRef = ref(database, `game-moves/${lobbyId}`);
+    const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                          lobbyId.includes('UNO') ? 'uno' : 'pool';
+    const movesRef = ref(database, `multiplayer-game-moves-${chain}-${gameTypeFromId}/${lobbyId}`);
     const unsubscribe = onValue(movesRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -494,7 +510,7 @@ export const useFirebaseMultiplayer = (): UseFirebaseMultiplayerReturn => {
         const moves = Object.values(data) as any[];
         const latestMove = moves[moves.length - 1];
         if (latestMove && latestMove.moveData) {
-          console.log('🔥 [FIREBASE] Game move received for lobby', lobbyId, ':', latestMove.moveData);
+          console.log(`🔥 [FIREBASE] Game move received for lobby ${lobbyId} on ${chain} chain:`, latestMove.moveData);
           console.log('🔥 [FIREBASE] Current callbacks count:', gameMovesCallbacksRef.current.length);
           gameMovesCallbacksRef.current.forEach(callback => callback(latestMove.moveData));
         }

@@ -36,7 +36,7 @@ interface SnakeClientProps {
 }
 
 export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
-    const { account, getProvider, getSigner } = useWeb3();
+    const { account, getProvider, getSigner, currentChain, username } = useWeb3();
     const isMobile = useIsMobile();
     const gameAreaRef = useRef<HTMLDivElement>(null);
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -91,7 +91,9 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
                 isBonusMode ? 'snake-bonus' : 'snake',
                 score,
                 isWin,
-                gameDuration
+                gameDuration,
+                undefined, // gameId
+                currentChain || 'sonic' // current chain
             );
             
             const logResponse = await logGameCompletion(gameResult);

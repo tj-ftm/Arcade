@@ -28,9 +28,21 @@ export const UnoEndGameScreen: React.FC<UnoEndGameScreenProps> = ({
   return (
     <div className="absolute inset-0 bg-red-800 bg-gradient-to-br from-red-900 via-red-700 to-orange-900 flex flex-col items-center justify-center h-full p-4 sm:p-6 md:p-8 z-50">
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg text-center max-w-md w-full">
-        {!isMultiplayer && isMinting && hasWon && tokensEarned > 0 ? (
-          <Loader2 className="w-24 h-24 text-white mx-auto mb-4 animate-spin" />
-        ) : null}
+        {!isMultiplayer && isMinting && hasWon && tokensEarned > 0 && (
+          <div className="mb-6">
+            <div className="relative">
+              <Loader2 className="w-32 h-32 text-yellow-400 mx-auto mb-4 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 bg-yellow-400/20 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            </div>
+          </div>
+        )}
         <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-white">
           {hasWon ? (isMultiplayer ? 'UNO! You Won!' : 'You Won!') : (isMultiplayer ? 'You Lost!' : 'You Lost!')}
         </h2>

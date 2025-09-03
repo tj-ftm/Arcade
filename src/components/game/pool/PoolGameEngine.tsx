@@ -71,10 +71,27 @@ const getResponsiveScale = () => {
 
 const getTableDimensions = () => {
   const scale = getResponsiveScale();
+  
+  // Auto-rotate on tall mobile displays (keep desktop unchanged)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isTallScreen = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+  const shouldRotate = isMobile && isTallScreen;
+  
+  if (shouldRotate) {
+    // Swap dimensions for portrait mobile to make table taller
+    return {
+      width: BASE_TABLE_HEIGHT * scale,
+      height: BASE_TABLE_WIDTH * scale,
+      scale,
+      rotated: true
+    };
+  }
+  
   return {
     width: BASE_TABLE_WIDTH * scale,
     height: BASE_TABLE_HEIGHT * scale,
-    scale
+    scale,
+    rotated: false
   };
 };
 

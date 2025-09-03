@@ -22,6 +22,18 @@ module.exports = {
       chainId: 146,
       accounts: process.env.MINTER_PRIVATE_KEY ? [process.env.MINTER_PRIVATE_KEY] : [],
       gasPrice: 50000000000 // 50 gwei
+    },
+    base: {
+      url: "https://mainnet.base.org",
+      chainId: 8453,
+      accounts: process.env.MINTER_PRIVATE_KEY ? [process.env.MINTER_PRIVATE_KEY] : [],
+      gasPrice: "auto"
+    },
+    "base-sepolia": {
+      url: "https://sepolia.base.org",
+      chainId: 84532,
+      accounts: process.env.MINTER_PRIVATE_KEY ? [process.env.MINTER_PRIVATE_KEY] : [],
+      gasPrice: "auto"
     }
   },
   paths: {

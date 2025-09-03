@@ -99,7 +99,7 @@ export const GameLayout = () => {
     }
   }, [view, handleNavigate]);
 
-  const showGenericHeader = view !== 'uno' && view !== 'snake' && view !== 'chess' && view !== 'platformer';
+  const showGenericHeader = view !== 'menu';
 
   return (
     <main className="relative min-h-screen w-full flex flex-col items-center justify-center bg-cover bg-center font-body overflow-hidden" style={{ backgroundImage: `url('/platformer-bg-mid.svg')` }}>
@@ -107,7 +107,7 @@ export const GameLayout = () => {
 
       {/* Main Menu Header */}
       {view === 'menu' && (
-        <header className="absolute top-5 left-0 w-full z-20 pt-4 sm:pt-6">
+        <header className="absolute top-5 left-0 w-full z-[100000] pt-4 sm:pt-6">
           <div className="flex justify-between items-center bg-black/50 backdrop-blur-sm p-2 sm:p-3 border-b-2 border-primary/50 rounded-lg">
             <button onClick={() => handleNavigate('menu')}>
               <div className="font-headline text-3xl sm:text-5xl font-bold text-accent cursor-pointer" style={{ WebkitTextStroke: '2px black' }}>
@@ -126,7 +126,7 @@ export const GameLayout = () => {
       )}
 
       {showGenericHeader && (
-        <header className="absolute top-5 left-0 w-full z-20 pt-4 sm:pt-6">
+        <header className="absolute top-5 left-0 w-full z-[100000] pt-4 sm:pt-6">
           <div className="flex justify-between items-center w-full">
             <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
               <span className="text-2xl">Main Menu</span>
@@ -531,7 +531,7 @@ export default function MainApp() {
       )}
 
       {showGenericHeader && (
-        <header className="absolute top-5 left-0 w-full z-20 p-1 sm:p-2">
+        <header className="absolute top-5 left-0 w-full z-[100000] p-1 sm:p-2">
           <div className="flex justify-between items-center w-full">
             <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline">
               <span className="text-xl">Main Menu</span>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Wallet, LogOut, User, DollarSign, Gem, Edit } from "lucide-react";
+import { Wallet, LogOut, User, DollarSign, Gem, Edit, RefreshCw, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWeb3 } from "@/components/web3/Web3Provider";
 import { formatEther } from "ethers";
@@ -15,12 +15,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 export const ConnectWallet = () => {
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
+  const [isSwitchingChain, setIsSwitchingChain] = useState(false);
 
-  const { account, connect, disconnect, sBalance, arcBalance, username, setUsername } = useWeb3();
+  const { 
+    account, 
+    connect, 
+    disconnect, 
+    sBalance, 
+    arcBalance, 
+    username, 
+    setUsername, 
+    currentChain, 
+    switchChain, 
+    getCurrentChainConfig 
+  } = useWeb3();
   
   const handleDisconnect = async () => {
     try {
@@ -43,6 +56,31 @@ export const ConnectWallet = () => {
     setNewUsername("");
   };
 
+  const handleChainSwitch = async (chain: 'sonic' | 'base') => {
+    if (chain === currentChain) return;
+    
+    setIsSwitchingChain(true);
+    try {
+      await switchChain(chain);
+    } catch (error) {
+      console.error('Failed to switch chain:', error);
+    } finally {
+      setIsSwitchingChain(false);
+    }
+  };
+
+  const getChainIcon = () => {
+    return currentChain === 'base' ? '/base_icon.png' : '/sonic_icon.png';
+  };
+
+  const getChainName = () => {
+    return currentChain === 'base' ? 'Base' : 'Sonic';
+  };
+
+  const getNativeSymbol = () => {
+    return getCurrentChainConfig().nativeSymbol;
+  };
+
   const isUsingWalletAddress = username === account;
 
   if (account) {
@@ -51,22 +89,59 @@ export const ConnectWallet = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg cursor-pointer">
-                <div className="flex items-center justify-center w-10 h-10 bg-black/50 rounded-full">
-                  <Wallet className="h-5 w-5 text-primary/70" />
+                <div className="flex items-center justify-center w-10 h-10 bg-black/50 rounded-full overflow-hidden">
+                  <Image 
+                    src={getChainIcon()} 
+                    alt={`${getChainName()} Chain`} 
+                    width={32} 
+                    height={32} 
+                    className="w-8 h-8 object-contain"
+                  />
                 </div>
               <div className="flex flex-col text-left">
                 <span className="text-white font-bold text-sm leading-tight">{username}</span>
-                <span className="text-accent font-bold text-md leading-tight">{sBalance} S</span>
+                <span className="text-accent font-bold text-md leading-tight">{sBalance} {getNativeSymbol()}</span>
                 <span className="text-accent font-bold text-md leading-tight">{arcBalance} ARC</span>
               </div>
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuContent className="w-64" align="end">
+            <DropdownMenuLabel>My Account - {getChainName()} Chain</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>
-              <span className="font-bold text-accent">{sBalance} S</span>
+              <span className="font-bold text-accent">{sBalance} {getNativeSymbol()}</span>
               <span className="font-bold text-accent">{arcBalance} ARC</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Switch Chain</DropdownMenuLabel>
+            <DropdownMenuItem 
+              onSelect={() => handleChainSwitch('sonic')} 
+              disabled={currentChain === 'sonic' || isSwitchingChain}
+              className={currentChain === 'sonic' ? 'bg-accent/10' : ''}
+            >
+              <Image src="/sonic_icon.png" alt="Sonic" width={16} height={16} className="mr-2 w-4 h-4" />
+              <span>Sonic Network</span>
+              {currentChain === 'sonic' && <span className="ml-auto text-xs text-accent">Active</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onSelect={() => handleChainSwitch('base')} 
+              disabled={currentChain === 'base' || isSwitchingChain}
+              className={currentChain === 'base' ? 'bg-accent/10' : ''}
+            >
+              <Image src="/base_icon.png" alt="Base" width={16} height={16} className="mr-2 w-4 h-4" />
+              <span>Base Mainnet</span>
+              {currentChain === 'base' && <span className="ml-auto text-xs text-accent">Active</span>}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => {
+              // Use proper navigation instead of window.location
+              if (typeof window !== 'undefined') {
+                window.history.pushState({}, '', '/profile');
+                window.location.reload();
+              }
+            }}>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setIsEditingUsername(true)}>
               <Edit className="mr-2 h-4 w-4" />

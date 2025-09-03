@@ -87,8 +87,8 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
   };
 
   const sizeClasses = {
-      normal: 'w-[12vw] max-w-[70px] md:max-w-[90px] min-w-[40px] md:min-w-[60px] h-auto aspect-[5/7]',
-      large: 'w-[15vw] max-w-[90px] md:max-w-[120px] min-w-[50px] md:min-w-[80px] h-auto aspect-[5/7]',
+      normal: 'w-[18vw] max-w-[100px] md:max-w-[90px] min-w-[60px] md:min-w-[60px] h-auto aspect-[5/7]', // Increased mobile size
+      large: 'w-[22vw] max-w-[130px] md:max-w-[120px] min-w-[80px] md:min-w-[80px] h-auto aspect-[5/7]', // Increased mobile size
   }
 
   const cardStyle = {
@@ -171,7 +171,7 @@ interface UnoClientProps {
 }
 
 export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBetting }: UnoClientProps) => {
-    const { username, account, getProvider, getSigner } = useWeb3();
+    const { username, account, getProvider, getSigner, currentChain } = useWeb3();
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [flyingCard, setFlyingCard] = useState<FlyingCard | null>(null);
@@ -242,7 +242,9 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
               isBonusMode ? 'uno-bonus' : 'uno',
               playerScore,
               isWin,
-              gameDuration
+              gameDuration,
+              undefined, // gameId
+              currentChain || 'sonic' // current chain
             );
             
             const logResponse = await logGameCompletion(gameResult);
@@ -476,7 +478,9 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                 isBonusMode ? 'uno-bonus' : 'uno',
                 playerScore,
                 isWin,
-                gameDuration
+                gameDuration,
+                undefined, // gameId
+                currentChain || 'sonic' // current chain
             );
             
             const logResponse = await logGameCompletion(gameResult);
@@ -621,7 +625,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
 
             // Check for winner
             if (currentPlayer.hand.length === 0) {
-                newState.winner = currentPlayer.name;
+                newState.winner = currentPlayer.id; // Use ID instead of name for consistency
                 addGameLog(`${currentPlayer.name} wins!`);
                 return newState;
             }
@@ -642,26 +646,44 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
             // Handle card actions
             let tempNextPlayerIndex = nextPlayer(newState);
             
+            const drawCardsFromDeck = (count: number) => {
+                const drawnCards: UnoCard[] = [];
+                for(let i = 0; i < count; i++) {
+                    // Ensure deck has cards by reshuffling if needed
+                    if (newState.deck.length === 0 && newState.discardPile.length > 1) {
+                        const newDeck = shuffleDeck(newState.discardPile.slice(0, -1));
+                        newState.deck = newDeck;
+                        newState.discardPile = [newState.discardPile[newState.discardPile.length - 1]];
+                        addGameLog("Deck reshuffled from discard pile.");
+                    }
+                    
+                    const card = newState.deck.pop();
+                    if(card) {
+                        drawnCards.push(card);
+                    } else {
+                        console.warn(`Could not draw card ${i + 1} of ${count} - deck is empty`);
+                        break;
+                    }
+                }
+                return drawnCards;
+            };
+
             const handleAction = (value: UnoValue) => {
                 const opponent = newState.players[tempNextPlayerIndex];
                 switch(value) {
                     case 'Draw Two': {
-                        for(let i = 0; i < 2; i++) {
-                           const card = newState.deck.pop();
-                           if(card) opponent.hand.push(card);
-                        }
-                        const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew 2 cards.`;
+                        const drawnCards = drawCardsFromDeck(2);
+                        opponent.hand.push(...drawnCards);
+                        const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew ${drawnCards.length} cards.`;
                         addGameLog(msg);
                         setTurnMessage(msg);
                         tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex });
                         break;
                     }
                     case 'Draw Four': {
-                        for(let i = 0; i < 4; i++) {
-                           const card = newState.deck.pop();
-                           if(card) opponent.hand.push(card);
-                        }
-                        const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew 4 cards.`;
+                        const drawnCards = drawCardsFromDeck(4);
+                        opponent.hand.push(...drawnCards);
+                        const msg = `${opponent.id === 'player' ? 'You' : 'Bot'} drew ${drawnCards.length} cards.`;
                         addGameLog(msg);
                         setTurnMessage(msg);
                         tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex }); // Skip opponent's turn
@@ -719,11 +741,29 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
             const bot = newState.players[1];
             const topCard = newState.discardPile[newState.discardPile.length - 1];
             
+            // Ensure deck has cards by reshuffling if needed
+            if (newState.deck.length === 0 && newState.discardPile.length > 1) {
+                const newDeck = shuffleDeck(newState.discardPile.slice(0, -1));
+                newState.deck = newDeck;
+                newState.discardPile = [newState.discardPile[newState.discardPile.length - 1]];
+                addGameLog("Deck reshuffled from discard pile.");
+            }
+            
             const playableCards = bot.hand.map((card: UnoCard, index: number) => ({ card, index }))
                 .filter(item => isCardPlayable(item.card, topCard, newState.activeColor));
 
             if (playableCards.length > 0) {
-                const cardToPlay = playableCards[0].card;
+                // Bot has playable cards - choose the best one
+                let cardToPlay = playableCards[0].card;
+                
+                // Prioritize action cards and high-value cards
+                const actionCards = playableCards.filter(item => 
+                    ['Skip', 'Reverse', 'Draw Two', 'Draw Four'].includes(item.card.value)
+                );
+                if (actionCards.length > 0) {
+                    cardToPlay = actionCards[0].card;
+                }
+                
                 let chosenColor = newState.activeColor;
                 if (cardToPlay.color === 'Wild') {
                     // Bot picks the color it has the most of
@@ -739,30 +779,72 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                        chosenColor = colors[Math.floor(Math.random() * 4)];
                     }
                 }
-                // Use a timeout to simulate the bot "thinking"
-                setTimeout(() => playCard(cardToPlay, cardToPlay.color === 'Wild' ? chosenColor : cardToPlay.color), 500);
-            } else { // Bot has no playable cards
-                if(newState.deck.length > 0) { // If deck is not empty, draw a card
+                
+                // Play the card immediately to prevent getting stuck
+                setTimeout(() => {
+                    try {
+                        playCard(cardToPlay, cardToPlay.color === 'Wild' ? chosenColor : cardToPlay.color);
+                    } catch (error) {
+                        console.error('Bot failed to play card:', error);
+                        // Force turn change if card play fails
+                        setGameState(prevState => {
+                            if (!prevState) return null;
+                            const failsafeState = { ...prevState };
+                            failsafeState.activePlayerIndex = nextPlayer(failsafeState);
+                            addGameLog("Bot encountered an error and skipped turn.");
+                            return failsafeState;
+                        });
+                    }
+                }, 500);
+            } else {
+                // Bot has no playable cards - must draw
+                if(newState.deck.length > 0) {
                     const card = newState.deck.pop()!;
                     bot.hand.push(card);
                     addGameLog("Bot drew a card.");
                     setTurnMessage("Bot drew a card");
                     
-                    if (isCardPlayable(card, topCard, newState.activeColor)) { // If drawn card is playable, play it
+                    // Check if drawn card is immediately playable
+                    if (isCardPlayable(card, topCard, newState.activeColor)) {
                         let chosenColor = card.color;
-                         if (card.color === 'Wild') {
-                            chosenColor = colors[Math.floor(Math.random() * 4)];
-                         }
-                        setTimeout(() => playCard(card, chosenColor), 1000);
+                        if (card.color === 'Wild') {
+                            const colorCounts = bot.hand.reduce((acc: any, c: UnoCard) => {
+                                if (c.color !== 'Wild') acc[c.color] = (acc[c.color] || 0) + 1;
+                                return acc;
+                            }, {});
+                            const botColors = Object.keys(colorCounts);
+                            chosenColor = botColors.length > 0 ? 
+                                botColors.reduce((a, b) => colorCounts[a] > colorCounts[b] ? a : b) as UnoColor :
+                                colors[Math.floor(Math.random() * 4)];
+                        }
+                        
+                        // Play the drawn card
+                        setTimeout(() => {
+                            try {
+                                playCard(card, chosenColor);
+                            } catch (error) {
+                                console.error('Bot failed to play drawn card:', error);
+                                // Skip turn if play fails
+                                setGameState(prevState => {
+                                    if (!prevState) return null;
+                                    const failsafeState = { ...prevState };
+                                    failsafeState.activePlayerIndex = nextPlayer(failsafeState);
+                                    addGameLog("Bot skipped turn after drawing.");
+                                    return failsafeState;
+                                });
+                            }
+                        }, 1000);
                         return newState; // Return early to avoid changing activePlayerIndex
-                    } else { // If drawn card is not playable, skip bot's turn
+                    } else {
+                        // Drawn card is not playable, skip bot's turn
                         newState.activePlayerIndex = nextPlayer(newState);
-                        addGameLog("Bot could not play a card and skipped its turn.");
+                        addGameLog("Bot drew a card but couldn't play it.");
                         setTurnMessage("Bot skipped turn");
                     }
-                } else { // If deck is empty, bot cannot draw, so skip turn
+                } else {
+                    // No cards in deck and no playable cards - force skip
                     newState.activePlayerIndex = nextPlayer(newState);
-                    addGameLog("Bot could not draw a card and skipped its turn.");
+                    addGameLog("Bot has no playable cards and deck is empty.");
                     setTurnMessage("Bot skipped turn");
                 }
             }
@@ -802,28 +884,50 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
     const playerHasPlayableCard = player.hand.some(card => isCardPlayable(card, topCard, gameState.activeColor));
     
     const handStyle = (index: number, total: number) => {
-        const containerWidth = playerHandRef.current?.offsetWidth || window.innerWidth * 0.9;
-        const cardWidth = window.innerWidth < 768 ? 50 : 70; // Estimated card width
-        const availableSpace = containerWidth - (cardWidth * 0.5); // More space for better visibility
-        const maxCards = Math.max(total, 1);
-        const spreadPercentage = Math.min(availableSpace / maxCards / containerWidth * 100, 120); // Doubled max spacing to 120%
-        const minSpreadPercentage = window.innerWidth < 768 ? 50 : 80; // Increased minimum spacing - mobile: 50, desktop: 80
-        const finalSpread = Math.max(spreadPercentage, minSpreadPercentage);
-        const totalSpread = (maxCards - 1) * finalSpread;
-        const startOffset = -totalSpread / 2;
-        const translateX = startOffset + index * finalSpread;
-        return {
-            transform: `translateX(${translateX}%)`,
-            zIndex: index,
-        };
+        const isMobile = window.innerWidth < 768;
+        
+        if (isMobile) {
+            // Mobile: Constrained spacing to prevent cards going off-screen
+            const spacingMultiplier = Math.min(40, 300 / total); // Dynamic spacing based on card count
+            const maxSpreadLimit = Math.min(400, window.innerWidth * 0.8); // Limit to 80% of screen width
+            const maxSpread = Math.min(total * spacingMultiplier, maxSpreadLimit);
+            const finalSpread = total > 1 ? maxSpread / (total - 1) : 0; // Proper spacing calculation
+            const startOffset = -maxSpread / 2;
+            const translateX = startOffset + index * finalSpread;
+            return {
+                transform: `translateX(${Math.max(-150, Math.min(150, translateX))}%)`, // Clamp to prevent overflow
+                zIndex: index,
+            };
+        } else {
+            // Desktop: Reduced spacing to prevent covering middle card
+            const containerWidth = playerHandRef.current?.offsetWidth || window.innerWidth * 0.9;
+            const cardWidth = 70; // Estimated card width for desktop
+            const availableSpace = containerWidth - (cardWidth * 0.5);
+            const maxCards = Math.max(total, 1);
+            const spreadPercentage = Math.min(availableSpace / maxCards / containerWidth * 100, 60); // Reduced from 120 to 60
+            const minSpreadPercentage = 30; // Reduced from 80 to 30 for tighter spacing
+            const finalSpread = Math.max(spreadPercentage, minSpreadPercentage);
+            const totalSpread = (maxCards - 1) * finalSpread;
+            const startOffset = -totalSpread / 2;
+            const translateX = startOffset + index * finalSpread;
+            return {
+                transform: `translateX(${translateX}%)`,
+                zIndex: index,
+            };
+        }
     };
 
     return (
         <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
             
             {/* Game Controls - positioned under connect wallet */}
-            <div className={cn("absolute top-24 right-2 z-20 flex flex-col gap-2", winner && "hidden")}>
-                <Button variant="secondary" size="sm" onClick={() => setIsLogVisible(v => !v)}>
+            <div className={cn("absolute top-24 right-2 z-20 flex flex-col gap-1", winner && "hidden")}>
+                <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={() => setIsLogVisible(v => !v)}
+                    className="h-6 px-2 text-xs md:h-8 md:px-3 md:text-sm"
+                >
                     Log
                 </Button>
                 <ErrorReportButton
@@ -831,6 +935,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                     gameMode="singleplayer"
                     gameState={{ player, bot, topCard, activePlayerIndex, gameLog, winner }}
                     size="sm"
+                    className="h-6 px-2 text-xs md:h-8 md:px-3 md:text-sm"
                 />
             </div>
 
@@ -916,6 +1021,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                                     onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
                                     isPlayable={activePlayerIndex === 0 && isCardPlayable(card, topCard, gameState.activeColor)}
                                     isLastCard={player.hand.length === 1}
+                                    size={window.innerWidth < 768 ? 'large' : 'normal'}
                                 />
                             </div>
                         )
@@ -966,16 +1072,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                 </div>
             )}
 
-            {/* Winner Overlay */}
-            {winner && !showEndGameScreen && (
-                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-30">
-                    <h2 className="text-6xl md:text-9xl font-headline text-accent uppercase tracking-wider" style={{ WebkitTextStroke: '4px black' }}>UNO!</h2>
-                    <p className="text-2xl md:text-4xl text-white -mt-4">{winner} Wins!</p>
-                    <div className="flex gap-4">
-                        <Button size="lg" onClick={handleShowStartScreen} className="font-headline text-2xl"><RefreshCw className="mr-2"/> New Game</Button>
-                    </div>
-                </div>
-            )}
+            {/* Winner Overlay - Removed to prevent duplicate end screens */}
 
             {/* End Game Screen */}
             {showEndGameScreen && gameState && (

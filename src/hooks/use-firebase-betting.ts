@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { database } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
-import { useFirebaseMultiplayer } from './use-firebase-multiplayer';
+import { ref, onValue, set, get, push, remove, serverTimestamp } from 'firebase/database';
 
 interface BettingLobby {
   id: string;
@@ -22,6 +21,7 @@ interface BettingLobby {
   contractDeployed?: boolean;
   player1TxHash?: string;
   player2TxHash?: string;
+  chain?: 'sonic' | 'base'; // Chain identifier
 }
 
 interface UseFirebaseBettingReturn {
@@ -40,24 +40,16 @@ interface UseFirebaseBettingReturn {
   onBettingLobbyClosed: (callback: () => void) => void;
 }
 
-export const useFirebaseBetting = (): UseFirebaseBettingReturn => {
+export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?: 'chess' | 'uno' | 'pool'): UseFirebaseBettingReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [bettingLobbies, setBettingLobbies] = useState<BettingLobby[]>([]);
+  const [currentBettingLobby, setCurrentBettingLobby] = useState<BettingLobby | null>(null);
   
-  // Use the base multiplayer hook for core functionality
-  const {
-    createLobby,
-    joinLobby,
-    leaveLobby,
-    startGame,
-    endGame,
-    sendGameMove,
-    onGameMove,
-    setupGameMovesListener,
-    onLobbyJoined,
-    onLobbyLeft,
-    onLobbyClosed
-  } = useFirebaseMultiplayer();
+  // Betting-specific state management (separate from multiplayer)
+  const [gameMovesCallbacks, setGameMovesCallbacks] = useState<((moveData: any) => void)[]>([]);
+  const [lobbyJoinedCallbacks, setLobbyJoinedCallbacks] = useState<((lobby: BettingLobby) => void)[]>([]);
+  const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: BettingLobby) => void)[]>([]);
+  const [lobbyClosedCallbacks, setLobbyClosedCallbacks] = useState<(() => void)[]>([]);
 
   useEffect(() => {
     // Try to connect to Firebase
@@ -68,26 +60,30 @@ export const useFirebaseBetting = (): UseFirebaseBettingReturn => {
         return;
       }
 
-      // Listen to betting lobbies only
-      const lobbiesRef = ref(database, 'lobbies');
-      const unsubscribeLobbies = onValue(lobbiesRef, (snapshot) => {
+      // Listen to chain and game-specific betting lobbies
+      const collectionPath = gameType ? 
+        `betting-lobbies-${chain}-${gameType}` : 
+        `betting-lobbies-${chain}`;
+      
+      const bettingLobbiesRef = ref(database, collectionPath);
+      const unsubscribeLobbies = onValue(bettingLobbiesRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           const lobbiesArray: BettingLobby[] = [];
           Object.entries(data).forEach(([key, value]: [string, any]) => {
-            // Only include betting lobbies (isGamble = true)
-            if (value.isGamble === true) {
-              lobbiesArray.push({
-                ...value,
-                id: key
-              });
-            }
+            lobbiesArray.push({
+              ...value,
+              id: key,
+              chain: chain // Add chain info to lobby data
+            });
           });
           setBettingLobbies(lobbiesArray.filter(lobby => lobby.status === 'waiting'));
         } else {
           setBettingLobbies([]);
         }
       });
+      
+      console.log(`🔗 [FIREBASE BETTING] Connected to ${collectionPath} collection`);
 
       setIsConnected(true);
 
@@ -100,56 +96,237 @@ export const useFirebaseBetting = (): UseFirebaseBettingReturn => {
     }
   }, []);
 
+  const generateBettingLobbyId = (gameType: 'chess' | 'uno' | 'pool'): string => {
+    const prefix = `BET-${gameType.toUpperCase()}`;
+    const pin = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}-${pin}`;
+  };
+
   const createBettingLobby = async (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, betAmount: string): Promise<BettingLobby> => {
-    const lobby = await createLobby(gameType, player1Name, player1Id, {
-      isGamble: true,
-      betAmount,
-      player1Paid: false,
-      player2Paid: false,
-      contractDeployed: false
-    });
-    return lobby as BettingLobby;
+    if (!isConnected) throw new Error('Not connected to Firebase');
+
+    try {
+      const lobbyId = generateBettingLobbyId(gameType);
+      const collectionPath = `betting-lobbies-${chain}-${gameType}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
+      
+      // Set lobby to expire after 1 hour if no activity
+      const expirationTime = Date.now() + (60 * 60 * 1000);
+      
+      const newLobby: Omit<BettingLobby, 'id'> = {
+        gameType,
+        player1Id,
+        player1Name,
+        status: 'waiting',
+        createdAt: serverTimestamp(),
+        lastActivity: serverTimestamp(),
+        expiresAt: expirationTime,
+        isGamble: true,
+        betAmount,
+        player1Paid: false,
+        player2Paid: false,
+        contractDeployed: false,
+        chain
+      };
+
+      console.log(`🏗️ [FIREBASE BETTING] Creating betting lobby in ${collectionPath}:`, lobbyId);
+      await set(lobbyRef, newLobby);
+      const createdLobby = { ...newLobby, id: lobbyId };
+      setCurrentBettingLobby(createdLobby);
+      
+      return createdLobby;
+    } catch (error) {
+      console.error('❌ [FIREBASE BETTING] Error creating betting lobby:', error);
+      throw error;
+    }
   };
 
   const joinBettingLobby = async (lobbyId: string, player2Name: string, player2Id: string): Promise<void> => {
-    return joinLobby(lobbyId, player2Name, player2Id);
+    if (!isConnected) throw new Error('Not connected to Firebase');
+
+    try {
+      console.log('📡 [BETTING JOIN] Getting betting lobby reference for:', lobbyId);
+      // Extract game type from lobby ID to determine collection path
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
+      
+      const snapshot = await get(lobbyRef);
+      const lobbyData = snapshot.val();
+      
+      if (!lobbyData) {
+        throw new Error('Betting lobby not found');
+      }
+      
+      if (lobbyData.status !== 'waiting') {
+        throw new Error('Betting lobby is not accepting players');
+      }
+      
+      if (lobbyData.player2Id) {
+        throw new Error('Betting lobby is full');
+      }
+
+      const updatedLobbyData = {
+        ...lobbyData,
+        player2Id,
+        player2Name,
+        status: 'waiting',
+        lastActivity: serverTimestamp(),
+      };
+      
+      console.log('💾 [BETTING JOIN] Updating betting lobby with player 2');
+      await set(lobbyRef, updatedLobbyData);
+      
+      const joinedLobby = { ...updatedLobbyData, id: lobbyId };
+      setCurrentBettingLobby(joinedLobby);
+      
+      console.log('✅ [BETTING JOIN] Successfully joined betting lobby');
+      lobbyJoinedCallbacks.forEach(callback => callback(joinedLobby));
+
+    } catch (error) {
+      console.error('💥 [BETTING JOIN] Error joining betting lobby:', error);
+      throw error;
+    }
   };
 
   const leaveBettingLobby = async (lobbyId: string, playerId?: string): Promise<void> => {
-    return leaveLobby(lobbyId, playerId);
+    if (!isConnected || !currentBettingLobby) return;
+
+    try {
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
+      
+      if (currentBettingLobby.player1Id === playerId) {
+        // Host is leaving, delete the betting lobby
+        await remove(lobbyRef);
+      } else {
+        // Player 2 is leaving, reset to waiting
+        await set(lobbyRef, {
+          ...currentBettingLobby,
+          player2Id: null,
+          player2Name: null,
+          status: 'waiting',
+          lastActivity: serverTimestamp()
+        });
+      }
+      
+      setCurrentBettingLobby(null);
+      lobbyLeftCallbacks.forEach(callback => callback(currentBettingLobby));
+    } catch (error) {
+      console.error('❌ [BETTING LEAVE] Error leaving betting lobby:', error);
+    }
   };
 
   const startBettingGame = async (lobbyId: string): Promise<void> => {
-    return startGame(lobbyId);
+    if (!isConnected) return;
+
+    try {
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
+      const snapshot = await get(lobbyRef);
+      const lobbyData = snapshot.val();
+      
+      if (lobbyData && lobbyData.player2Id) {
+        await set(lobbyRef, {
+          ...lobbyData,
+          status: 'playing',
+          lastActivity: serverTimestamp(),
+          gameStartTime: serverTimestamp()
+        });
+        console.log(`🎮 [BETTING] Game started on ${chain} chain, lobby status updated to playing`);
+      }
+    } catch (error) {
+      console.error('❌ [BETTING] Error starting game:', error);
+    }
   };
 
   const endBettingGame = async (lobbyId: string, winnerId: string, winnerName: string, loserId: string, loserName: string): Promise<void> => {
-    return endGame(lobbyId, winnerId, winnerName, loserId, loserName);
+    if (!isConnected) return;
+
+    try {
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const collectionPath = `betting-lobbies-${chain}-${gameTypeFromId}`;
+      const lobbyRef = ref(database, `${collectionPath}/${lobbyId}`);
+      const snapshot = await get(lobbyRef);
+      const lobbyData = snapshot.val();
+      
+      if (lobbyData) {
+        await set(lobbyRef, {
+          ...lobbyData,
+          status: 'finished',
+          winnerId,
+          winnerName,
+          loserId,
+          loserName,
+          gameEndTime: serverTimestamp(),
+          lastActivity: serverTimestamp()
+        });
+        console.log(`🏁 [BETTING] Game ended on ${chain} chain, lobby status updated to finished`);
+      }
+    } catch (error) {
+      console.error('❌ [BETTING] Error ending game:', error);
+    }
   };
 
   const sendBettingGameMove = async (lobbyId: string, gameState: any): Promise<void> => {
-    return sendGameMove(lobbyId, gameState);
-  };
+    if (!isConnected) return;
 
-  const onBettingGameMove = (callback: (gameState: any) => void): (() => void) => {
-    return onGameMove(callback);
+    try {
+      const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                            lobbyId.includes('UNO') ? 'uno' : 'pool';
+      const movesRef = ref(database, `betting-game-moves-${chain}-${gameTypeFromId}/${lobbyId}`);
+      await push(movesRef, {
+        moveData: gameState,
+        timestamp: serverTimestamp(),
+        playerId: gameState.playerId || 'unknown'
+      });
+      console.log('📤 [BETTING] Game move sent for lobby:', lobbyId);
+    } catch (error) {
+      console.error('❌ [BETTING] Error sending game move:', error);
+    }
   };
 
   const setupBettingGameMovesListener = (lobbyId: string): void => {
-    return setupGameMovesListener(lobbyId);
+    const gameTypeFromId = lobbyId.includes('CHESS') ? 'chess' : 
+                          lobbyId.includes('UNO') ? 'uno' : 'pool';
+    const movesRef = ref(database, `betting-game-moves-${chain}-${gameTypeFromId}/${lobbyId}`);
+    const unsubscribe = onValue(movesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const moves = Object.values(data) as any[];
+        const latestMove = moves[moves.length - 1];
+        if (latestMove && latestMove.moveData) {
+          console.log(`📥 [BETTING] Game move received for lobby ${lobbyId} on ${chain} chain`);
+          gameMovesCallbacks.forEach(callback => callback(latestMove.moveData));
+        }
+      }
+    });
   };
 
-  const onBettingLobbyJoined = (callback: (lobby: BettingLobby) => void): void => {
-    return onLobbyJoined(callback as any);
-  };
+  const onBettingGameMove = useCallback((callback: (gameState: any) => void): (() => void) => {
+    setGameMovesCallbacks(prev => [...prev, callback]);
+    return () => {
+      setGameMovesCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
+  }, []);
 
-  const onBettingLobbyLeft = (callback: (lobby: BettingLobby) => void): void => {
-    return onLobbyLeft(callback as any);
-  };
+  const onBettingLobbyJoined = useCallback((callback: (lobby: BettingLobby) => void): void => {
+    setLobbyJoinedCallbacks(prev => [...prev, callback]);
+  }, []);
 
-  const onBettingLobbyClosed = (callback: () => void): void => {
-    return onLobbyClosed(callback);
-  };
+  const onBettingLobbyLeft = useCallback((callback: (lobby: BettingLobby) => void): void => {
+    setLobbyLeftCallbacks(prev => [...prev, callback]);
+  }, []);
+
+  const onBettingLobbyClosed = useCallback((callback: () => void): void => {
+    setLobbyClosedCallbacks(prev => [...prev, callback]);
+  }, []);
 
   return {
     isConnected,

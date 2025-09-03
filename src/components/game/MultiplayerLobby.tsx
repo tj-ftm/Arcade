@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Users, ArrowLeft } from 'lucide-react';
 import { CreateLobby } from './CreateLobby';
 import { LobbyList } from './LobbyList';
+import { OngoingGameScreen } from './OngoingGameScreen';
 import { MenuLayout } from '@/components/layout/MenuLayout';
 import { useFirebaseMultiplayer } from '@/hooks/use-firebase-multiplayer';
 import { useWeb3 } from '@/components/web3/Web3Provider';
@@ -33,9 +34,10 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const [activeTab, setActiveTab] = useState('browse');
   const [gameStarting, setGameStarting] = useState(false);
   const [gameStartTimeout, setGameStartTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [ongoingGame, setOngoingGame] = useState<{ lobby: Lobby; isHost: boolean } | null>(null);
   const gameStartingRef = useRef(false);
   
-  const { onLobbyJoined, startGame, checkForExistingLobby } = useFirebaseMultiplayer();
+  const { onLobbyJoined, startGame, checkForExistingLobby, leaveLobby } = useFirebaseMultiplayer();
   const { account } = useWeb3();
   
   const currentUserId = account || `guest-${Date.now()}`;
@@ -46,9 +48,9 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       try {
         const existingLobby = await checkForExistingLobby();
         if (existingLobby && existingLobby.lobby.gameType === gameType) {
-          console.log('🔄 [MULTIPLAYER LOBBY] Found existing lobby, reconnecting:', existingLobby);
-          // Automatically trigger game start for existing lobby
-          handleGameStart(existingLobby.lobby, existingLobby.isHost);
+          console.log('🔄 [MULTIPLAYER LOBBY] Found existing lobby, showing ongoing game screen:', existingLobby);
+          // Show ongoing game screen instead of automatically starting
+          setOngoingGame(existingLobby);
         }
       } catch (error) {
         console.error('Error checking for existing lobby:', error);
@@ -72,43 +74,27 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     });
     
     gameStartingRef.current = true;
-    
-    // Clear any existing timeout
-    setGameStartTimeout(prev => {
-      if (prev) {
-        console.log('🧹 [MULTIPLAYER LOBBY] Clearing existing timeout');
-        clearTimeout(prev);
-      }
-      return null;
-    });
-    
-    console.log('⏳ [MULTIPLAYER LOBBY] Setting game starting state to true');
     setGameStarting(true);
     
-    // Start the game in Firebase (update status to 'playing')
-    console.log('🔥 [MULTIPLAYER LOBBY] Calling startGame for lobby:', lobby.id);
-    await startGame(lobby.id);
-    console.log('✅ [MULTIPLAYER LOBBY] startGame completed');
+    // Only the host should update the lobby status to 'playing'
+    if (isHost) {
+      console.log('🔥 [MULTIPLAYER LOBBY] Host updating lobby status to playing:', lobby.id);
+      await startGame(lobby.id);
+      console.log('✅ [MULTIPLAYER LOBBY] Lobby status updated to playing');
+    } else {
+      console.log('👥 [MULTIPLAYER LOBBY] Non-host player, waiting for host to start game');
+    }
     
-    const timeout = setTimeout(() => {
-      console.log('⏰ [MULTIPLAYER LOBBY] Timeout completed, calling onStartGame with:', {
-        lobby: lobby,
-        isHost: isHost
-      });
-      // Ensure lobby status is set to 'playing' before calling onStartGame
-      // Pass the complete lobby object from the callback which has the latest data
-      console.log('🚨🚨🚨 [MULTIPLAYER LOBBY] CALLING onStartGame CALLBACK! 🚨🚨🚨', { lobby, isHost });
-      try {
-        onStartGame?.(lobby, isHost);
-        console.log('✅ [MULTIPLAYER LOBBY] onStartGame callback completed successfully');
-      } catch (error) {
-        console.error('❌ [MULTIPLAYER LOBBY] Error in onStartGame callback:', error);
-      }
-      setGameStartTimeout(null);
-      gameStartingRef.current = false; // Reset the ref when done
-    }, 1500); // Reduced delay since we're now properly managing state
+    // Immediate transition to game for both players
+    console.log('🚀 [MULTIPLAYER LOBBY] Starting game immediately for both players');
+    try {
+      onStartGame?.(lobby, isHost);
+      console.log('✅ [MULTIPLAYER LOBBY] onStartGame callback completed successfully');
+    } catch (error) {
+      console.error('❌ [MULTIPLAYER LOBBY] Error in onStartGame callback:', error);
+    }
     
-    setGameStartTimeout(timeout);
+    gameStartingRef.current = false;
   }, [onStartGame, startGame]);
 
   // Set up lobby joined callback for both host and joining player
@@ -190,9 +176,49 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     handleGameStart(lobby, isHost);
   };
 
+  const handleRejoinGame = (lobby: Lobby, isHost: boolean) => {
+    console.log('🔄 [MULTIPLAYER LOBBY] Rejoining game:', { lobby, isHost });
+    setOngoingGame(null);
+    handleGameStart(lobby, isHost);
+  };
+
+  const handleTerminateGame = async () => {
+    if (!ongoingGame) return;
+    
+    console.log('🗑️ [MULTIPLAYER LOBBY] Terminating ongoing game:', ongoingGame.lobby.id);
+    try {
+      await leaveLobby(ongoingGame.lobby.id, currentUserId);
+      setOngoingGame(null);
+      console.log('✅ [MULTIPLAYER LOBBY] Game terminated successfully');
+    } catch (error) {
+      console.error('❌ [MULTIPLAYER LOBBY] Error terminating game:', error);
+      throw error;
+    }
+  };
+
+  const handleBackToMenuFromOngoing = () => {
+    setOngoingGame(null);
+    onBackToMenu?.();
+  };
+
   const handleBackToMenu = () => {
     onBackToMenu?.();
   };
+
+  // Show ongoing game screen if there's an active game
+  if (ongoingGame) {
+    return (
+      <div className="w-full max-w-4xl mx-auto p-6">
+        <OngoingGameScreen
+          lobby={ongoingGame.lobby}
+          isHost={ongoingGame.isHost}
+          onRejoinGame={handleRejoinGame}
+          onTerminateGame={handleTerminateGame}
+          onBackToMenu={handleBackToMenuFromOngoing}
+        />
+      </div>
+    );
+  }
 
   if (gameStarting) {
     return (
@@ -216,8 +242,22 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     );
   }
 
+  const getGameGradient = () => {
+    switch (gameType) {
+      case 'uno':
+        return 'bg-gradient-to-br from-red-900 via-red-700 to-orange-900';
+      case 'chess':
+        return 'bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900';
+      case 'pool':
+        return 'bg-gradient-to-br from-green-900 via-green-700 to-emerald-900';
+      default:
+        return 'bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900';
+    }
+  };
+
   return (
-    <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6">
+    <div className={`w-full h-full flex flex-col items-center justify-center p-4 ${getGameGradient()} text-white overflow-auto`}>
+      <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6">
       <div className="bg-black/50 rounded-xl p-4 sm:p-6 flex-1 max-h-[85vh] sm:max-h-[90vh] overflow-hidden relative z-10">
         <div className="text-center mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 text-white" style={{ WebkitTextStroke: '1px black', textShadow: '0 0 20px rgba(255, 255, 255, 0.3)' }}>
@@ -266,6 +306,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
           </div>
         </Tabs>
       </div>
+    </div>
     </div>
   );
 }

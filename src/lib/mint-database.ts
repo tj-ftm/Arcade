@@ -14,6 +14,7 @@ interface MintLog {
   blockNumber?: number;
   verified: boolean;
   createdAt: string;
+  chain?: string; // Blockchain network (sonic, base, etc.)
 }
 
 interface MintDatabase {
@@ -111,6 +112,7 @@ export function storeMintLog(mintData: {
   amountFormatted: string; // Amount in ARC tokens
   txHash: string;
   blockNumber?: number;
+  chain?: string; // Blockchain network
 }): MintLog {
   const db = loadMintDatabase();
   
@@ -125,7 +127,8 @@ export function storeMintLog(mintData: {
     txHash: mintData.txHash,
     blockNumber: mintData.blockNumber,
     verified: false, // Will be verified later
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    chain: mintData.chain || 'sonic' // Default to sonic for backward compatibility
   };
   
   // Check if mint already exists

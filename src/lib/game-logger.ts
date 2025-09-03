@@ -7,6 +7,7 @@ interface GameResult {
   duration?: number;
   won: boolean;
   gameId?: string;
+  chain?: 'sonic' | 'base';
 }
 
 interface GameLogResponse {
@@ -115,13 +116,14 @@ export async function getGameLogs(): Promise<any> {
 }
 
 /**
- * Helper function to create game result object
+ * Creates a standardized game result object
  * @param playerAddress - Connected wallet address
  * @param gameType - Type of game (e.g., 'snake', 'chess', 'platformer')
  * @param score - Final score
  * @param won - Whether the player won
  * @param duration - Game duration in seconds (optional)
  * @param gameId - Custom game ID (optional)
+ * @param chain - Current blockchain network (optional)
  * @returns GameResult object
  */
 export function createGameResult(
@@ -130,7 +132,8 @@ export function createGameResult(
   score: number,
   won: boolean,
   duration?: number,
-  gameId?: string
+  gameId?: string,
+  chain?: 'sonic' | 'base'
 ): GameResult {
   return {
     playerAddress,
@@ -139,6 +142,7 @@ export function createGameResult(
     duration,
     won,
     gameId,
+    chain,
   };
 }
 

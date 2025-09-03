@@ -29,6 +29,11 @@ interface ExtendedWeb3ContextType extends Web3ContextType {
   payForGame: () => Promise<boolean>;
   getProvider: () => ethers.BrowserProvider | null;
   getSigner: () => Promise<ethers.JsonRpcSigner | null>;
+  currentChainId: string | null;
+  setCurrentChainId: (chainId: string | null) => void;
+  currentChain: SupportedChain;
+  switchChain: (chain: SupportedChain) => Promise<void>;
+  getCurrentChainConfig: () => typeof CHAIN_CONFIGS.sonic;
 }
 
 export const Web3Context = createContext<ExtendedWeb3ContextType | undefined>(undefined);
@@ -45,6 +50,35 @@ const SONIC_NETWORK = {
     blockExplorerUrls: ['https://sonicscan.org'],
 };
 
+const BASE_NETWORK = {
+    chainId: '0x2105', // 8453 decimal = 0x2105 hex (Base Mainnet)
+    chainName: 'Base Mainnet',
+    nativeCurrency: {
+      name: 'Ethereum',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+    rpcUrls: ['https://mainnet.base.org'],
+    blockExplorerUrls: ['https://basescan.org'],
+};
+
+const CHAIN_CONFIGS = {
+  sonic: {
+    network: SONIC_NETWORK,
+    arcTokenAddress: '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
+    gameContractAddress: '0x4b870044D30d5feaC8561F63dC1CB84Fa8A59880',
+    nativeSymbol: 'S'
+  },
+  base: {
+    network: BASE_NETWORK,
+    arcTokenAddress: '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
+    gameContractAddress: '0x4b870044D30d5feaC8561F63dC1CB84Fa8A59880', // Will be updated when deployed
+    nativeSymbol: 'ETH'
+  }
+};
+
+type SupportedChain = 'sonic' | 'base';
+
 
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   const [account, setAccount] = useState<string | null>(null);
@@ -55,11 +89,73 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   const [signer, setSigner] = useState<ethers.JsonRpcSigner | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isValidWallet, setIsValidWallet] = useState<boolean>(false);
+  const [currentChain, setCurrentChain] = useState<SupportedChain>('sonic');
+  const [currentChainId, setCurrentChainId] = useState<string | null>(null);
 
   const setUsername = (name: string) => {
     if(account) {
       localStorage.setItem(`username_${account}`, name);
       setUsernameState(name);
+    }
+  }
+
+  const getCurrentChainConfig = () => {
+    return CHAIN_CONFIGS[currentChain];
+  }
+
+  const switchChain = async (chain: SupportedChain) => {
+    if (!window.ethereum) {
+      console.log("No ethereum provider for chain switch");
+      return;
+    }
+
+    try {
+      const chainConfig = CHAIN_CONFIGS[chain];
+      console.log(`Switching to ${chain} network...`);
+      
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: chainConfig.network.chainId }],
+      });
+      
+      setCurrentChain(chain);
+      setCurrentChainId(chainConfig.network.chainId);
+      
+      // Save chain preference
+      localStorage.setItem('selectedChain', chain);
+      
+      console.log(`Successfully switched to ${chain} network`);
+      
+      // Refresh balances after chain switch
+      if (account) {
+        const provider = getProvider();
+        if (provider) {
+          await getBalance(provider, account);
+        }
+      }
+    } catch (switchError: any) {
+      console.log("Switch error:", switchError);
+      if (switchError.code === 4902) {
+        try {
+          console.log(`Adding ${chain} network...`);
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [chainConfig.network],
+          });
+          
+          setCurrentChain(chain);
+          setCurrentChainId(chainConfig.network.chainId);
+          localStorage.setItem('selectedChain', chain);
+          
+          console.log(`Successfully added ${chain} network`);
+        } catch (addError) {
+          console.error(`Failed to add ${chain} network`, addError);
+          throw addError;
+        }
+      } else {
+        console.error(`Failed to switch to ${chain} network`, switchError);
+        throw switchError;
+      }
     }
   }
 
@@ -78,16 +174,30 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   }, []);
   
   const getBalance = useCallback(async (provider: ethers.BrowserProvider, userAccount: string) => {
-    const balance = await provider.getBalance(userAccount);
-    const formattedBalance = parseFloat(formatEther(balance)).toFixed(4);
-    setBalance(formattedBalance);
-    const arcContract = new ethers.Contract(ARC_TOKEN_ADDRESS, ARC_TOKEN_ABI, provider);
-    const arcBalanceRaw = await arcContract.balanceOf(userAccount);
-    console.log("ARC Balance Raw:", arcBalanceRaw.toString(), "for account:", userAccount);
-    const formattedArcBalance = parseFloat(formatEther(arcBalanceRaw)).toFixed(4);
-    console.log("ARC Balance Formatted:", formattedArcBalance);
-    setArcBalance(formattedArcBalance);
-  }, []);
+    try {
+      // Get native balance
+      const balance = await provider.getBalance(userAccount);
+      const formattedBalance = parseFloat(formatEther(balance)).toFixed(4);
+      setBalance(formattedBalance);
+      
+      // Get ARC token balance using chain-specific contract address
+      const chainConfig = getCurrentChainConfig();
+      console.log(`Fetching ARC balance on ${currentChain} chain using address:`, chainConfig.arcTokenAddress);
+      
+      const arcContract = new ethers.Contract(chainConfig.arcTokenAddress, ARC_TOKEN_ABI, provider);
+      const arcBalanceRaw = await arcContract.balanceOf(userAccount);
+      console.log("ARC Balance Raw:", arcBalanceRaw.toString(), "for account:", userAccount, "on chain:", currentChain);
+      
+      const formattedArcBalance = parseFloat(formatEther(arcBalanceRaw)).toFixed(4);
+      console.log("ARC Balance Formatted:", formattedArcBalance);
+      setArcBalance(formattedArcBalance);
+    } catch (error) {
+      console.error(`Error fetching balances on ${currentChain} chain:`, error);
+      // Set fallback values on error
+      setBalance('0.0000');
+      setArcBalance('0.0000');
+    }
+  }, [currentChain, getCurrentChainConfig]);
 
   const handleAccountsChanged = useCallback(async (accounts: string[]) => {
     if (accounts.length === 0) {
@@ -237,8 +347,8 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         console.log('wallet_revokePermissions not supported:', revokeError);
       }
       
-      console.log("Attempting to switch to Sonic network...");
-      await switchToSonicNetwork();
+      console.log(`Attempting to switch to ${currentChain} network...`);
+      await switchChain(currentChain);
       
       console.log("Requesting wallet selection...");
       // Request permissions first to ensure wallet selection dialog appears
@@ -300,12 +410,14 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     
     try {
         const signer = await provider.getSigner();
-        const contract = new ethers.Contract(GAME_CONTRACT_ADDRESS, GAME_CONTRACT_ABI, signer);
+        const chainConfig = getCurrentChainConfig();
+        const contract = new ethers.Contract(chainConfig.gameContractAddress, GAME_CONTRACT_ABI, signer);
         console.log("Signer object in payForGame:", signer);
         console.log("Type of signer:", typeof signer);
         console.log("Signer methods:", Object.keys(Object.getPrototypeOf(signer)));
         console.log("Does signer have sendTransaction?", 'sendTransaction' in signer);
         console.log("Type of signer.sendTransaction:", typeof (signer as any).sendTransaction);
+        console.log("Using contract address:", chainConfig.gameContractAddress, "on chain:", currentChain);
 
         const fee = parseEther("0.1");
         const tx = await contract.playGame({ value: fee });
@@ -325,22 +437,44 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   }
 
 
+  const handleChainChanged = useCallback(async (chainId: string) => {
+    console.log('Chain changed to:', chainId);
+    
+    // Update current chain based on chainId
+    const numericChainId = parseInt(chainId, 16);
+    if (numericChainId === 146) {
+      setCurrentChain('sonic');
+      localStorage.setItem('selectedChain', 'sonic');
+    } else if (numericChainId === 8453) {
+      setCurrentChain('base');
+      localStorage.setItem('selectedChain', 'base');
+    }
+    
+    // Refresh balance for the new chain
+    if (account) {
+      const provider = getProvider();
+      if (provider) {
+        await getBalance(provider, account);
+      }
+    }
+  }, [account, getBalance, getProvider]);
+
   useEffect(() => {
     if (window.ethereum) {
       const eth = window.ethereum as any;
       eth.on('accountsChanged', handleAccountsChanged);
-      eth.on('chainChanged', () => window.location.reload());
+      eth.on('chainChanged', handleChainChanged);
 
       return () => {
         if (eth.removeListener) {
             eth.removeListener('accountsChanged', handleAccountsChanged);
-            eth.removeListener('chainChanged', () => window.location.reload());
+            eth.removeListener('chainChanged', handleChainChanged);
         }
       };
     }
-  }, [handleAccountsChanged]);
+  }, [handleAccountsChanged, handleChainChanged]);
 
-  // Refresh balance every 10 seconds when account is connected
+  // Refresh balance every 30 seconds when account is connected (reduced frequency)
   useEffect(() => {
     if (account) {
       const interval = setInterval(async () => {
@@ -348,16 +482,22 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         if (provider) {
           await getBalance(provider, account);
         }
-      }, 10000); // 10 seconds
+      }, 30000); // 30 seconds to reduce refresh frequency
 
       return () => clearInterval(interval);
     }
-  }, [account, getBalance]);
+  }, [account, getProvider]); // Removed getBalance from deps to prevent excessive re-renders
 
-  // Check for previous wallet connection on mount
+  // Check for previous wallet connection and chain preference on mount
   useEffect(() => {
     const checkPreviousConnection = async () => {
       if (typeof window === 'undefined' || !window.ethereum) return;
+      
+      // Load chain preference
+      const savedChain = localStorage.getItem('selectedChain') as SupportedChain;
+      if (savedChain && (savedChain === 'sonic' || savedChain === 'base')) {
+        setCurrentChain(savedChain);
+      }
       
       const wasConnected = localStorage.getItem('walletConnected');
       const lastAccount = localStorage.getItem('lastConnectedAccount');
@@ -396,7 +536,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     };
-    
+
     checkPreviousConnection();
   }, [getProvider, getBalance]);
 
@@ -419,7 +559,10 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     disconnectWallet, 
     payForGame, 
     getProvider, 
-    getSigner 
+    getSigner,
+    currentChain,
+    switchChain,
+    getCurrentChainConfig
   };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;

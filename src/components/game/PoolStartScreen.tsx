@@ -10,7 +10,7 @@ interface PoolStartScreenProps {
 
 export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBetting }: PoolStartScreenProps) => {
   return (
-    <div className="absolute inset-0 bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-emerald-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-50 p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
+    <div className="absolute inset-0 bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-emerald-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-[200000] p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
       {/* Game Title */}
       <div className="text-center">
         <h1 className="text-9xl sm:text-9xl md:text-9xl lg:text-9xl font-headline text-lime-400 uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '2px black', textShadow: '0 0 20px rgba(124, 252, 0, 0.5)' }}>

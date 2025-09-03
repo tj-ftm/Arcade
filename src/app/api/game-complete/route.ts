@@ -20,6 +20,22 @@ const MINTER_PRIVATE_KEY = process.env.MINTER_PRIVATE_KEY;
 const TOKEN_CONTRACT_ADDRESS = process.env.TOKEN_CONTRACT_ADDRESS;
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
 
+// Multi-chain configuration
+const CHAIN_CONFIGS = {
+  sonic: {
+    rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.soniclabs.com',
+    tokenAddress: process.env.TOKEN_CONTRACT_ADDRESS || '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
+    explorerUrl: 'https://sonicscan.org'
+  },
+  base: {
+    rpcUrl: 'https://mainnet.base.org',
+    tokenAddress: '0xAD75eAb973D5AbB77DAdc0Ec3047008dF3aa094d',
+    explorerUrl: 'https://base.blockscout.com'
+  }
+};
+
+type SupportedChain = 'sonic' | 'base';
+
 const TOKEN_CONTRACT_ABI = [
   {
     "inputs": [
@@ -49,6 +65,7 @@ interface GameCompleteRequest {
   won: boolean;
   timestamp?: string;
   gameId?: string;
+  chain?: SupportedChain; // Current blockchain network
 }
 
 export async function POST(req: NextRequest) {
@@ -146,25 +163,34 @@ async function handleGameStorage(gameData: GameCompleteRequest) {
  */
 async function handleGameVerification(gameData: GameCompleteRequest) {
   const storedLog = gameData;
-
+  
+  // Determine which chain to use (default to sonic for backward compatibility)
+  const currentChain: SupportedChain = storedLog.chain || 'sonic';
+  const chainConfig = CHAIN_CONFIGS[currentChain];
+  
+  console.log(`Using ${currentChain} chain configuration:`, {
+    rpcUrl: chainConfig.rpcUrl,
+    tokenAddress: chainConfig.tokenAddress
+  });
 
   // Initialize provider and signer
   let provider, signer, tokenContract;
   try {
-    console.log('Initializing blockchain connection...');
-    provider = new ethers.JsonRpcProvider(RPC_URL);
+    console.log(`Initializing ${currentChain} blockchain connection...`);
+    provider = new ethers.JsonRpcProvider(chainConfig.rpcUrl);
     signer = new ethers.Wallet(MINTER_PRIVATE_KEY, provider);
-    tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_CONTRACT_ABI, signer);
+    tokenContract = new ethers.Contract(chainConfig.tokenAddress, TOKEN_CONTRACT_ABI, signer);
     
     // Test connection
-    await provider.getNetwork();
-    console.log('Blockchain connection successful');
+    const network = await provider.getNetwork();
+    console.log(`${currentChain} blockchain connection successful. Network:`, network.name, 'Chain ID:', network.chainId.toString());
   } catch (error: any) {
-    console.error('Failed to initialize blockchain connection:', error);
+    console.error(`Failed to initialize ${currentChain} blockchain connection:`, error);
     return NextResponse.json({ 
-      error: 'Blockchain connection failed', 
+      error: `${currentChain} blockchain connection failed`, 
       details: error.message,
-      rpcUrl: RPC_URL
+      rpcUrl: chainConfig.rpcUrl,
+      chain: currentChain
     }, { status: 500 });
   }
 
@@ -223,9 +249,10 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
           amount: amountToMint.toString(), // Amount in wei
           amountFormatted: tokensToMint.toString(), // Amount in ARC tokens
           txHash: mintTxHash,
-          blockNumber: receipt?.blockNumber
+          blockNumber: receipt?.blockNumber,
+          chain: currentChain // Add chain information
         });
-        console.log('Mint logged successfully:', mintLog.id);
+        console.log(`Mint logged successfully on ${currentChain} chain:`, mintLog.id);
       } catch (mintLogError: any) {
         console.error('Failed to log mint:', mintLogError);
         // Don't fail the entire operation if mint logging fails
@@ -242,10 +269,13 @@ async function handleGameVerification(gameData: GameCompleteRequest) {
   // Return success response
   const response = {
     success: true,
-    message: `Game completed and tokens minted${tokensToMint > 0 ? `. ${tokensToMint} ARC token(s) minted as reward!` : ''}`,
+    message: `Game completed and tokens minted${tokensToMint > 0 ? `. ${tokensToMint} ARC token(s) minted as reward on ${currentChain} chain!` : ''}`,
     mintTransaction: mintTxHash,
     reward: rewardMessage,
-    tokensEarned: tokensToMint
+    tokensEarned: tokensToMint,
+    chain: currentChain,
+    explorerUrl: chainConfig.explorerUrl,
+    transactionUrl: mintTxHash ? `${chainConfig.explorerUrl}/tx/${mintTxHash}` : null
   };
 
   return NextResponse.json(response);

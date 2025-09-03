@@ -14,7 +14,7 @@ import { ChessStartScreen } from './chess/ChessStartScreen';
 import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
 import { ErrorReportButton } from './ErrorReportButton';
 import { errorLogger } from '@/lib/error-logger';
-import { MobileRotateButton } from './MobileRotateButton';
+// import { MobileRotateButton } from './MobileRotateButton'; // Removed as requested
 
 const pieceToUnicode: Record<PieceSymbol, string> = {
   p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔',
@@ -60,7 +60,7 @@ interface ChessClientProps {
 }
 
 export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGameEnd }: ChessClientProps = {}) => {
-    const { account, username, getProvider, getSigner } = useWeb3();
+    const { account, username, getProvider, getSigner, currentChain } = useWeb3();
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
     const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
@@ -95,18 +95,24 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
 
     const checkGameState = useCallback(async (currentGame: Chess) => {
         if (currentGame.isCheckmate()) {
+            // If it's black's turn and checkmate, black is checkmated (white wins)
+            // If it's white's turn and checkmate, white is checkmated (black wins)
+            // Player is white, bot is black
             const winnerColor = currentGame.turn() === 'b' ? 'You' : 'Bot';
             const playerWon = winnerColor === 'You';
             setWinner(`${winnerColor} win by checkmate!`);
             addGameLog(`${winnerColor} wins by checkmate!`);
+            setHasWon(playerWon);
             await handleGameEnd(playerWon, 'checkmate');
         } else if (currentGame.isStalemate()) {
             setWinner("Draw by stalemate!");
             addGameLog("Draw by stalemate!");
+            setHasWon(false);
             await handleGameEnd(false, 'stalemate');
         } else if (currentGame.isDraw()) {
             setWinner("Draw!");
             addGameLog("Draw!");
+            setHasWon(false);
             await handleGameEnd(false, 'draw');
         }
     }, []);
@@ -171,7 +177,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                 isBonusMode ? 'chess-bonus' : 'chess',
                 score,
                 playerWon,
-                gameDuration
+                gameDuration,
+                undefined, // gameId
+                web3?.currentChain || 'sonic' // current chain
             );
             
             setScore(score);
@@ -232,10 +240,13 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
 
           if (bestMove) {
               currentGame.move(bestMove);
-              setBoard(currentGame.board());
+              // Create a new game instance to ensure React detects the change
+              const newGame = new Chess(currentGame.fen());
+              setGame(newGame);
+              setBoard(newGame.board());
               setMoveCount(prev => prev + 1);
               addGameLog(`Bot: ${bestMove.san}`);
-              checkGameState(currentGame);
+              checkGameState(newGame);
           }
           setIsBotThinking(false);
       }, 1000 + Math.random() * 500); // Simulate "thinking"
@@ -339,7 +350,9 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                 isBonusMode ? 'chess-bonus' : 'chess',
                 score,
                 playerWon,
-                gameDuration
+                gameDuration,
+                undefined, // gameId
+                currentChain || 'sonic' // current chain
             );
             
             setScore(score);
@@ -395,10 +408,13 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                 });
 
                 if (move) {
-                    setBoard(game.board());
+                    // Create a new game instance to trigger React re-render
+                    const newGame = new Chess(game.fen());
+                    setGame(newGame);
+                    setBoard(newGame.board());
                     setMoveCount(prev => prev + 1);
                     addGameLog(`You: ${move.san}`);
-                    checkGameState(game);
+                    checkGameState(newGame);
                 }
             } catch (e) {
                 // Invalid move, maybe they clicked on another of their pieces
@@ -438,8 +454,13 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
 
             {!showStartScreen && !showEndGameScreen && (
                 <>
-                    <div className={cn("absolute top-2 left-2 z-20 md:hidden flex flex-col gap-2", winner && "hidden")}>
-                        <Button variant="secondary" size="icon" onClick={() => setIsLogVisible(v => !v)}>
+                    <div className={cn("absolute top-2 left-2 z-20 md:hidden flex flex-col gap-1", winner && "hidden")}>
+                        <Button 
+                            variant="secondary" 
+                            size="icon" 
+                            onClick={() => setIsLogVisible(v => !v)}
+                            className="h-6 w-6 text-xs md:h-8 md:w-8 md:text-sm"
+                        >
                             Log
                         </Button>
                         <ErrorReportButton
@@ -447,6 +468,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                             gameMode="singleplayer"
                             gameState={{ board, gameLog, winner, selectedSquare, possibleMoves }}
                             size="sm"
+                            className="h-6 px-2 text-xs md:h-8 md:px-3 md:text-sm"
                         />
                     </div>
                     
@@ -515,8 +537,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                 />
             )}
             
-            {/* Mobile Rotate Button */}
-            <MobileRotateButton />
+            {/* Mobile Rotate Button - Removed as requested */}
         </div>
     );
 }

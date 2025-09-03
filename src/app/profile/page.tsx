@@ -8,9 +8,17 @@ import PlayerStatsCharts from '@/components/profile/PlayerStatsCharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Wallet, Copy, ExternalLink } from 'lucide-react';
+import { RefreshCw, Wallet, Copy, ExternalLink, Settings, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatEther } from 'ethers';
+import Image from 'next/image';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ProfileContentProps {
   onBack: () => void;
@@ -58,6 +66,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
   const [gameTypeData, setGameTypeData] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<string>('0');
   const [refreshing, setRefreshing] = useState(false);
+  const [isSwitchingChain, setIsSwitchingChain] = useState(false);
 
   const fetchWalletBalance = async () => {
     if (web3?.account && web3?.provider) {
@@ -148,6 +157,49 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
     });
   };
 
+  const handleChainSwitch = async (chain: 'sonic' | 'base') => {
+    if (!web3?.switchChain || chain === web3.currentChain) return;
+    
+    setIsSwitchingChain(true);
+    try {
+      await web3.switchChain(chain);
+      toast({
+        title: "Chain Switched",
+        description: `Successfully switched to ${chain === 'base' ? 'Base Mainnet' : 'Sonic Network'}`
+      });
+      // Refresh data after chain switch
+      await refreshAllData();
+    } catch (error) {
+      console.error('Failed to switch chain:', error);
+      toast({
+        title: "Chain Switch Failed",
+        description: "Failed to switch blockchain network. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSwitchingChain(false);
+    }
+  };
+
+  const getChainIcon = (chain: string) => {
+    return chain === 'base' ? '/base_icon.png' : '/sonic_icon.png';
+  };
+
+  const getChainName = (chain: string) => {
+    return chain === 'base' ? 'Base Mainnet' : 'Sonic Network';
+  };
+
+  const getExplorerUrl = (address: string) => {
+    if (web3?.currentChain === 'base') {
+      return `https://base.blockscout.com/address/${address}`;
+    }
+    return `https://sonicscan.org/address/${address}`;
+  };
+
+  const getNativeSymbol = () => {
+    return web3?.getCurrentChainConfig?.()?.nativeSymbol || 'S';
+  };
+
   useEffect(() => {
      fetchStats();
      fetchPlayerMintLogs();
@@ -223,7 +275,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-white/70 mb-1">Wallet Address</p>
                   <div className="flex items-center gap-2">
@@ -241,7 +293,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
                     <Button 
                       size="sm" 
                       variant="ghost" 
-                      onClick={() => window.open(`https://sonicscan.org/address/${web3.account}`, '_blank')}
+                      onClick={() => window.open(getExplorerUrl(web3.account), '_blank')}
                       className="h-8 w-8 p-0 hover:bg-white/20"
                     >
                       <ExternalLink className="w-3 h-3" />
@@ -249,10 +301,59 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-white/70 mb-1">S Balance</p>
+                  <p className="text-sm text-white/70 mb-1">{getNativeSymbol()} Balance</p>
                   <p className="text-lg font-semibold text-green-300">
-                    {parseFloat(walletBalance).toFixed(4)} S
+                    {parseFloat(walletBalance).toFixed(4)} {getNativeSymbol()}
                   </p>
+                  <p className="text-sm text-white/70 mt-2">ARC Balance</p>
+                  <p className="text-lg font-semibold text-yellow-300">
+                    {web3.arcBalance || '0.0000'} ARC
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-white/70 mb-1">Current Network</p>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Image 
+                      src={getChainIcon(web3.currentChain || 'sonic')} 
+                      alt={getChainName(web3.currentChain || 'sonic')} 
+                      width={20} 
+                      height={20} 
+                      className="w-5 h-5"
+                    />
+                    <span className="text-lg font-semibold">{getChainName(web3.currentChain || 'sonic')}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-white/70 mb-2">Switch Network</p>
+                    <Select 
+                      value={web3.currentChain || 'sonic'} 
+                      onValueChange={handleChainSwitch}
+                      disabled={isSwitchingChain}
+                    >
+                      <SelectTrigger className="w-full bg-black/30 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black/90 border-white/20">
+                        <SelectItem value="sonic" className="text-white hover:bg-white/10">
+                          <div className="flex items-center gap-2">
+                            <Image src="/sonic_icon.png" alt="Sonic" width={16} height={16} className="w-4 h-4" />
+                            Sonic Network
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="base" className="text-white hover:bg-white/10">
+                          <div className="flex items-center gap-2">
+                            <Image src="/base_icon.png" alt="Base" width={16} height={16} className="w-4 h-4" />
+                            Base Mainnet
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {isSwitchingChain && (
+                      <p className="text-xs text-white/70 mt-1 flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        Switching network...
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -260,119 +361,9 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
         )}
       </div>
 
-      {/* Game Statistics Charts */}
-        <div className="w-full mb-4 sm:mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-           {/* Game Performance Over Time */}
-           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
-             <CardHeader>
-               <CardTitle className="text-white">Game Performance Timeline</CardTitle>
-             </CardHeader>
-             <CardContent className="min-h-[300px]">
-               {loading ? (
-                 <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">Loading game statistics...</p>
-                 </div>
-               ) : gameStatsChartData.length > 0 ? (
-                 <ResponsiveContainer width="100%" height="100%">
-                   <LineChart data={gameStatsChartData}>
-                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                     <XAxis dataKey="period" stroke="#888" />
-                     <YAxis stroke="#888" />
-                     <Tooltip 
-                       contentStyle={{ backgroundColor: '#333', border: 'none' }} 
-                       labelStyle={{ color: '#fff' }}
-                       itemStyle={{ color: '#fff' }}
-                     />
-                     <Legend />
-                     <Line type="monotone" dataKey="wins" stroke="#10b981" activeDot={{ r: 8 }} name="Wins" />
-                     <Line type="monotone" dataKey="games" stroke="#3b82f6" activeDot={{ r: 8 }} name="Total Games" />
-                   </LineChart>
-                 </ResponsiveContainer>
-               ) : (
-                 <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">No game statistics available</p>
-                 </div>
-               )}
-             </CardContent>
-           </Card>
-
-           {/* Game Type Performance */}
-           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
-             <CardHeader>
-               <CardTitle className="text-white">Performance by Game Type</CardTitle>
-             </CardHeader>
-             <CardContent className="min-h-[300px]">
-               {loading ? (
-                 <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">Loading game data...</p>
-                 </div>
-               ) : gameTypeData.length > 0 ? (
-                 <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={gameTypeData}>
-                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                     <XAxis dataKey="gameType" stroke="#888" />
-                     <YAxis stroke="#888" />
-                     <Tooltip 
-                       contentStyle={{ backgroundColor: '#333', border: 'none' }} 
-                       labelStyle={{ color: '#fff' }}
-                       itemStyle={{ color: '#fff' }}
-                     />
-                     <Legend />
-                     <Bar dataKey="wins" fill="#10b981" name="Wins" />
-                     <Bar dataKey="losses" fill="#ef4444" name="Losses" />
-                   </BarChart>
-                 </ResponsiveContainer>
-               ) : (
-                 <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">No game type data available</p>
-                 </div>
-               )}
-             </CardContent>
-           </Card>
-         </div>
-       </div>
-
-      {/* Token Mint History Charts */}
-       <div className="w-full max-w-xs sm:max-w-lg md:max-w-2xl">
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-           {/* Mint History Over Time */}
-           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
-             <CardHeader>
-               <CardTitle className="text-white">Token Earnings Over Time</CardTitle>
-             </CardHeader>
-             <CardContent className="min-h-[300px]">
-               {mintLogsLoading ? (
-                 <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">Loading mint history...</p>
-                 </div>
-               ) : mintHistoryChartData.length > 0 ? (
-                 <ResponsiveContainer width="100%" height="100%">
-                   <LineChart data={mintHistoryChartData}>
-                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                     <XAxis dataKey="date" stroke="#888" />
-                     <YAxis stroke="#888" />
-                     <Tooltip 
-                       contentStyle={{ backgroundColor: '#333', border: 'none' }} 
-                       labelStyle={{ color: '#fff' }}
-                       itemStyle={{ color: '#fff' }}
-                       formatter={(value: number, name: string) => [
-                         name === 'amount' ? `${value.toFixed(2)} ARC` : value,
-                         name === 'amount' ? 'Tokens Earned' : 'Mint Count'
-                       ]}
-                     />
-                     <Legend />
-                     <Line type="monotone" dataKey="amount" stroke="#10b981" activeDot={{ r: 8 }} name="ARC Earned" />
-                     <Line type="monotone" dataKey="count" stroke="#f59e0b" activeDot={{ r: 8 }} name="Mint Count" />
-                   </LineChart>
-                 </ResponsiveContainer>
-               ) : (
-                 <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">No mint history available</p>
-                 </div>
-               )}
-             </CardContent>
-           </Card>
+      {/* Recent Token Mints Section */}
+      <div className="w-full max-w-4xl">
+        <div className="grid grid-cols-1 gap-4">
 
            {/* Recent Mint Logs */}
            <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">

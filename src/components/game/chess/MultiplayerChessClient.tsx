@@ -153,7 +153,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     setBoard(game.board());
   }, [game]);
 
-  // Game initialization logic similar to UNO
+  // Game initialization logic - only host initializes
   useEffect(() => {
     console.log('🔍 [CHESS MULTIPLAYER] Checking initialization conditions:', {
       hasGameState: !!chessGameState,
@@ -162,19 +162,21 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       status: lobby.status
     });
     
-    if (!chessGameState) {
-      console.log('🎮 [CHESS MULTIPLAYER] No game state found, initializing game');
+    if (!chessGameState && isHost) {
+      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state');
       
-      // Add a delay to ensure Firebase listeners are set up
+      // Add a small delay to ensure Firebase listeners are set up
       setTimeout(() => {
         // Check if game state still doesn't exist (no one else initialized it)
         if (!chessGameState) {
-          console.log('🎮 [CHESS MULTIPLAYER] Initializing game now');
+          console.log('🎮 [CHESS MULTIPLAYER] Host initializing game now');
           initializeChessGame();
         } else {
           console.log('🎮 [CHESS MULTIPLAYER] Game state already exists, skipping initialization');
         }
-      }, 1000); // 1 second delay
+      }, 500); // Reduced delay
+    } else if (!chessGameState && !isHost) {
+      console.log('👥 [CHESS MULTIPLAYER] Non-host waiting for game state from host');
     } else {
       console.log('✅ [CHESS MULTIPLAYER] Game state already exists');
     }
@@ -600,24 +602,26 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
 
   return (
     <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
-      {isLoadingGame ? (
+      {(isLoadingGame || !chessGameState) ? (
         <div className="flex flex-col items-center justify-center w-full h-full">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4"></div>
           <h2 className="text-4xl font-bold mb-4">
-            {(!lobby.player2Id && lobby.status !== 'playing') ? 'Waiting for opponent...' : 'Starting game...'}
+            {(() => {
+              if (!lobby.player2Id) {
+                return 'Waiting for opponent...';
+              } else if (!chessGameState && !isHost) {
+                return 'Waiting for host to start game...';
+              } else if (!chessGameState && isHost) {
+                return 'Initializing game...';
+              } else {
+                return 'Starting game...';
+              }
+            })()}
           </h2>
           <p className="text-lg">Lobby ID: {lobby.id}</p>
           {lobby.player2Id && (
-            <p className="text-sm text-white/70 mt-2">Both players connected, initializing game...</p>
+            <p className="text-sm text-white/70 mt-2">Both players connected</p>
           )}
-          <div className="mt-4 text-xs text-white/50 space-y-1">
-            <p>🔍 Debug Info:</p>
-            <p>Player 1: {lobby.player1Name} ({lobby.player1Id})</p>
-            <p>Player 2: {lobby.player2Name || 'None'} ({lobby.player2Id || 'None'})</p>
-            <p>Status: {lobby.status}</p>
-            <p>Is Host: {isHost ? 'Yes' : 'No'}</p>
-            <p>Loading: {isLoadingGame ? 'Yes' : 'No'}</p>
-          </div>
         </div>
       ) : (
         !showEndGameScreen && (

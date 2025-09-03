@@ -29,8 +29,10 @@ import { SimpleGambleClient } from '@/components/game/uno/SimpleGambleClient';
 import { SimpleGambleGame } from '@/lib/simple-gamble';
 import ShopContent from '@/components/ShopContent';
 import { MultiplayerLobby } from '@/components/game/MultiplayerLobby';
+import { MainMenuConfirmationDialog } from '@/components/game/MainMenuConfirmationDialog';
 import ProfileContent from './profile/page';
 import DocsPage from './docs/page';
+import VolumeBot from '@/components/VolumeBot';
 
 
 // Page-like components
@@ -49,7 +51,7 @@ import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResul
 import { useBetResolver } from '@/lib/bet-resolver';
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-betting' | 'pool-betting-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-betting' | 'pool-betting-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs' | 'volume-bot';
 
 // --- Replicated Page Components ---
 
@@ -456,6 +458,25 @@ const TokenomicsContent = ({ onBack }: { onBack: () => void }) => (
     <TokenomicsChart onBack={onBack} />
 );
 
+const VolumeBotContent = ({ onBack }: { onBack: () => void }) => (
+  <div className="relative flex flex-col items-center justify-start min-h-screen w-full bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-900 text-white p-2 sm:p-4 pt-20 sm:pt-8 overflow-auto">
+    <div className="w-full max-w-7xl">
+      <div className="flex justify-between items-center mb-4 sm:mb-8">
+        <h1 className="text-3xl sm:text-4xl md:text-6xl font-headline">Volume Bot</h1>
+        <Button 
+          onClick={onBack}
+          className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+      </div>
+      
+      <VolumeBot />
+    </div>
+  </div>
+);
+
 const UnoStartScreen = ({ onFreePlay, onPaidPlay, onGamblePlay, onSimpleGamblePlay, onBetMode }: { onFreePlay: () => void, onPaidPlay: () => void, onGamblePlay: () => void, onSimpleGamblePlay: () => void, onBetMode?: () => void }) => (
      <div className="w-full h-full max-w-md z-10 text-center my-auto animate-fade-in overflow-y-auto">
         <div className="bg-black/50 p-8 rounded-xl flex flex-col items-center">
@@ -516,6 +537,8 @@ export default function HomePage() {
   const [isUnoBettingHost, setIsUnoBettingHost] = useState(false);
   const [showChessGameLog, setShowChessGameLog] = useState(false);
   const [endGameData, setEndGameData] = useState<{ game: GameType; didWin: boolean; lobby: Lobby | null } | null>(null);
+  const [showMainMenuConfirmation, setShowMainMenuConfirmation] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<View | null>(null);
   const isMobile = useIsMobile();
 
   const handleMintArc = async () => {
@@ -578,8 +601,67 @@ export default function HomePage() {
   };
 
   const handleNavigate = (view: View) => {
+    // Check if user is trying to go to main menu while in a game context
+    if (view === 'menu') {
+      // Only show warning if actually in an active lobby, not just browsing
+      const isInActiveLobby = (
+        (['uno-multiplayer', 'chess-multiplayer', 'pool-multiplayer'].includes(activeView) && 
+         (chessLobby || unoLobby || poolLobby)) ||
+        (['uno-betting', 'chess-betting', 'pool-betting'].includes(activeView) && 
+         (chessBettingLobby || unoBettingLobby || poolBettingLobby)) ||
+        (['uno-gamble', 'uno-simple-gamble'].includes(activeView) && 
+         (simpleGambleGame))
+      );
+      
+      const isInMultiplayerGame = [
+        'uno-multiplayer-game', 'chess-multiplayer-game', 'pool-multiplayer-game',
+        'uno-betting-game', 'chess-betting-game', 'pool-betting-game',
+        'uno-gamble-game', 'uno-simple-gamble-game'
+      ].includes(activeView);
+      
+      const isInSinglePlayerGame = [
+        'uno', 'chess', 'pool', 'snake', 'platformer'
+      ].includes(activeView);
+      
+      if (isInActiveLobby || isInMultiplayerGame || isInSinglePlayerGame) {
+        setPendingNavigation(view);
+        setShowMainMenuConfirmation(true);
+        return;
+      }
+    }
+    
     setGameKey(prev => prev + 1); // Increment key to force re-mount of game components
     setActiveView(view);
+  };
+  
+  const handleConfirmMainMenuNavigation = () => {
+    if (pendingNavigation) {
+      // Clean up any active lobbies/games
+      setChessLobby(null);
+      setIsChessHost(false);
+      setUnoLobby(null);
+      setIsUnoHost(false);
+      setPoolLobby(null);
+      setIsPoolHost(false);
+      setChessBettingLobby(null);
+      setIsChessBettingHost(false);
+      setUnoBettingLobby(null);
+      setIsUnoBettingHost(false);
+      setPoolBettingLobby(null);
+      setIsPoolBettingHost(false);
+      setSimpleGambleGame(null);
+      setIsSimpleGambleHost(false);
+      
+      setGameKey(prev => prev + 1);
+      setActiveView(pendingNavigation);
+      setPendingNavigation(null);
+    }
+    setShowMainMenuConfirmation(false);
+  };
+  
+  const handleCancelMainMenuNavigation = () => {
+    setPendingNavigation(null);
+    setShowMainMenuConfirmation(false);
   };
   
   const handleGameEnd = useCallback((gameType: GameType, didWin: boolean) => {
@@ -993,6 +1075,8 @@ export default function HomePage() {
         return <SettingsContent onBack={() => handleNavigate('menu')} />;
       case 'tokenomics':
         return <TokenomicsContent onBack={() => handleNavigate('menu')} />;
+      case 'volume-bot':
+        return <VolumeBotContent onBack={() => handleNavigate('menu')} />;
        case 'profile':
         return <ProfileContent onBack={() => handleNavigate('menu')} />;
       case 'docs':
@@ -1047,6 +1131,26 @@ export default function HomePage() {
                   <div className="animate-fade-in text-center">
                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
                        <div className="pt-0 sm:pt-1">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>POOL</h1>
+                        </div>
+                        <div className="relative">
+                           <img src="/pool_icon.png" alt="POOL Game" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto drop-shadow-lg" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
+                                   COMING SOON
+                               </div>
+                           </div>
+                         </div>
+
+                        <Button onClick={() => handleNavigate('pool')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
+                            Play
+                          </Button>
+                         </div>
+                    </div>
+
+                  <div className="animate-fade-in text-center">
+                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
+                       <div className="pt-0 sm:pt-1">
                             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>SNAKE</h1>
                         </div>
                         <img src="/snake_icon.png" alt="SNAKE Game" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 mb-1 object-contain mx-auto drop-shadow-lg" />
@@ -1056,7 +1160,7 @@ export default function HomePage() {
                           </Button>
                          </div>
                     </div>
-                  
+
                   <div className="animate-fade-in text-center">
                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-yellow-500 to-yellow-600 text-white shadow-lg hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                        <div className="pt-0 sm:pt-1">
@@ -1075,26 +1179,6 @@ export default function HomePage() {
                             Visit
                           </Button>
                           </div>
-                    </div>
-
-                  <div className="animate-fade-in text-center">
-                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
-                       <div className="pt-0 sm:pt-1">
-                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>POOL</h1>
-                        </div>
-                        <div className="relative">
-                           <img src="/pool_icon.png" alt="POOL Game" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto drop-shadow-lg" />
-                           <div className="absolute inset-0 flex items-center justify-center">
-                               <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
-                                   COMING SOON
-                               </div>
-                           </div>
-                         </div>
-
-                        <Button onClick={() => handleNavigate('pool')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
-                            Play
-                          </Button>
-                         </div>
                     </div>
 
                   <div className="animate-fade-in text-center">
@@ -1299,6 +1383,38 @@ export default function HomePage() {
         <div className="flex-1 w-full flex flex-col items-center justify-start overflow-auto relative" style={{paddingTop: showMainMenuHeader || showShopHeader || showLeaderboardHeader ? '0' : '0', minHeight: 0}}>
             {renderContent()}
         </div>
+        
+        {/* Main Menu Confirmation Dialog */}
+        <MainMenuConfirmationDialog
+          isOpen={showMainMenuConfirmation}
+          onConfirm={handleConfirmMainMenuNavigation}
+          onCancel={handleCancelMainMenuNavigation}
+          gameType={(() => {
+            if (activeView.includes('chess')) return 'chess';
+            if (activeView.includes('uno')) return 'uno';
+            if (activeView.includes('pool')) return 'pool';
+            if (activeView.includes('snake')) return 'snake';
+            if (activeView.includes('platformer')) return 'platformer';
+            return 'game';
+          })()}
+          isInLobby={(
+            (['uno-multiplayer', 'chess-multiplayer', 'pool-multiplayer'].includes(activeView) && 
+             (chessLobby || unoLobby || poolLobby)) ||
+            (['uno-betting', 'chess-betting', 'pool-betting'].includes(activeView) && 
+             (chessBettingLobby || unoBettingLobby || poolBettingLobby)) ||
+            (['uno-gamble', 'uno-simple-gamble'].includes(activeView) && 
+             (simpleGambleGame))
+          )}
+          isInGame={[
+            'uno-multiplayer-game', 'chess-multiplayer-game', 'pool-multiplayer-game',
+            'uno-betting-game', 'chess-betting-game', 'pool-betting-game',
+            'uno-gamble-game', 'uno-simple-gamble-game',
+            'uno', 'chess', 'pool', 'snake', 'platformer'
+          ].includes(activeView)}
+          isSinglePlayer={[
+            'uno', 'chess', 'pool', 'snake', 'platformer'
+          ].includes(activeView)}
+        />
       </main>
     
   );

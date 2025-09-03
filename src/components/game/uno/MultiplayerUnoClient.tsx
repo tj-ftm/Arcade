@@ -263,7 +263,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setupGameMovesListener(lobby.id);
     }, [lobby.id, setupGameMovesListener]);
 
-    // Initialize game - always try to initialize for both players
+    // Initialize game - only host initializes
     useEffect(() => {
         const conditions = {
              player2Id: lobby.player2Id,
@@ -275,19 +275,21 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
          console.log('🔍 [UNO MULTIPLAYER] Checking initialization conditions:', JSON.stringify(conditions, null, 2));
          console.log('🔍 [UNO MULTIPLAYER] Full lobby object received:', lobby);
          
-        if (!gameState) {
-            console.log('🎮 [UNO MULTIPLAYER] No game state found, initializing game for both players');
+        if (!gameState && isHost) {
+            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state');
             
-            // Add a delay to ensure Firebase listeners are set up
+            // Add a small delay to ensure Firebase listeners are set up
             setTimeout(() => {
                 // Check if game state still doesn't exist (no one else initialized it)
                 if (!gameState) {
-                    console.log('🎮 [UNO MULTIPLAYER] Initializing game now');
+                    console.log('🎮 [UNO MULTIPLAYER] Host initializing game now');
                     initializeGame();
                 } else {
                     console.log('🎮 [UNO MULTIPLAYER] Game state already exists, skipping initialization');
                 }
-            }, 1000); // 1 second delay
+            }, 500); // Reduced delay
+        } else if (!gameState && !isHost) {
+            console.log('👥 [UNO MULTIPLAYER] Non-host waiting for game state from host');
         } else {
             console.log('✅ [UNO MULTIPLAYER] Game state already exists');
         }
@@ -568,24 +570,46 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         // Handle special cards using same logic as single player
         let tempNextPlayerIndex = (gameState.activePlayerIndex + 1) % 2;
         
+        const drawCardsFromDeck = (count: number) => {
+            const drawnCards: UnoCard[] = [];
+            for(let i = 0; i < count; i++) {
+                // Ensure deck has cards by reshuffling if needed
+                if (newGameState.deck.length === 0 && newGameState.discardPile.length > 1) {
+                    const newDeck = shuffleDeck(newGameState.discardPile.slice(0, -1));
+                    newGameState.deck = newDeck;
+                    newGameState.discardPile = [newGameState.discardPile[newGameState.discardPile.length - 1]];
+                    newGameState.gameLog.push("Deck reshuffled from discard pile.");
+                }
+                
+                const card = newGameState.deck.pop();
+                if(card) {
+                    drawnCards.push(card);
+                } else {
+                    console.warn(`Could not draw card ${i + 1} of ${count} - deck is empty`);
+                    break;
+                }
+            }
+            return drawnCards;
+        };
+
         const handleAction = (value: UnoValue) => {
             const opponent = newGameState.players[tempNextPlayerIndex];
             switch(value) {
                 case 'Draw Two': {
-                    const drawnCards = newGameState.deck.splice(0, 2);
+                    const drawnCards = drawCardsFromDeck(2);
                     opponent.hand = [...opponent.hand, ...drawnCards];
                     newGameState.players[tempNextPlayerIndex] = opponent;
-                    const msg = `${opponent.name} drew 2 cards.`;
+                    const msg = `${opponent.name} drew ${drawnCards.length} cards.`;
                     newGameState.gameLog.push(msg);
                     setTurnMessage(msg);
                     tempNextPlayerIndex = (tempNextPlayerIndex + 1) % 2; // Skip opponent's turn
                     break;
                 }
                 case 'Draw Four': {
-                    const drawnCards = newGameState.deck.splice(0, 4);
+                    const drawnCards = drawCardsFromDeck(4);
                     opponent.hand = [...opponent.hand, ...drawnCards];
                     newGameState.players[tempNextPlayerIndex] = opponent;
-                    const msg = `${opponent.name} drew 4 cards.`;
+                    const msg = `${opponent.name} drew ${drawnCards.length} cards.`;
                     newGameState.gameLog.push(msg);
                     setTurnMessage(msg);
                     tempNextPlayerIndex = (tempNextPlayerIndex + 1) % 2; // Skip opponent's turn
@@ -768,9 +792,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
 
     // Show loading screen
     if (isLoadingGame || !gameState) {
-        const message = !lobby.player2Id && lobby.status !== 'playing' 
-            ? "Waiting for opponent..." 
-            : "Starting game...";
+        let message = "Starting game...";
+        if (!lobby.player2Id) {
+            message = "Waiting for opponent...";
+        } else if (!gameState && !isHost) {
+            message = "Waiting for host to start game...";
+        } else if (!gameState && isHost) {
+            message = "Initializing game...";
+        }
             
         return (
             <div className="w-full h-full flex items-center justify-center text-white">
