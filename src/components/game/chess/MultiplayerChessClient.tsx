@@ -103,11 +103,22 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
   );
 };
 
-export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogModal = false, onCloseGameLogModal }: MultiplayerChessClientProps) => {
+export const MultiplayerChessClient = ({ lobby: initialLobby, isHost, onGameEnd, showGameLogModal = false, onCloseGameLogModal }: MultiplayerChessClientProps) => {
   const { account } = useWeb3();
   const { resolveBet } = useBetResolver();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  
+  // Use currentLobby from Firebase hook for real-time updates
+  const { currentLobby } = useFirebaseMultiplayer();
+  const lobby = currentLobby || initialLobby;
+  
+  console.log('🔄 [CHESS MULTIPLAYER] Using lobby data:', {
+    lobbyId: lobby.id,
+    status: lobby.status,
+    player2Id: lobby.player2Id,
+    usingCurrentLobby: !!currentLobby
+  });
   console.log('🏁 [CHESS MULTIPLAYER] Component initialized with:', {
     lobbyId: lobby.id,
     lobbyStatus: lobby.status,
@@ -162,8 +173,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       status: lobby.status
     });
     
-    if (!chessGameState && isHost && lobby.player2Id) {
-      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state with both players present');
+    if (!chessGameState && isHost && lobby.player2Id && lobby.status === 'playing') {
+      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state - both players present and lobby is playing');
       
       // Add a small delay to ensure Firebase listeners are set up
       setTimeout(() => {
@@ -174,13 +185,15 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         } else {
           console.log('🎮 [CHESS MULTIPLAYER] Game state already exists, skipping initialization');
         }
-      }, 500); // Reduced delay
-    } else if (!chessGameState && !isHost) {
-      console.log('👥 [CHESS MULTIPLAYER] Non-host waiting for game state from host');
+      }, 100); // Reduced delay for faster initialization
+    } else if (!chessGameState && !isHost && lobby.status === 'playing') {
+      console.log('👥 [CHESS MULTIPLAYER] Non-host waiting for game state from host (lobby is playing)');
+    } else if (!chessGameState && lobby.status === 'waiting') {
+      console.log('⏳ [CHESS MULTIPLAYER] Lobby still waiting for players or status update');
     } else {
       console.log('✅ [CHESS MULTIPLAYER] Game state already exists');
     }
-  }, [chessGameState, isHost, lobby.player2Id]);
+  }, [chessGameState, isHost, lobby.player2Id, lobby.status]);
 
   // Handle loading state - always show game interface
   useEffect(() => {
