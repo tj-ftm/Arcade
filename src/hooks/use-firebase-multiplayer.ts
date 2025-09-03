@@ -204,9 +204,17 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       // Listen for lobby updates
       const unsubscribeLobby = onValue(lobbyRef, (snapshot) => {
         const data = snapshot.val();
+        console.log('🔄 [CREATE LOBBY] Host received lobby update:', data);
         if (data) {
           const updatedLobby = { ...data, id: lobbyId };
           setCurrentLobby(updatedLobby);
+          
+          console.log('🔍 [CREATE LOBBY] Checking for player2:', {
+            hasPlayer2Id: !!data.player2Id,
+            player2Id: data.player2Id,
+            player1Id: data.player1Id,
+            isDifferentFromPlayer1: data.player2Id !== updatedLobby.player1Id
+          });
           
           // Check if someone joined and game is ready to start
           if (data.player2Id && data.player2Id !== updatedLobby.player1Id) {
@@ -291,7 +299,21 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       };
       
       console.log('💾 [JOIN LOBBY] Updating lobby with player 2 data:', updatedLobbyData);
-      await set(lobbyRef, updatedLobbyData);
+      console.log('🔗 [JOIN LOBBY] Using Firebase path:', `${collectionPath}/${lobbyId}`);
+      
+      // Perform the Firebase update with error handling
+      try {
+        await set(lobbyRef, updatedLobbyData);
+        console.log('✅ [JOIN LOBBY] Firebase update completed successfully');
+        
+        // Verify the update by reading back the data
+        const verifySnapshot = await get(lobbyRef);
+        const verifiedData = verifySnapshot.val();
+        console.log('🔍 [JOIN LOBBY] Verified lobby data after update:', verifiedData);
+      } catch (updateError) {
+        console.error('❌ [JOIN LOBBY] Firebase update failed:', updateError);
+        throw updateError;
+      }
       
       // Set current lobby immediately for joining player
       const joinedLobby = { ...updatedLobbyData, id: lobbyId };
@@ -302,11 +324,28 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       
       console.log('✅ [JOIN LOBBY] Successfully joined lobby, triggering callbacks');
       
-      // Trigger lobby joined callback for the joining player
-      lobbyJoinedCallbacks.forEach(callback => {
-        console.log('📞 [JOIN LOBBY] Calling lobby joined callback');
-        callback(joinedLobby);
-      });
+      // Wait a moment and refresh lobby data to ensure we have the latest state
+      setTimeout(async () => {
+        try {
+          const finalSnapshot = await get(lobbyRef);
+          const finalLobbyData = finalSnapshot.val();
+          const finalLobby = { ...finalLobbyData, id: lobbyId };
+          console.log('🔄 [JOIN LOBBY] Final lobby data for callback:', finalLobby);
+          
+          // Trigger lobby joined callback for the joining player with final data
+          lobbyJoinedCallbacks.forEach(callback => {
+            console.log('📞 [JOIN LOBBY] Calling lobby joined callback with final data');
+            callback(finalLobby);
+          });
+        } catch (callbackError) {
+          console.error('❌ [JOIN LOBBY] Error in delayed callback:', callbackError);
+          // Fallback to original data
+          lobbyJoinedCallbacks.forEach(callback => {
+            console.log('📞 [JOIN LOBBY] Calling lobby joined callback (fallback)');
+            callback(joinedLobby);
+          });
+        }
+      }, 200); // Small delay to ensure Firebase propagation
 
       // Listen for lobby updates for the joining player
       console.log('👂 [JOIN LOBBY] Setting up lobby listener for updates');
