@@ -162,10 +162,10 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       status: lobby.status
     });
     
-    if (!chessGameState && isHost && lobby.player2Id && lobby.status === 'playing') {
-      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state - both players present and status is playing');
+    if (!chessGameState && isHost && lobby.player2Id) {
+      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state - both players present');
       
-      // Initialize immediately when conditions are met
+      // Initialize immediately when both players are present
       console.log('🎮 [CHESS MULTIPLAYER] Host initializing game now');
       initializeChessGame();
     } else if (!chessGameState && !isHost) {
@@ -173,7 +173,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     } else {
       console.log('✅ [CHESS MULTIPLAYER] Game state already exists or conditions not met');
     }
-  }, [chessGameState, isHost, lobby.player2Id, lobby.status]);
+  }, [chessGameState, isHost, lobby.player2Id]);
 
   // Handle loading state - always show game interface
   useEffect(() => {

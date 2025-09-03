@@ -275,10 +275,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
          console.log('🔍 [UNO MULTIPLAYER] Checking initialization conditions:', JSON.stringify(conditions, null, 2));
          console.log('🔍 [UNO MULTIPLAYER] Full lobby object received:', lobby);
          
-        if (!gameState && isHost && lobby.player2Id && lobby.status === 'playing') {
-            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state - both players present and status is playing');
+        if (!gameState && isHost && lobby.player2Id) {
+            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state - both players present');
             
-            // Initialize immediately when conditions are met
+            // Initialize immediately when both players are present
             console.log('🎮 [UNO MULTIPLAYER] Host initializing game now');
             initializeGame();
         } else if (!gameState && !isHost) {
@@ -286,7 +286,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         } else {
             console.log('✅ [UNO MULTIPLAYER] Game state already exists or conditions not met');
         }
-    }, [gameState, isHost, lobby.player2Id, lobby.status]);
+    }, [gameState, isHost, lobby.player2Id]);
 
     // Handle loading state - always show game interface
     useEffect(() => {
