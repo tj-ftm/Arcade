@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, ArrowLeft, Coins, Trophy, Loader2 } from 'lucide-react';
+import { Plus, Users, ArrowLeft, Coins, Trophy, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useGameBetting } from '@/lib/game-betting';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebaseBetting } from '@/hooks/use-firebase-betting';
+import { ConnectWallet } from '../web3/ConnectWallet';
 
 interface Lobby {
   id: string;
@@ -31,6 +32,8 @@ interface BettingLobbyProps {
   onBackToMenu?: () => void;
 }
 
+type PaymentStatus = 'waiting' | 'processing' | 'completed' | 'failed' | 'timeout';
+
 export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLobbyProps) {
   const [activeTab, setActiveTab] = useState('create');
   const [betAmount, setBetAmount] = useState('10');
@@ -40,6 +43,15 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   const [gameStarting, setGameStarting] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(0);
+  
+  // Payment screen states
+  const [showPaymentScreen, setShowPaymentScreen] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('waiting');
+  const [paymentProgress, setPaymentProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [statusMessage, setStatusMessage] = useState('Initiating payment...');
+  const [txHash, setTxHash] = useState<string>('');
+  const [currentLobby, setCurrentLobby] = useState<Lobby | null>(null);
   
   // Game-specific theming
   const getGameTheme = () => {
@@ -295,62 +307,116 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
       return;
     }
 
-    setIsJoining(true);
-    setLoadingStep('Initializing betting service...');
-    setLoadingProgress(15);
+    // Show payment screen instead of small popups
+    setCurrentLobby(lobby);
+    setShowPaymentScreen(true);
+    setPaymentStatus('waiting');
+    setPaymentProgress(0);
+    setStatusMessage('Preparing to join betting lobby...');
+    setTimeLeft(120);
     
+    // Start payment process
+    await processPayment(lobby);
+  };
+  
+  const processPayment = async (lobby: Lobby) => {
     try {
-      const service = await createService();
-      setLoadingStep('Checking token allowance...');
-      setLoadingProgress(30);
+      setStatusMessage('Initializing betting service...');
+      setPaymentProgress(10);
+      setPaymentStatus('processing');
       
-      const hasAllowance = await service.checkAllowance(account, lobby.betAmount || '0');
+      const service = await createService();
+      setStatusMessage('Checking token allowance...');
+      setPaymentProgress(25);
+      
+      const hasAllowance = await service.checkAllowance(account!, lobby.betAmount || '0');
       if (!hasAllowance) {
-        setLoadingStep('Requesting token approval...');
-        setLoadingProgress(45);
-        toast({
-          title: "Approving Tokens",
-          description: "Please approve the transaction to join this betting lobby."
-        });
+        setStatusMessage('Requesting token approval...');
+        setPaymentProgress(40);
         
         const approveTx = await service.approveTokens(lobby.betAmount || '0');
-        setLoadingStep('Waiting for approval confirmation...');
-        setLoadingProgress(60);
+        setStatusMessage('Waiting for approval confirmation...');
+        setPaymentProgress(55);
         await approveTx.wait();
       }
       
-      setLoadingStep('Joining blockchain bet...');
-      setLoadingProgress(75);
+      setStatusMessage('Joining blockchain bet...');
+      setPaymentProgress(70);
       const joinBetTx = await service.joinBet(lobby.id);
-      setLoadingStep('Confirming bet transaction...');
-      setLoadingProgress(90);
+      setTxHash(joinBetTx.hash);
+      setStatusMessage('Confirming bet transaction...');
+      setPaymentProgress(85);
       await joinBetTx.wait();
       
-      setLoadingStep('Joining lobby...');
-      setLoadingProgress(95);
+      setStatusMessage('Joining lobby...');
+      setPaymentProgress(95);
       await joinBettingLobby(lobby.id, currentUserName, currentUserId);
       
-      setLoadingStep('Successfully joined!');
-      setLoadingProgress(100);
+      setPaymentProgress(100);
+      setPaymentStatus('completed');
+      setStatusMessage('Successfully joined betting lobby!');
       
-      toast({
-        title: "Joined Betting Lobby",
-        description: `Joined ${gameType} betting lobby with ${lobby.betAmount} ARC tokens.`
-      });
+      // Auto-close payment screen and start game after success
+      setTimeout(() => {
+        setShowPaymentScreen(false);
+        // The game will start automatically via the lobby joined callback
+      }, 1500);
       
     } catch (error: any) {
       console.error('Error joining betting lobby:', error);
-      toast({
-        title: "Error Joining Lobby",
-        description: error.message || "Failed to join betting lobby.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsJoining(false);
-      setLoadingStep('');
-      setLoadingProgress(0);
+      setPaymentStatus('failed');
+      setStatusMessage(error.message || 'Failed to join betting lobby. Please try again.');
+      setPaymentProgress(0);
     }
   };
+  
+  const handlePaymentCancel = () => {
+    setShowPaymentScreen(false);
+    setPaymentStatus('waiting');
+    setPaymentProgress(0);
+    setCurrentLobby(null);
+    setTxHash('');
+  };
+  
+  // Payment screen helper functions
+  const getStatusIcon = () => {
+    switch (paymentStatus) {
+      case 'waiting':
+      case 'processing':
+        return <Loader2 className="w-16 h-16 animate-spin" />;
+      case 'completed':
+        return <CheckCircle className="w-16 h-16 text-green-400" />;
+      case 'failed':
+      case 'timeout':
+        return <XCircle className="w-16 h-16 text-red-400" />;
+      default:
+        return <Clock className="w-16 h-16" />;
+    }
+  };
+  
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Timeout timer for payment screen
+  useEffect(() => {
+    if (!showPaymentScreen) return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1 && paymentStatus !== 'completed') {
+          setPaymentStatus('timeout');
+          setStatusMessage('Payment timeout. Please try again.');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showPaymentScreen, paymentStatus]);
 
   const showWalletPrompt = !isConnected && (activeTab === 'create' || filteredLobbies.length === 0);
 
@@ -384,6 +450,111 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   };
 
   const themeColors = getGameThemeColors();
+
+  // Show payment screen when joining a betting lobby
+  if (showPaymentScreen && currentLobby) {
+    return (
+      <div className={`w-full h-full flex flex-col justify-center items-center text-white font-headline relative overflow-hidden ${theme.bg}`}>
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center space-y-8 p-8 max-w-md mx-auto text-center">
+          {/* Game Title */}
+          <h1 className="text-4xl md:text-6xl font-bold uppercase tracking-wider">
+            {gameType.toUpperCase()}
+          </h1>
+
+          {/* Bet Amount */}
+          <div className={`text-2xl md:text-3xl font-bold ${theme.accent}`}>
+            Betting: {currentLobby.betAmount} ARC
+          </div>
+
+          {/* Status Icon */}
+          <div className="flex justify-center">
+            {getStatusIcon()}
+          </div>
+
+          {/* Status Message */}
+          <div className="text-xl md:text-2xl font-semibold">
+            {statusMessage}
+          </div>
+          
+          {/* Connect Wallet Button */}
+          {!account && (
+            <div className="mt-4">
+              <ConnectWallet />
+            </div>
+          )}
+
+          {/* Progress Bar */}
+          {(paymentStatus === 'waiting' || paymentStatus === 'processing') && (
+            <div className="w-full bg-black/30 rounded-full h-4">
+              <div 
+                className={`h-4 rounded-full transition-all duration-300 ${theme.accent.replace('text-', 'bg-')}`}
+                style={{ width: `${paymentProgress}%` }}
+              />
+            </div>
+          )}
+
+          {/* Timer */}
+          {(paymentStatus === 'waiting' || paymentStatus === 'processing') && (
+            <div className="text-lg">
+              Time remaining: {formatTime(timeLeft)}
+            </div>
+          )}
+
+          {/* Transaction Hash */}
+          {txHash && (
+            <div className="text-center">
+              <p className="text-white/70 text-sm mb-2">Transaction:</p>
+              <a 
+                href={`https://sonicscan.org/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline text-sm break-all"
+              >
+                {txHash.slice(0, 10)}...{txHash.slice(-8)}
+              </a>
+            </div>
+          )}
+
+          {/* Payment Instructions */}
+          {paymentStatus === 'waiting' && (
+            <div className="text-sm opacity-75 max-w-sm">
+              Please confirm the transaction in your wallet. The betting lobby will start automatically once payment is confirmed on the blockchain.
+            </div>
+          )}
+          
+          {paymentStatus === 'processing' && (
+            <div className="text-sm opacity-75 max-w-sm">
+              Transaction submitted! Waiting for blockchain confirmation. This may take a few moments.
+            </div>
+          )}
+
+          {/* Cancel Button */}
+          {(paymentStatus === 'failed' || paymentStatus === 'timeout') && (
+            <div className="flex gap-4">
+              <Button
+                onClick={handlePaymentCancel}
+                variant="outline"
+                className="bg-transparent text-white border-white/50 hover:bg-white/10"
+              >
+                Back to Lobby
+              </Button>
+              <Button
+                onClick={() => processPayment(currentLobby)}
+                className={theme.button}
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full h-full flex flex-col items-center justify-center p-4 ${theme.bg} text-white overflow-auto`}>
@@ -579,21 +750,12 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
                                 <div className="flex gap-2">
                                   <Button
                                     onClick={() => handleJoinBettingLobby(lobby)}
-                                    disabled={isJoining || !isConnected || parseFloat(arcBalance || '0') < parseFloat(lobby.betAmount || '0')}
+                                    disabled={!isConnected || parseFloat(arcBalance || '0') < parseFloat(lobby.betAmount || '0')}
                                     className={theme.button}
                                     size="sm"
                                   >
-                                    {isJoining ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Joining...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Users className="w-4 h-4 mr-2" />
-                                        Join Bet
-                                      </>
-                                    )}
+                                    <Users className="w-4 h-4 mr-2" />
+                                    Join Bet
                                   </Button>
                                 </div>
                               )}
