@@ -198,8 +198,8 @@ export const VolumeBot: React.FC = () => {
     txCount: 100,
     intervalMin: 1,
     intervalMax: 2,
-    buyRatio: 60,
-    sellRatio: 40,
+    buyRatio: 50,
+    sellRatio: 50,
     selectedExchanges: ['shadow'],
     enableRandomization: true,
     enableScheduling: false,
@@ -235,7 +235,7 @@ export const VolumeBot: React.FC = () => {
   const [pairDetection, setPairDetection] = useState<{[key: string]: any}>({});
   const [isDetectingPairs, setIsDetectingPairs] = useState(false);
 
-  // Load bot wallet from localStorage on mount
+  // Load bot wallet and multiwallets from localStorage on mount
   useEffect(() => {
     const savedBotWallet = localStorage.getItem('sonicVolumeBotWallet');
     if (savedBotWallet) {
@@ -245,6 +245,16 @@ export const VolumeBot: React.FC = () => {
         updateBotWalletBalance(wallet);
       } catch (error) {
         console.error('Error loading bot wallet:', error);
+      }
+    }
+    
+    const savedMultiWallets = localStorage.getItem('sonicVolumeMultiWallets');
+    if (savedMultiWallets) {
+      try {
+        const wallets = JSON.parse(savedMultiWallets);
+        setMultiWallets(wallets);
+      } catch (error) {
+        console.error('Error loading multi wallets:', error);
       }
     }
   }, []);
@@ -291,6 +301,15 @@ export const VolumeBot: React.FC = () => {
       return;
     }
 
+    if (multiWallets.length > 0) {
+      toast({
+        title: "Multi-Wallets Already Exist",
+        description: `${multiWallets.length} wallets already created`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsCreatingWallets(true);
     try {
       const masterWallet = new ethers.Wallet(botWallet.privateKey);
@@ -310,6 +329,7 @@ export const VolumeBot: React.FC = () => {
       }
       
       setMultiWallets(wallets);
+      localStorage.setItem('sonicVolumeMultiWallets', JSON.stringify(wallets));
       
       toast({
         title: "Multi-Wallets Created",
@@ -403,6 +423,108 @@ export const VolumeBot: React.FC = () => {
       });
     }
   }, [botWallet, account, getProvider, toast, updateBotWalletBalance]);
+
+  // Send all S from multiwallets back to main bot wallet
+  const collectAllSFromMultiWallets = useCallback(async () => {
+    if (!botWallet || multiWallets.length === 0) {
+      toast({
+        title: "Error",
+        description: "Bot wallet or multi wallets not available",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const provider = getProvider();
+      if (!provider) throw new Error('Provider not available');
+
+      let totalCollected = 0;
+      for (const wallet of multiWallets) {
+        const balance = await provider.getBalance(wallet.address);
+        if (balance > ethers.parseEther('0.001')) { // Leave some for gas
+          const signer = new ethers.Wallet(wallet.privateKey, provider);
+          const gasPrice = await provider.getFeeData();
+          const gasLimit = 21000n;
+          const gasCost = gasLimit * (gasPrice.gasPrice || 0n);
+          const amountToSend = balance - gasCost;
+          
+          if (amountToSend > 0) {
+            const tx = await signer.sendTransaction({
+              to: botWallet.address,
+              value: amountToSend,
+              gasLimit,
+              gasPrice: gasPrice.gasPrice
+            });
+            await tx.wait();
+            totalCollected += parseFloat(ethers.formatEther(amountToSend));
+          }
+        }
+      }
+
+      toast({
+        title: "Collection Successful",
+        description: `Collected ${totalCollected.toFixed(4)} S from multi wallets`
+      });
+      
+      updateBotWalletBalance(botWallet);
+    } catch (error: any) {
+      console.error('Error collecting from multi wallets:', error);
+      toast({
+        title: "Collection Failed",
+        description: error.message || 'Failed to collect funds',
+        variant: "destructive"
+      });
+    }
+  }, [botWallet, multiWallets, getProvider, toast, updateBotWalletBalance]);
+
+  // Distribute S from bot wallet to multiwallets
+  const distributeSToMultiWallets = useCallback(async (amountPerWallet: string) => {
+    if (!botWallet || multiWallets.length === 0) {
+      toast({
+        title: "Error",
+        description: "Bot wallet or multi wallets not available",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const provider = getProvider();
+      if (!provider) throw new Error('Provider not available');
+      
+      const botSigner = new ethers.Wallet(botWallet.privateKey, provider);
+      const amountWei = ethers.parseEther(amountPerWallet);
+      const totalAmount = amountWei * BigInt(multiWallets.length);
+      
+      const botBalance = await provider.getBalance(botWallet.address);
+      if (botBalance < totalAmount) {
+        throw new Error('Insufficient balance in bot wallet');
+      }
+
+      for (const wallet of multiWallets) {
+        const tx = await botSigner.sendTransaction({
+          to: wallet.address,
+          value: amountWei
+        });
+        await tx.wait();
+      }
+
+      toast({
+        title: "Distribution Successful",
+        description: `Distributed ${amountPerWallet} S to each of ${multiWallets.length} wallets`
+      });
+      
+      updateBotWalletBalance(botWallet);
+    } catch (error: any) {
+      console.error('Error distributing to multi wallets:', error);
+      toast({
+        title: "Distribution Failed",
+        description: error.message || 'Failed to distribute funds',
+        variant: "destructive"
+      });
+    }
+  }, [botWallet, multiWallets, getProvider, toast, updateBotWalletBalance]);
 
   // Cash out from bot wallet
   const cashOutFromBotWallet = useCallback(async (amount: string, isToken: boolean = false) => {
@@ -1151,11 +1273,8 @@ export const VolumeBot: React.FC = () => {
       }
 
       try {
-        let isBuy = true; // Start with a buy transaction
-        // If the last transaction was a buy, the next should be a sell, and vice-versa
-        if (transactions.length > 0 && transactions[0].status === 'success') {
-          isBuy = transactions[0].type === 'sell';
-        }
+        // Alternate between buy and sell transactions
+        const isBuy = completed % 2 === 0; // Even transactions are buys, odd are sells
         const selectedExchange = botConfig.selectedExchanges[Math.floor(Math.random() * botConfig.selectedExchanges.length)];
         
         // Select wallet for transaction
@@ -1208,48 +1327,6 @@ export const VolumeBot: React.FC = () => {
             title: "Transaction Successful",
             description: `${isBuy ? 'Bought' : 'Sold'} tokens on ${selectedExchange}`
           });
-
-          // If a transaction was successful, immediately attempt the opposite transaction
-          const oppositeTxType = isBuy ? 'sell' : 'buy';
-          const oppositeTx: Transaction = {
-            id: `tx_${Date.now()}_${Math.random()}`,
-            type: oppositeTxType,
-            amount: botConfig.amountPerTx,
-            price: '0.000000',
-            exchange: selectedExchange,
-            status: 'pending',
-            timestamp: Date.now()
-          };
-
-          setTransactions(prev => [oppositeTx, ...prev.slice(0, 49)]);
-          const oppositeResult = await executeTransaction(oppositeTxType === 'buy', selectedExchange, walletToUse);
-
-          setTransactions(prev => prev.map(tx => 
-            tx.id === oppositeTx.id 
-              ? {
-                  ...tx,
-                  status: oppositeResult.success ? 'success' : 'failed',
-                  txHash: oppositeResult.txHash,
-                  gasUsed: oppositeResult.gasUsed
-                }
-              : tx
-          ));
-
-          if (oppositeResult.success) {
-            completed++;
-            setProgress((completed / botConfig.txCount) * 100);
-            setBotStats(prev => ({
-              ...prev,
-              totalVolume: prev.totalVolume + parseFloat(botConfig.amountPerTx),
-              completedTxs: completed,
-              successRate: ((prev.completedTxs + 1) / (completed + 1)) * 100,
-              avgGasUsed: (prev.avgGasUsed + parseFloat(oppositeResult.gasUsed)) / 2
-            }));
-            toast({
-              title: "Transaction Successful",
-              description: `${oppositeTxType === 'buy' ? 'Bought' : 'Sold'} tokens on ${selectedExchange}`
-            });
-          }
         } else {
           toast({
             title: "Transaction Failed",
@@ -1306,12 +1383,13 @@ export const VolumeBot: React.FC = () => {
 
   // Stop bot
   const stopBot = () => {
-    setBotStatus('stopped');
+    setBotStatus('idle');
     setProgress(0);
     setEstimatedCompletion(null);
+    setTransactions([]);
     toast({
       title: "Bot Stopped",
-      description: "Volume bot has been stopped."
+      description: "Volume bot has been stopped and reset."
     });
   };
 
@@ -1921,15 +1999,48 @@ export const VolumeBot: React.FC = () => {
                     </Button>
                     
                     {multiWallets.length > 0 && (
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                        <h4 className="font-semibold text-blue-400 mb-2">Generated Wallets</h4>
-                        <div className="space-y-1 text-xs">
-                          {multiWallets.map((wallet, index) => (
-                            <div key={wallet.address} className="flex justify-between">
-                              <span className="text-white/60">Wallet {index + 1}:</span>
-                              <span className="text-white font-mono">{wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}</span>
-                            </div>
-                          ))}
+                      <div className="space-y-3">
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                          <h4 className="font-semibold text-blue-400 mb-2">Generated Wallets</h4>
+                          <div className="space-y-1 text-xs">
+                            {multiWallets.map((wallet, index) => (
+                              <div key={wallet.address} className="flex justify-between">
+                                <span className="text-white/60">Wallet {index + 1}:</span>
+                                <span className="text-white font-mono">{wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-white text-sm">Multi-Wallet Fund Management</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              placeholder="Amount per wallet"
+                              className="bg-black/30 border-white/20 text-white text-xs"
+                              id="distributeAmount"
+                            />
+                            <Button
+                              onClick={() => {
+                                const input = document.getElementById('distributeAmount') as HTMLInputElement;
+                                if (input?.value) {
+                                  distributeSToMultiWallets(input.value);
+                                  input.value = '';
+                                }
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                              size="sm"
+                            >
+                              Distribute S
+                            </Button>
+                          </div>
+                          <Button
+                            onClick={collectAllSFromMultiWallets}
+                            className="w-full bg-orange-600 hover:bg-orange-700 text-white text-xs"
+                            size="sm"
+                          >
+                            Collect All S to Bot Wallet
+                          </Button>
                         </div>
                       </div>
                     )}

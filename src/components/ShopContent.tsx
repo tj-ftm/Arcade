@@ -62,7 +62,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
     return null;
   };
 
-  // Convert image URL to base64 and cache it
+  // Convert image URL to base64 and cache it with better error handling
   const fetchAndCacheImage = async (url: string): Promise<string> => {
     try {
       // Check cache first
@@ -71,24 +71,53 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
         return cached;
       }
 
-      // Fetch image and convert to base64
-      const response = await fetch(url, { mode: 'cors' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
-      const blob = await response.blob();
+      // Try direct image loading first (simpler approach)
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          cacheImage(url, base64);
-          resolve(base64);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.drawImage(img, 0, 0);
+            const base64 = canvas.toDataURL();
+            cacheImage(url, base64);
+            resolve(base64);
+          } catch (canvasError) {
+            // Fallback to direct URL if canvas fails
+            console.warn('Canvas conversion failed, using direct URL:', canvasError);
+            resolve(url);
+          }
         };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+        img.onerror = () => {
+          // Fallback to fetch method
+          fetch(url, { mode: 'cors' })
+            .then(response => {
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              return response.blob();
+            })
+            .then(blob => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = reader.result as string;
+                cacheImage(url, base64);
+                resolve(base64);
+              };
+              reader.onerror = () => reject(new Error('FileReader failed'));
+              reader.readAsDataURL(blob);
+            })
+            .catch(fetchError => {
+              console.warn('Fetch method also failed, using direct URL:', fetchError);
+              resolve(url); // Use direct URL as final fallback
+            });
+        };
+        img.src = url;
       });
     } catch (error) {
       console.error('Failed to fetch and cache image:', error);
-      throw error;
+      return url; // Return original URL as fallback
     }
   };
 

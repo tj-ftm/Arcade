@@ -461,17 +461,6 @@ const TokenomicsContent = ({ onBack }: { onBack: () => void }) => (
 const VolumeBotContent = ({ onBack }: { onBack: () => void }) => (
   <div className="relative flex flex-col items-center justify-start min-h-screen w-full bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-900 text-white p-2 sm:p-4 pt-20 sm:pt-8 overflow-auto">
     <div className="w-full max-w-7xl">
-      <div className="flex justify-between items-center mb-4 sm:mb-8">
-        <h1 className="text-3xl sm:text-4xl md:text-6xl font-headline">Volume Bot</h1>
-        <Button 
-          onClick={onBack}
-          className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-      </div>
-      
       <VolumeBot />
     </div>
   </div>

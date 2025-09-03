@@ -853,11 +853,11 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
     }, []);
 
     useEffect(() => {
-        if(gameState?.activePlayerIndex === 1 && !gameState.winner && !showColorPicker) {
+        if(gameState?.activePlayerIndex === 1 && !gameState.winner && !showColorPicker && !showStartScreen && !showEndGameScreen) {
             const timer = setTimeout(handleBotTurn, 1500);
             return () => clearTimeout(timer);
         }
-    }, [gameState?.activePlayerIndex, gameState?.winner, handleBotTurn, showColorPicker]);
+    }, [gameState?.activePlayerIndex, gameState?.winner, handleBotTurn, showColorPicker, showStartScreen, showEndGameScreen]);
 
     if (showStartScreen) {
         return (
