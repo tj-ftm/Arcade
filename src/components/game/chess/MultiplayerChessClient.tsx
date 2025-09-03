@@ -103,22 +103,11 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
   );
 };
 
-export const MultiplayerChessClient = ({ lobby: initialLobby, isHost, onGameEnd, showGameLogModal = false, onCloseGameLogModal }: MultiplayerChessClientProps) => {
+export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogModal = false, onCloseGameLogModal }: MultiplayerChessClientProps) => {
   const { account } = useWeb3();
   const { resolveBet } = useBetResolver();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  
-  // Use currentLobby from Firebase hook for real-time updates
-  const { currentLobby } = useFirebaseMultiplayer();
-  const lobby = currentLobby || initialLobby;
-  
-  console.log('🔄 [CHESS MULTIPLAYER] Using lobby data:', {
-    lobbyId: lobby.id,
-    status: lobby.status,
-    player2Id: lobby.player2Id,
-    usingCurrentLobby: !!currentLobby
-  });
   console.log('🏁 [CHESS MULTIPLAYER] Component initialized with:', {
     lobbyId: lobby.id,
     lobbyStatus: lobby.status,
@@ -173,8 +162,8 @@ export const MultiplayerChessClient = ({ lobby: initialLobby, isHost, onGameEnd,
       status: lobby.status
     });
     
-    if (!chessGameState && isHost && lobby.player2Id && lobby.status === 'playing') {
-      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state - both players present and lobby is playing');
+    if (!chessGameState && isHost && lobby.player2Id) {
+      console.log('🎮 [CHESS MULTIPLAYER] Host initializing game state with both players present');
       
       // Add a small delay to ensure Firebase listeners are set up
       setTimeout(() => {
@@ -185,15 +174,13 @@ export const MultiplayerChessClient = ({ lobby: initialLobby, isHost, onGameEnd,
         } else {
           console.log('🎮 [CHESS MULTIPLAYER] Game state already exists, skipping initialization');
         }
-      }, 100); // Reduced delay for faster initialization
-    } else if (!chessGameState && !isHost && lobby.status === 'playing') {
-      console.log('👥 [CHESS MULTIPLAYER] Non-host waiting for game state from host (lobby is playing)');
-    } else if (!chessGameState && lobby.status === 'waiting') {
-      console.log('⏳ [CHESS MULTIPLAYER] Lobby still waiting for players or status update');
+      }, 500); // Reduced delay
+    } else if (!chessGameState && !isHost) {
+      console.log('👥 [CHESS MULTIPLAYER] Non-host waiting for game state from host');
     } else {
       console.log('✅ [CHESS MULTIPLAYER] Game state already exists');
     }
-  }, [chessGameState, isHost, lobby.player2Id, lobby.status]);
+  }, [chessGameState, isHost, lobby.player2Id]);
 
   // Handle loading state - always show game interface
   useEffect(() => {
@@ -299,7 +286,25 @@ export const MultiplayerChessClient = ({ lobby: initialLobby, isHost, onGameEnd,
         setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
         
         console.log('✅ [CHESS MULTIPLAYER] Game-ready processed - both players should see chess game now');
-      } else if (moveData.type === 'game-end') {
+       } else if (moveData.type === 'mock-move' && moveData.gameState) {
+         console.log('🎭 [CHESS MULTIPLAYER] Received mock move - forcing game visibility for player 2');
+         const mockGameState = moveData.gameState;
+         setChessGameState(mockGameState);
+         
+         // Load the game position from FEN
+         game.load(mockGameState.fen);
+         setBoard(game.board());
+         setIsLoadingGame(false);
+         
+         // Show initial turn message
+         const myColor = isHost ? mockGameState.player1.color : mockGameState.player2.color;
+         const currentChessTurn = game.turn();
+         const isMyTurn = myColor === currentChessTurn;
+         const currentPlayerName = currentChessTurn === mockGameState.player1.color ? mockGameState.player1.name : mockGameState.player2.name;
+         setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
+         
+         console.log('✅ [CHESS MULTIPLAYER] Mock move processed - player 2 should now see the chess game');
+       } else if (moveData.type === 'game-end') {
         if (chessGameState) {
           const newGameState = { ...chessGameState };
           newGameState.winner = moveData.winner;
@@ -379,6 +384,16 @@ export const MultiplayerChessClient = ({ lobby: initialLobby, isHost, onGameEnd,
       });
       console.log('🎯 [CHESS MULTIPLAYER] Game-ready signal sent to ensure immediate visibility');
     }, 100);
+    
+    // Send a mock move to trigger game visibility for player 2
+    setTimeout(() => {
+      sendGameMove(lobby.id, {
+        type: 'mock-move',
+        gameState: initialGameState,
+        message: 'Mock move to trigger game display'
+      });
+      console.log('🎭 [CHESS MULTIPLAYER] Mock move sent to trigger game visibility for player 2');
+    }, 200);
   };
 
   const addGameLog = useCallback((message: string) => {

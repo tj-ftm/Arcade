@@ -185,21 +185,10 @@ type FlyingCard = {
   startRect: DOMRect;
 };
 
-export const MultiplayerUnoClient = ({ lobby: initialLobby, isHost, onGameEnd }: MultiplayerUnoClientProps) => {
+export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUnoClientProps) => {
     const { username, account } = useWeb3();
     const { resolveBet } = useBetResolver();
     const { toast } = useToast();
-    
-    // Use currentLobby from Firebase hook for real-time updates
-    const { currentLobby } = useFirebaseMultiplayer();
-    const lobby = currentLobby || initialLobby;
-    
-    console.log('🔄 [UNO MULTIPLAYER] Using lobby data:', {
-        lobbyId: lobby.id,
-        status: lobby.status,
-        player2Id: lobby.player2Id,
-        usingCurrentLobby: !!currentLobby
-    });
     const [gameState, setGameState] = useState<UnoGameState | null>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [playerCalledUno, setPlayerCalledUno] = useState(false);
@@ -286,8 +275,8 @@ export const MultiplayerUnoClient = ({ lobby: initialLobby, isHost, onGameEnd }:
          console.log('🔍 [UNO MULTIPLAYER] Checking initialization conditions:', JSON.stringify(conditions, null, 2));
          console.log('🔍 [UNO MULTIPLAYER] Full lobby object received:', lobby);
          
-        if (!gameState && isHost && lobby.player2Id && lobby.status === 'playing') {
-            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state - both players present and lobby is playing');
+        if (!gameState && isHost && lobby.player2Id) {
+            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state with both players present');
             
             // Add a small delay to ensure Firebase listeners are set up
             setTimeout(() => {
@@ -298,15 +287,13 @@ export const MultiplayerUnoClient = ({ lobby: initialLobby, isHost, onGameEnd }:
                 } else {
                     console.log('🎮 [UNO MULTIPLAYER] Game state already exists, skipping initialization');
                 }
-            }, 100); // Reduced delay for faster initialization
-        } else if (!gameState && !isHost && lobby.status === 'playing') {
-            console.log('👥 [UNO MULTIPLAYER] Non-host waiting for game state from host (lobby is playing)');
-        } else if (!gameState && lobby.status === 'waiting') {
-            console.log('⏳ [UNO MULTIPLAYER] Lobby still waiting for players or status update');
+            }, 500); // Reduced delay
+        } else if (!gameState && !isHost) {
+            console.log('👥 [UNO MULTIPLAYER] Non-host waiting for game state from host');
         } else {
             console.log('✅ [UNO MULTIPLAYER] Game state already exists');
         }
-    }, [gameState, isHost, lobby.player2Id, lobby.status]);
+    }, [gameState, isHost, lobby.player2Id]);
 
     // Handle loading state - always show game interface
     useEffect(() => {
@@ -394,6 +381,16 @@ export const MultiplayerUnoClient = ({ lobby: initialLobby, isHost, onGameEnd }:
             });
             console.log('🎯 [UNO MULTIPLAYER] Game-ready signal sent to ensure immediate visibility');
         }, 100);
+        
+        // Send a mock move to trigger game visibility for player 2
+        setTimeout(() => {
+            sendGameMove(lobby.id, {
+                type: 'mock-move',
+                gameState: initialGameState,
+                message: 'Mock move to trigger game display'
+            });
+            console.log('🎭 [UNO MULTIPLAYER] Mock move sent to trigger game visibility for player 2');
+        }, 200);
     };
 
     // Listen for game state updates from opponent
@@ -484,6 +481,37 @@ export const MultiplayerUnoClient = ({ lobby: initialLobby, isHost, onGameEnd }:
                 }
                 setIsLoadingGame(false);
                 console.log('✅ [UNO MULTIPLAYER] Game-ready processed - both players should see game now');
+            } else if (moveData.type === 'mock-move' && moveData.gameState) {
+                console.log('🎭 [UNO MULTIPLAYER] Received mock move - forcing game visibility for player 2');
+                const mockGameState = moveData.gameState;
+                if (!isHost) {
+                    // Adjust game state for non-host player
+                    const adjustedGameState = {
+                        ...mockGameState,
+                        playerHand: mockGameState.players[1].hand,
+                        players: [
+                            mockGameState.players[0],
+                            mockGameState.players[1]
+                        ]
+                    };
+                    setGameState(adjustedGameState);
+                    
+                    // Show turn message
+                    const currentPlayer = adjustedGameState.players[adjustedGameState.activePlayerIndex];
+                    const currentPlayerId = adjustedGameState.players[adjustedGameState.activePlayerIndex].id;
+                    const isMyTurn = currentPlayerId === account;
+                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                } else {
+                    setGameState(mockGameState);
+                    
+                    // Show turn message for host
+                    const currentPlayer = mockGameState.players[mockGameState.activePlayerIndex];
+                    const currentPlayerId = mockGameState.players[mockGameState.activePlayerIndex].id;
+                    const isMyTurn = currentPlayerId === account;
+                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                }
+                setIsLoadingGame(false);
+                console.log('✅ [UNO MULTIPLAYER] Mock move processed - player 2 should now see the game');
             } else if (moveData.type === 'uno-call') {
                 if (gameState) {
                     const newGameState = { ...gameState };
