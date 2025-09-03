@@ -1248,11 +1248,17 @@ export default function HomePage() {
   }
   
   const showMainMenuHeader = activeView === 'menu' || activeView === 'multiplayer';
-  const showMultiplayerHeader = activeView === 'uno-multiplayer' || activeView === 'chess-multiplayer';
+  const showMultiplayerHeader = activeView === 'uno-multiplayer' || activeView === 'chess-multiplayer' || activeView === 'pool-multiplayer';
   const showShopHeader = activeView === 'shop';
   const showLeaderboardHeader = activeView === 'leaderboard';
   const showTokenomicsHeader = activeView === 'tokenomics';
-  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader && !showLeaderboardHeader;
+  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader && !showLeaderboardHeader && !showTokenomicsHeader && [
+    'uno', 'chess', 'pool', 'snake', 'platformer',
+    'uno-betting-game', 'chess-betting-game', 'pool-betting-game',
+    'uno-multiplayer-game', 'chess-multiplayer-game', 'pool-multiplayer-game',
+    'uno-gamble-game', 'uno-simple-gamble-game',
+    'pool-singleplayer-game'
+  ].includes(activeView);
 
   return (
     

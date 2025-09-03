@@ -14,6 +14,7 @@ import { errorLogger } from '@/lib/error-logger';
 import { MintSuccessModal } from './MintSuccessModal';
 import { SnakeStartScreen } from './snake/SnakeStartScreen';
 import { SnakeEndGameScreen } from './snake/SnakeEndGameScreen';
+import { PaymentLoadingScreen } from './PaymentLoadingScreen';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const GRID_SIZE = 20;
@@ -287,6 +288,20 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
 
     return (
         <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in h-full w-full max-w-4xl mx-auto p-4 overflow-hidden touch-none">
+            {/* Payment Loading Screen */}
+            <PaymentLoadingScreen
+                isVisible={isVerifyingPayment}
+                paymentTxHash={paymentTxHash}
+                onCancel={() => {
+                    setIsVerifyingPayment(false);
+                    setPaymentTxHash('');
+                }}
+                onSuccess={() => {
+                    setIsVerifyingPayment(false);
+                    setShowStartScreen(false);
+                }}
+                gameType="snake"
+            />
             {showStartScreen && (
                 <SnakeStartScreen 
                     onStartGame={() => handleStartGame(false)} 

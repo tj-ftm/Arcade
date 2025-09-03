@@ -14,6 +14,7 @@ import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationRes
 
 import { UnoEndGameScreen } from './UnoEndGameScreen';
 import { UnoStartScreen } from './UnoStartScreen';
+import { PaymentLoadingScreen } from './PaymentLoadingScreen';
 import { ErrorReportButton } from './ErrorReportButton';
 import { errorLogger } from '@/lib/error-logger';
 
@@ -192,6 +193,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
     const [playerCalledUno, setPlayerCalledUno] = useState(false);
     const [botCalledUno, setBotCalledUno] = useState(false);
     const [showUnoButton, setShowUnoButton] = useState(false);
+    const [selectedCards, setSelectedCards] = useState<number[]>([]);
+    const [showPlayButton, setShowPlayButton] = useState(false);
 
 
     const playerHandRef = useRef<HTMLDivElement>(null);
@@ -571,36 +574,211 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         })
     }
 
-    const handlePlayCard = (cardIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
-        if (gameState?.winner || flyingCard) return;
+    const handleCardSelection = (cardIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
+        if (gameState?.winner || flyingCard || gameState?.activePlayerIndex !== 0) return;
 
-        let card = gameState!.players[0].hand[cardIndex];
+        const card = gameState!.players[0].hand[cardIndex];
         const topCard = gameState!.discardPile[gameState!.discardPile.length - 1];
 
         if (!isCardPlayable(card, topCard, gameState!.activeColor)) {
             return;
         }
 
-        const cardRect = e.currentTarget.getBoundingClientRect();
-        setFlyingCard({ card: card, startRect: cardRect });
+        // Check if card is already selected
+        if (selectedCards.includes(cardIndex)) {
+            // Deselect card
+            const newSelected = selectedCards.filter(i => i !== cardIndex);
+            setSelectedCards(newSelected);
+            setShowPlayButton(newSelected.length > 0);
+            return;
+        }
 
-        setTimeout(() => {
-            if (card.color === 'Wild') {
-
-                setShowColorPicker(true);
-            } else {
-                playCard(card, gameState!.activeColor);
+        // Check if we can add this card to selection (same value only)
+        if (selectedCards.length > 0) {
+            const firstSelectedCard = gameState!.players[0].hand[selectedCards[0]];
+            if (firstSelectedCard.value !== card.value) {
+                // Can't mix different values, start new selection
+                setSelectedCards([cardIndex]);
+                setShowPlayButton(true);
+                return;
             }
-            setFlyingCard(null);
-        }, 500);
+        }
+
+        // Add card to selection
+        const newSelected = [...selectedCards, cardIndex];
+        setSelectedCards(newSelected);
+        setShowPlayButton(true);
+    };
+
+    const handlePlaySelectedCards = () => {
+        if (selectedCards.length === 0 || !gameState) return;
+
+        const firstCard = gameState.players[0].hand[selectedCards[0]];
+        
+        if (firstCard.color === 'Wild') {
+            setShowColorPicker(true);
+        } else {
+            playMultipleCards(selectedCards, gameState.activeColor);
+        }
+    };
+
+    const handlePlayCard = (cardIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
+        // For backward compatibility, if no cards are selected, play immediately
+        if (selectedCards.length === 0) {
+            handleCardSelection(cardIndex, e);
+            setTimeout(() => {
+                if (selectedCards.length === 1) {
+                    handlePlaySelectedCards();
+                }
+            }, 100);
+        } else {
+            handleCardSelection(cardIndex, e);
+        }
     };
 
     const handleColorPick = (color: UnoColor) => {
         setShowColorPicker(false);
-        const player = gameState!.players[0];
-        // Find the wild card they must have just clicked
-        const wildCard = player.hand.find(c => c.color === 'Wild')!;
-        playCard(wildCard, color);
+        if (selectedCards.length > 0) {
+            playMultipleCards(selectedCards, color);
+        } else {
+            const player = gameState!.players[0];
+            // Find the wild card they must have just clicked
+            const wildCard = player.hand.find(c => c.color === 'Wild')!;
+            playCard(wildCard, color);
+        }
+    };
+
+    const playMultipleCards = (cardIndices: number[], chosenColor: UnoColor) => {
+        if (!gameState || cardIndices.length === 0) return;
+
+        // Sort indices in descending order to remove from end first
+        const sortedIndices = [...cardIndices].sort((a, b) => b - a);
+        const cards = sortedIndices.map(index => gameState.players[0].hand[index]);
+        
+        // Create flying card animation for the first card
+        const firstCard = cards[cards.length - 1]; // Last in sorted array is first card
+        setFlyingCard({ card: firstCard, startRect: new DOMRect() });
+
+        setTimeout(() => {
+            setGameState(prev => {
+                if (!prev) return null;
+                let newState: UnoGameState = JSON.parse(JSON.stringify(prev));
+                const currentPlayer = newState.players[0];
+
+                // Remove all selected cards from hand
+                sortedIndices.forEach(index => {
+                    currentPlayer.hand.splice(index, 1);
+                });
+
+                // Add all cards to discard pile
+                cards.forEach(card => {
+                    newState.discardPile.push(card);
+                });
+
+                // Set active color from the last played card
+                const lastCard = cards[0]; // First in original order
+                newState.activeColor = lastCard.color === 'Wild' ? chosenColor : lastCard.color;
+                
+                const logMessage = cards.length === 1 
+                    ? (lastCard.color === 'Wild' ? `You played a ${lastCard.value} and chose ${chosenColor}.` : `You played a ${lastCard.color} ${lastCard.value}.`)
+                    : `You played ${cards.length} ${cards[0].value}s.`;
+                addGameLog(logMessage);
+
+                // Check for winner
+                if (currentPlayer.hand.length === 0) {
+                    newState.winner = 'player';
+                    addGameLog('You win!');
+                    setSelectedCards([]);
+                    setShowPlayButton(false);
+                    setFlyingCard(null);
+                    return newState;
+                }
+                
+                // Check for UNO call requirement
+                if (currentPlayer.hand.length === 1 && !playerCalledUno) {
+                    setShowUnoButton(true);
+                }
+
+                // Handle card actions (only apply once for multiple same cards)
+                let tempNextPlayerIndex = nextPlayer(newState);
+                
+                const drawCardsFromDeck = (count: number) => {
+                    const drawnCards: UnoCard[] = [];
+                    for(let i = 0; i < count; i++) {
+                        if (newState.deck.length === 0 && newState.discardPile.length > 1) {
+                            const newDeck = shuffleDeck(newState.discardPile.slice(0, -1));
+                            newState.deck = newDeck;
+                            newState.discardPile = [newState.discardPile[newState.discardPile.length - 1]];
+                            addGameLog("Deck reshuffled from discard pile.");
+                        }
+                        const card = newState.deck.pop();
+                        if(card) drawnCards.push(card);
+                    }
+                    return drawnCards;
+                };
+
+                // Apply action effects (multiplied by number of cards)
+                const actionCard = cards[0];
+                const opponent = newState.players[tempNextPlayerIndex];
+                const multiplier = cards.length;
+                
+                switch(actionCard.value) {
+                    case 'Draw Two': {
+                        const drawnCards = drawCardsFromDeck(2 * multiplier);
+                        opponent.hand.push(...drawnCards);
+                        const msg = `Bot drew ${drawnCards.length} cards.`;
+                        addGameLog(msg);
+                        setTurnMessage(msg);
+                        tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex });
+                        break;
+                    }
+                    case 'Draw Four': {
+                        const drawnCards = drawCardsFromDeck(4 * multiplier);
+                        opponent.hand.push(...drawnCards);
+                        const msg = `Bot drew ${drawnCards.length} cards.`;
+                        addGameLog(msg);
+                        setTurnMessage(msg);
+                        tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex });
+                        break;
+                    }
+                    case 'Skip': {
+                        // Multiple skips = multiple turns skipped
+                        for (let i = 0; i < multiplier; i++) {
+                            tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex });
+                        }
+                        const msg = `Bot is skipped ${multiplier > 1 ? multiplier + ' times' : ''}.`;
+                        addGameLog(msg);
+                        setTurnMessage(msg);
+                        break;
+                    }
+                    case 'Reverse': {
+                        // Multiple reverses
+                        for (let i = 0; i < multiplier; i++) {
+                            tempNextPlayerIndex = nextPlayer({ ...newState, activePlayerIndex: tempNextPlayerIndex });
+                        }
+                        const msg = multiplier % 2 === 1 ? 'Bot is skipped by Reverse.' : 'Direction reversed twice - back to normal!';
+                        addGameLog(msg);
+                        setTurnMessage(msg);
+                        break;
+                    }
+                }
+
+                newState.activePlayerIndex = tempNextPlayerIndex;
+
+                const nextPlayerName = newState.players[newState.activePlayerIndex].id;
+                setTimeout(() => {
+                    addGameLog(`${nextPlayerName === 'player' ? 'Your' : 'Bot\'s'} turn.`);
+                    setTurnMessage(`${nextPlayerName === 'player' ? 'Your' : 'Bot\'s'} Turn`);
+                }, actionCard.value.startsWith("Draw") || actionCard.value === 'Skip' ? 1600 : 100);
+                
+                // Clear selection
+                setSelectedCards([]);
+                setShowPlayButton(false);
+                setFlyingCard(null);
+                
+                return newState;
+            });
+        }, 500);
     };
 
     const playCard = (card: UnoCard, chosenColor: UnoColor) => {
@@ -857,7 +1035,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
             const timer = setTimeout(handleBotTurn, 1500);
             return () => clearTimeout(timer);
         }
-    }, [gameState?.activePlayerIndex, gameState?.winner, handleBotTurn, showColorPicker, showStartScreen, showEndGameScreen]);
+    }, [gameState?.activePlayerIndex, gameState?.winner, gameState?.discardPile?.length, handleBotTurn, showColorPicker, showStartScreen, showEndGameScreen]);
 
     if (showStartScreen) {
         return (
@@ -919,6 +1097,20 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
 
     return (
         <div className="w-full h-full flex flex-col md:flex-col justify-end items-center text-white font-headline relative overflow-hidden">
+            {/* Payment Loading Screen */}
+            <PaymentLoadingScreen
+                isVisible={isVerifyingPayment}
+                paymentTxHash={paymentTxHash}
+                onCancel={() => {
+                    setIsVerifyingPayment(false);
+                    setPaymentTxHash('');
+                }}
+                onSuccess={() => {
+                    setIsVerifyingPayment(false);
+                    setShowStartScreen(false);
+                }}
+                gameType="uno"
+            />
             
             {/* Game Controls - positioned under connect wallet */}
             <div className={cn("absolute top-24 right-2 z-20 flex flex-col gap-1", winner && "hidden")}>
@@ -1018,10 +1210,11 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                                 <CardComponent 
                                     card={card} 
                                     isPlayer={true} 
-                                    onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
+                                    onClick={(e: React.MouseEvent<HTMLDivElement>) => handleCardSelection(i, e)}
                                     isPlayable={activePlayerIndex === 0 && isCardPlayable(card, topCard, gameState.activeColor)}
                                     isLastCard={player.hand.length === 1}
                                     size={window.innerWidth < 768 ? 'large' : 'normal'}
+                                    isSelected={selectedCards.includes(i)}
                                 />
                             </div>
                         )
@@ -1038,7 +1231,15 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                                 UNO!
                             </Button>
                         )}
-
+                        {showPlayButton && selectedCards.length > 0 && (
+                            <Button 
+                                onClick={handlePlaySelectedCards}
+                                className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-2 rounded-full text-lg"
+                                size="lg"
+                            >
+                                Play {selectedCards.length} Card{selectedCards.length > 1 ? 's' : ''}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
