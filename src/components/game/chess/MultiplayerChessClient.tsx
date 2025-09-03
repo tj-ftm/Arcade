@@ -325,12 +325,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
     setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
     
-    // Send initial game state using chess-init type for proper initialization
+    // Send initial game state using chess-update type (same as moves) for immediate visibility
     sendGameMove(lobby.id, {
-      type: 'chess-init',
+      type: 'chess-update',
       gameState: initialGameState
     });
-    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-init for proper player 2 visibility');
+    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-update for immediate player 2 visibility');
   };
 
   const addGameLog = useCallback((message: string) => {
@@ -566,6 +566,13 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     onGameEnd();
   };
   
+  const handleBackToMenu = () => {
+    // Only call onGameEnd once when going back to menu
+    if (!showEndGameScreen) return; // Prevent multiple calls
+    setShowEndGameScreen(false);
+    onGameEnd();
+  };
+  
   // Debug function to resolve bet (for testing)
   const handleDebugResolveBet = async () => {
     if (!lobby || !(lobby as any).isGamble) {
@@ -771,7 +778,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         <ChessEndGameScreen
           score={score}
           onNewGame={handleNewGame}
-          onBackToMenu={handleLeaveGame}
+          onBackToMenu={handleBackToMenu}
           isMinting={false}
           mintTxHash=""
           tokensEarned={(() => {
@@ -779,7 +786,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
             const myColor = isHost ? chessGameState.player1.color : chessGameState.player2.color;
             const didIWin = chessGameState.winner === (myColor === 'w' ? 'White' : 'Black');
             return didIWin ? 100 : 0;
-          })()}
+          })()
+          }
         />
       )}
 

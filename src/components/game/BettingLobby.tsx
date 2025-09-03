@@ -178,7 +178,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
     });
     
     return unsubscribe;
-  }, [gameType, onBettingLobbyJoined, handleGameStart, currentUserId]);
+  }, [gameType, onBettingLobbyJoined, currentUserId, handleGameStart]);
 
   const handleCreateBettingLobby = async () => {
     if (!isConnected || !account) {

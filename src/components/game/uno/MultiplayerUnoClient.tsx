@@ -358,12 +358,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setGameState(initialGameState);
         setGameStartTime(Date.now());
         
-        // Send initial game state using uno-init type for proper initialization
+        // Send initial game state using uno-update type (same as card plays) for immediate visibility
         sendGameMove(lobby.id, {
-            type: 'uno-init',
+            type: 'uno-update',
             gameState: initialGameState
         });
-        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-init for proper player 2 visibility');
+        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-update for immediate player 2 visibility');
     };
 
     // Listen for game state updates from opponent
@@ -791,6 +791,13 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             initializeGame();
         }
     };
+    
+    const handleBackToMenu = () => {
+        // Only call onGameEnd once when going back to menu
+        if (!showEndGameScreen) return; // Prevent multiple calls
+        setShowEndGameScreen(false);
+        onGameEnd();
+    };
 
     // Show loading screen
     if (isLoadingGame || !gameState) {
@@ -1018,7 +1025,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 <UnoEndGameScreen
                     hasWon={hasWon}
                     onNewGame={handleNewGame}
-                    onBackToMenu={onGameEnd}
+                    onBackToMenu={handleBackToMenu}
                     isMinting={isMinting}
                     mintTxHash={mintTxHash}
                     tokensEarned={tokensEarned}
