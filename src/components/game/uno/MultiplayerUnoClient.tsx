@@ -371,12 +371,22 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setGameState(initialGameState);
         setGameStartTime(Date.now());
         
-        // Send initial game state to opponent
+        // Send initial game state to both players immediately
         sendGameMove(lobby.id, {
             type: 'uno-init',
             gameState: initialGameState
         });
-        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent to opponent (player2Id:', lobby.player2Id || 'missing', ')');
+        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent to all players (player2Id:', lobby.player2Id || 'missing', ')');
+        
+        // Also send a game-ready signal to ensure both players see the game immediately
+        setTimeout(() => {
+            sendGameMove(lobby.id, {
+                type: 'game-ready',
+                gameState: initialGameState,
+                message: 'Both players ready - game starting now!'
+            });
+            console.log('🎯 [UNO MULTIPLAYER] Game-ready signal sent to ensure immediate visibility');
+        }, 100);
     };
 
     // Listen for game state updates from opponent
@@ -436,6 +446,37 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                         }, 1600); // Show after turn message
                     }
                 }
+            } else if (moveData.type === 'game-ready' && moveData.gameState) {
+                console.log('🎯 [UNO MULTIPLAYER] Received game-ready signal - ensuring game visibility');
+                const readyGameState = moveData.gameState;
+                if (!isHost) {
+                    // Adjust game state for non-host player
+                    const adjustedGameState = {
+                        ...readyGameState,
+                        playerHand: readyGameState.players[1].hand,
+                        players: [
+                            readyGameState.players[0],
+                            readyGameState.players[1]
+                        ]
+                    };
+                    setGameState(adjustedGameState);
+                    
+                    // Show initial turn message
+                    const currentPlayer = adjustedGameState.players[adjustedGameState.activePlayerIndex];
+                    const currentPlayerId = adjustedGameState.players[adjustedGameState.activePlayerIndex].id;
+                    const isMyTurn = currentPlayerId === account;
+                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                } else {
+                    setGameState(readyGameState);
+                    
+                    // Show initial turn message for host
+                    const currentPlayer = readyGameState.players[readyGameState.activePlayerIndex];
+                    const currentPlayerId = readyGameState.players[readyGameState.activePlayerIndex].id;
+                    const isMyTurn = currentPlayerId === account;
+                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                }
+                setIsLoadingGame(false);
+                console.log('✅ [UNO MULTIPLAYER] Game-ready processed - both players should see game now');
             } else if (moveData.type === 'uno-call') {
                 if (gameState) {
                     const newGameState = { ...gameState };
