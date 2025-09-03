@@ -793,11 +793,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     };
     
     const handleBackToMenu = () => {
-        // Don't call onGameEnd() here as it causes double end screens
-        // Just hide the end game screen - parent will handle navigation
+        // Only call onGameEnd once when going back to menu
+        if (!showEndGameScreen) return; // Prevent multiple calls
         setShowEndGameScreen(false);
-        // Navigate back to menu without triggering another end game
-        window.location.href = '/';
+        onGameEnd();
     };
 
     // Show loading screen

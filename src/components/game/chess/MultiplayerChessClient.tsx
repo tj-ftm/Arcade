@@ -567,11 +567,10 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   };
   
   const handleBackToMenu = () => {
-    // Don't call onGameEnd() here as it causes double end screens
-    // Just hide the end game screen - parent will handle navigation
+    // Only call onGameEnd once when going back to menu
+    if (!showEndGameScreen) return; // Prevent multiple calls
     setShowEndGameScreen(false);
-    // Navigate back to menu without triggering another end game
-    window.location.href = '/';
+    onGameEnd();
   };
   
   // Debug function to resolve bet (for testing)
