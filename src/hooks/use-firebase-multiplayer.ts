@@ -209,9 +209,17 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
           setCurrentLobby(updatedLobby);
           
           // Check if someone joined and game is ready to start
-          if (data.player2Id) {
-            console.log('🎮 [FIREBASE MULTIPLAYER] Player joined lobby, triggering game start for host');
-            lobbyJoinedCallbacks.forEach(callback => callback(updatedLobby));
+          if (data.player2Id && data.player2Id !== updatedLobby.player1Id) {
+            console.log('🎮 [FIREBASE MULTIPLAYER] Player joined lobby, triggering game start callbacks for all players');
+            console.log('🔔 [FIREBASE MULTIPLAYER] Lobby ready with both players:', {
+              player1: data.player1Name,
+              player2: data.player2Name,
+              lobbyId: lobbyId
+            });
+            lobbyJoinedCallbacks.forEach(callback => {
+              console.log('📞 [FIREBASE MULTIPLAYER] Calling lobby joined callback for lobby:', lobbyId);
+              callback(updatedLobby);
+            });
           }
         } else {
           // Lobby was deleted

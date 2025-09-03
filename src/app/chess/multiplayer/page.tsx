@@ -55,34 +55,30 @@ export default function ChessMultiplayerPage() {
 
   console.log('🔧 [CHESS MULTIPLAYER PAGE] Creating handleStartGame function');
   const handleStartGame = useCallback((lobby: Lobby, isHostPlayer: boolean) => {
-    console.log('🚨🚨🚨 [CHESS MULTIPLAYER PAGE] handleStartGame CALLED! 🚨🚨🚨');
+    console.log('🎮 [CHESS MULTIPLAYER PAGE] handleStartGame called with:', {
+      lobby: lobby,
+      isHostPlayer: isHostPlayer,
+      hasPlayer2: !!lobby.player2Id,
+      currentView: currentView
+    });
+    
     try {
-      console.log('🎮 [CHESS MULTIPLAYER PAGE] handleStartGame called with:', {
-        lobby: lobby,
-        isHostPlayer: isHostPlayer,
-        currentView: currentView
-      });
-      
-      // For non-host players, wait a moment for Firebase to update the lobby with player2 data
-      if (!isHostPlayer) {
-        console.log('🔄 [CHESS PAGE] Non-host player, waiting for lobby update...');
-        setTimeout(() => {
-          // Use Firebase lobby if available, otherwise use the passed lobby
-          const finalLobby = firebaseLobby && firebaseLobby.player2Id ? firebaseLobby : lobby;
-          console.log('🔄 [CHESS PAGE] Using final lobby for non-host:', finalLobby);
-          setCurrentLobby(finalLobby);
-          setIsHost(isHostPlayer);
-          setCurrentView('game');
-          setRenderKey(prev => prev + 1);
-        }, 1000); // 1 second delay for Firebase sync
-      } else {
-        setCurrentLobby(lobby);
-        setIsHost(isHostPlayer);
-        setCurrentView('game');
-        setRenderKey(prev => prev + 1);
+      // Ensure lobby has both players before starting
+      if (!lobby.player2Id) {
+        console.log('⚠️ [CHESS PAGE] Lobby missing player2, cannot start game');
+        return;
       }
       
-      console.log('✅ [CHESS MULTIPLAYER PAGE] State updated successfully - should transition to game view', { renderKey: renderKey + 1 });
+      // Use the most up-to-date lobby data
+      const finalLobby = firebaseLobby && firebaseLobby.player2Id ? firebaseLobby : lobby;
+      console.log('🚀 [CHESS PAGE] Starting game immediately for both players with lobby:', finalLobby);
+      
+      setCurrentLobby(finalLobby);
+      setIsHost(isHostPlayer);
+      setCurrentView('game');
+      setRenderKey(prev => prev + 1);
+      
+      console.log('✅ [CHESS MULTIPLAYER PAGE] Game transition completed - currentView: game, isHost:', isHostPlayer);
     } catch (error) {
       console.error('❌ [CHESS MULTIPLAYER PAGE] Error in handleStartGame:', error);
     }
