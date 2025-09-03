@@ -399,10 +399,25 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                     };
                     setGameState(adjustedGameState);
                     console.log('🔄 [UNO MULTIPLAYER] Adjusted game state for non-host player');
+                    
+                    // Show initial turn message for joining player
+                    const currentPlayer = adjustedGameState.players[adjustedGameState.activePlayerIndex];
+                    const currentPlayerId = adjustedGameState.players[adjustedGameState.activePlayerIndex].id;
+                    const isMyTurn = currentPlayerId === account;
+                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                    console.log('🎯 [UNO MULTIPLAYER] Initial turn message set for joining player:', isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                 } else {
                     setGameState(receivedGameState);
+                    
+                    // Show initial turn message for host
+                    const currentPlayer = receivedGameState.players[receivedGameState.activePlayerIndex];
+                    const currentPlayerId = receivedGameState.players[receivedGameState.activePlayerIndex].id;
+                    const isMyTurn = currentPlayerId === account;
+                    setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
+                    console.log('🎯 [UNO MULTIPLAYER] Initial turn message set for host:', isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                 }
                 setIsLoadingGame(false);
+                console.log('✅ [UNO MULTIPLAYER] Game state fully initialized for both players');
             } else if (moveData.type === 'uno-update' && moveData.gameState) {
                 const newGameState = moveData.gameState;
                 setGameState(newGameState);
