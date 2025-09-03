@@ -263,7 +263,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setupGameMovesListener(lobby.id);
     }, [lobby.id, setupGameMovesListener]);
 
-    // Initialize game - only host initializes
+    // Initialize game - only host initializes when both players are present
     useEffect(() => {
         const conditions = {
              player2Id: lobby.player2Id,
@@ -275,25 +275,18 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
          console.log('🔍 [UNO MULTIPLAYER] Checking initialization conditions:', JSON.stringify(conditions, null, 2));
          console.log('🔍 [UNO MULTIPLAYER] Full lobby object received:', lobby);
          
-        if (!gameState && isHost && lobby.player2Id) {
-            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state with both players present');
+        if (!gameState && isHost && lobby.player2Id && lobby.status === 'playing') {
+            console.log('🎮 [UNO MULTIPLAYER] Host initializing game state - both players present and status is playing');
             
-            // Add a small delay to ensure Firebase listeners are set up
-            setTimeout(() => {
-                // Check if game state still doesn't exist (no one else initialized it)
-                if (!gameState) {
-                    console.log('🎮 [UNO MULTIPLAYER] Host initializing game now');
-                    initializeGame();
-                } else {
-                    console.log('🎮 [UNO MULTIPLAYER] Game state already exists, skipping initialization');
-                }
-            }, 500); // Reduced delay
+            // Initialize immediately when conditions are met
+            console.log('🎮 [UNO MULTIPLAYER] Host initializing game now');
+            initializeGame();
         } else if (!gameState && !isHost) {
             console.log('👥 [UNO MULTIPLAYER] Non-host waiting for game state from host');
         } else {
-            console.log('✅ [UNO MULTIPLAYER] Game state already exists');
+            console.log('✅ [UNO MULTIPLAYER] Game state already exists or conditions not met');
         }
-    }, [gameState, isHost, lobby.player2Id]);
+    }, [gameState, isHost, lobby.player2Id, lobby.status]);
 
     // Handle loading state - always show game interface
     useEffect(() => {
