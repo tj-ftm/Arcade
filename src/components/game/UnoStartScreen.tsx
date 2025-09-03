@@ -26,10 +26,18 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, on
         <Button 
           size="lg" 
           onClick={onStartGame}
-          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-red-600 hover:bg-red-700 text-white border-2 border-white/20"
+          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gray-600 hover:bg-gray-700 text-white border-2 border-white/20"
         >
           <Play className="mr-4 h-8 w-8" />
-          Start Game
+          Free Play
+        </Button>
+        <Button 
+          size="lg" 
+          onClick={onStartBonusMode}
+          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white border-2 border-green-400/30"
+        >
+          <Play className="mr-4 h-8 w-8" />
+          Pay & Play (0.1 S)
         </Button>
         <Button 
           size="lg" 
@@ -39,14 +47,7 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, on
           <Play className="mr-4 h-8 w-8" />
           Multiplayer
         </Button>
-        <Button 
-          size="lg" 
-          onClick={onStartBonusMode}
-          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600 text-white border-2 border-yellow-400/30"
-        >
-          <Play className="mr-4 h-8 w-8" />
-          Bonus Mode (0.1 S)
-        </Button>
+
         
         {onNavigateToBetting && (
           <Button 

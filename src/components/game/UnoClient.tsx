@@ -970,7 +970,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                     <div className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
                         {bot.hand.map((_, i) => (
                             <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, bot.hand.length), top: 0 }}>
-                                <CardBack />
+                                <CardBack size={window.innerWidth < 768 ? 'large' : 'normal'} />
                             </div>
                         ))}
                     </div>

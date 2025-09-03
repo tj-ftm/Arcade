@@ -67,7 +67,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       timestamp: Date.now()
     };
     localStorage.setItem('currentLobby', JSON.stringify(lobbyInfo));
-  }, []);
+  }, [chain, gameType]);
   
   // Clear stored lobby info
   const clearLobbyInfo = useCallback(() => {
@@ -101,7 +101,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       }
     }
     return null;
-  }, [clearLobbyInfo]);
+  }, [chain, clearLobbyInfo]);
   const [gameMovesCallbacks, setGameMovesCallbacks] = useState<((moveData: any) => void)[]>([]);
   const [lobbyJoinedCallbacks, setLobbyJoinedCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
   const [lobbyLeftCallbacks, setLobbyLeftCallbacks] = useState<((lobby: Lobby) => void)[]>([]);
@@ -160,7 +160,7 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
       console.error('Firebase connection error:', error);
       setIsConnected(false);
     }
-  }, []);
+  }, [chain, gameType]);
 
   const generateLobbyId = (gameType: 'chess' | 'uno'): string => {
     const prefix = gameType.toUpperCase();

@@ -26,8 +26,8 @@ interface LobbyListProps {
 }
 
 export function LobbyList({ gameType, onJoinLobby, onBackToMenu }: LobbyListProps) {
-  const { lobbies, joinLobby, isConnected } = useFirebaseMultiplayer();
-  const { username, account } = useWeb3();
+  const { username, account, currentChain } = useWeb3();
+  const { lobbies, joinLobby, isConnected } = useFirebaseMultiplayer(currentChain, gameType);
   const [playerName, setPlayerName] = useState('');
   const [lobbyIdToJoin, setLobbyIdToJoin] = useState('');
   const [joiningLobby, setJoiningLobby] = useState<string | null>(null);

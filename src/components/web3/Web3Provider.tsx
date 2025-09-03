@@ -99,9 +99,9 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const getCurrentChainConfig = () => {
+  const getCurrentChainConfig = useCallback(() => {
     return CHAIN_CONFIGS[currentChain];
-  }
+  }, [currentChain]);
 
   const switchChain = async (chain: SupportedChain) => {
     if (!window.ethereum) {
@@ -457,7 +457,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         await getBalance(provider, account);
       }
     }
-  }, [account, getBalance, getProvider]);
+  }, [account, getProvider]);
 
   useEffect(() => {
     if (window.ethereum) {

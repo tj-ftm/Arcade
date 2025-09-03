@@ -6,9 +6,10 @@ interface PoolStartScreenProps {
   onGoToMenu: () => void;
   onStartMultiplayer: () => void;
   onStartBetting?: () => void;
+  onStartBonusMode?: () => void;
 }
 
-export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBetting }: PoolStartScreenProps) => {
+export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBetting, onStartBonusMode }: PoolStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-emerald-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-[200000] p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
       {/* Game Title */}
@@ -27,10 +28,22 @@ export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, o
             e.stopPropagation();
             onStartGame();
           }}
-          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-green-600 hover:bg-green-700 text-white border-2 border-white/20"
+          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gray-600 hover:bg-gray-700 text-white border-2 border-white/20"
         >
           <Play className="mr-4 h-8 w-8" />
-          Start Game
+          Free Play
+        </Button>
+        <Button 
+          size="lg" 
+          onClick={(e) => {
+             e.preventDefault();
+             e.stopPropagation();
+             onStartBonusMode?.();
+           }}
+          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white border-2 border-green-400/30"
+        >
+          <Play className="mr-4 h-8 w-8" />
+          Pay & Play (0.1 S)
         </Button>
         <Button 
           size="lg" 
