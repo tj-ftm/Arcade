@@ -64,7 +64,7 @@ const Badge = ({ children, variant = 'default' }: { children: React.ReactNode; v
   }`}>{children}</span>
 );
 
-type GameType = 'all' | 'chess' | 'uno' | 'pool' | 'snake';
+type GameType = 'all' | 'chess' | 'uno' | 'snake';
 
 const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavigate: (view: View) => void }) => {
   const [selectedGameType, setSelectedGameType] = useState<GameType>('all');
@@ -148,7 +148,7 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
 
         {/* Game Type Tabs */}
         <div className="flex bg-black/20 rounded-lg p-1 mb-6 max-w-md mx-auto">
-          {(['all', 'chess', 'uno', 'pool'] as GameType[]).map((gameType) => (
+          {(['all', 'chess', 'uno', 'snake'] as GameType[]).map((gameType) => (
             <button
               key={gameType}
               onClick={() => setSelectedGameType(gameType)}

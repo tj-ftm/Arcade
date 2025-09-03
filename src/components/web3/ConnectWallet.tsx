@@ -21,7 +21,6 @@ export const ConnectWallet = () => {
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [isSwitchingChain, setIsSwitchingChain] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   const { 
     account, 
@@ -61,7 +60,6 @@ export const ConnectWallet = () => {
     if (chain === currentChain) return;
     
     setIsSwitchingChain(true);
-    setImageError(false); // Reset image error when switching chains
     try {
       await switchChain(chain);
     } catch (error) {
@@ -92,24 +90,15 @@ export const ConnectWallet = () => {
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg cursor-pointer">
                 <div className="flex items-center justify-center w-10 h-10 bg-black/50 rounded-full overflow-hidden">
-                  {!imageError ? (
-                    <Image 
-                      src={getChainIcon()} 
-                      alt={`${getChainName()} Chain`} 
-                      width={32} 
-                      height={32} 
-                      className="w-8 h-8 object-contain"
-                      onError={() => {
-                        console.log('Image load error for:', getChainIcon());
-                        setImageError(true);
-                      }}
-                      priority
-                    />
-                  ) : (
-                    <div className={`w-8 h-8 rounded-full ${currentChain === 'base' ? 'bg-blue-500' : 'bg-orange-500'} flex items-center justify-center text-white text-xs font-bold`}>
-                      {currentChain === 'base' ? 'B' : 'S'}
-                    </div>
-                  )}
+                  <Image 
+                    src={getChainIcon()} 
+                    alt={`${getChainName()} Chain`} 
+                    width={32} 
+                    height={32} 
+                    className="w-8 h-8 object-contain"
+                    priority
+                    unoptimized
+                  />
                 </div>
               <div className="flex flex-col text-left">
                 <span className="text-white font-bold text-sm leading-tight">{username}</span>

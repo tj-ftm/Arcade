@@ -218,17 +218,15 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
               status: data.status
             });
             
-            // Ensure callbacks are called with a small delay to allow state updates
-            setTimeout(() => {
-              lobbyJoinedCallbacks.forEach(callback => {
-                console.log('📞 [FIREBASE MULTIPLAYER] Calling lobby joined callback for lobby:', lobbyId);
-                try {
-                  callback(updatedLobby);
-                } catch (callbackError) {
-                  console.error('❌ [FIREBASE MULTIPLAYER] Error in lobby joined callback:', callbackError);
-                }
-              });
-            }, 100); // Small delay to ensure state consistency
+            // Call callbacks immediately when both players are present
+            lobbyJoinedCallbacks.forEach(callback => {
+              console.log('📞 [FIREBASE MULTIPLAYER] Calling lobby joined callback for lobby:', lobbyId);
+              try {
+                callback(updatedLobby);
+              } catch (callbackError) {
+                console.error('❌ [FIREBASE MULTIPLAYER] Error in lobby joined callback:', callbackError);
+              }
+            });
           }
         } else {
           // Lobby was deleted

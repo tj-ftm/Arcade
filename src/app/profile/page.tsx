@@ -384,7 +384,9 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
                          if (!acc[mint.gameType]) {
                            acc[mint.gameType] = { total: 0, count: 0, mints: [] };
                          }
-                         acc[mint.gameType].total += mint.amount;
+                         // Ensure amount is a number
+                         const amount = typeof mint.amount === 'number' ? mint.amount : parseFloat(mint.amount || '0');
+                         acc[mint.gameType].total += isNaN(amount) ? 0 : amount;
                          acc[mint.gameType].count += 1;
                          acc[mint.gameType].mints.push(mint);
                          return acc;
@@ -402,11 +404,11 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
                              </span>
                            </div>
                            <span className="text-lg font-bold text-green-300">
-                             {data.total.toFixed(2)} ARC
+                             {(typeof data.total === 'number' ? data.total : 0).toFixed(2)} ARC
                            </span>
                          </div>
                          <div className="text-sm text-white/70">
-                           {data.count} games played • Avg: {(data.total / data.count).toFixed(2)} ARC per game
+                           {data.count} games played • Avg: {(typeof data.total === 'number' && data.count > 0 ? (data.total / data.count) : 0).toFixed(2)} ARC per game
                          </div>
                        </div>
                      ))}
