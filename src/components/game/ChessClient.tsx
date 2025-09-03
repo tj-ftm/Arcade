@@ -12,8 +12,7 @@ import { logGameCompletion, createGameResult, isValidWalletAddress } from '@/lib
 import { verifyPayment, sendBonusPayment, getBonusReward, PaymentVerificationResult } from '@/lib/payment-verification';
 import { ChessStartScreen } from './chess/ChessStartScreen';
 import { ChessEndGameScreen } from './chess/ChessEndGameScreen';
-import { PaymentLoadingScreen } from './PaymentLoadingScreen';
-import { WalletConnectionDialog } from './WalletConnectionDialog';
+import PaymentLoadingScreen from './PaymentLoadingScreen';
 import { ErrorReportButton } from './ErrorReportButton';
 import { errorLogger } from '@/lib/error-logger';
 // import { MobileRotateButton } from './MobileRotateButton'; // Removed as requested
@@ -86,7 +85,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
     const [paymentTxHash, setPaymentTxHash] = useState<string>('');
     const [endReason, setEndReason] = useState<string>('');
     const [hasWon, setHasWon] = useState<boolean>(false);
-    const [showWalletDialog, setShowWalletDialog] = useState(false);
+    const [showPaymentScreen, setShowPaymentScreen] = useState(false);
 
     const addGameLog = (message: string) => {
         setGameLog(prev => {
@@ -280,7 +279,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
         const signer = getSigner();
         
         if (!provider || !signer || !account) {
-            setShowWalletDialog(true);
+            alert('Please connect your wallet first');
             return;
         }
 
@@ -306,7 +305,18 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
     };
 
     const handleStartBonusMode = () => {
+        setShowPaymentScreen(true);
+        setShowStartScreen(false);
+    };
+
+    const handlePaymentComplete = () => {
+        setShowPaymentScreen(false);
         handleBonusPayment();
+    };
+
+    const handlePaymentCancel = () => {
+        setShowPaymentScreen(false);
+        setShowStartScreen(true);
     };
 
     const handleTestWin = async () => {
@@ -444,36 +454,28 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
     
 
 
+    if (showPaymentScreen) {
+        return (
+            <div className="w-full h-full flex flex-col justify-center items-center text-white font-headline relative overflow-hidden">
+                <PaymentLoadingScreen
+                    onPaymentComplete={handlePaymentComplete}
+                    onCancel={handlePaymentCancel}
+                    gameType="chess"
+                    amount="0.1 S"
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8" data-game-container>
-            {/* Payment Loading Screen */}
-            <PaymentLoadingScreen
-                isVisible={isVerifyingPayment}
-                paymentTxHash={paymentTxHash}
-                onCancel={() => {
-                    setIsVerifyingPayment(false);
-                    setPaymentTxHash('');
-                }}
-                onSuccess={() => {
-                    setIsVerifyingPayment(false);
-                    setShowStartScreen(false);
-                }}
-                gameType="chess"
-            />
-            
-            {/* Wallet Connection Dialog */}
-            <WalletConnectionDialog
-                isOpen={showWalletDialog}
-                onClose={() => setShowWalletDialog(false)}
-                gameType="chess"
-                message="Please connect your wallet first to play Pay & Earn mode and earn ARC tokens."
-            />
             {showStartScreen && (
                 <ChessStartScreen 
                     onStartGame={() => { handleNewGame(false); setShowStartScreen(false); }} 
                     onStartMultiplayer={onNavigateToMultiplayer}
                     onStartBonusMode={handleStartBonusMode}
                     onNavigateToBetting={onNavigateToBetting}
+                    onGoToMenu={onGameEnd}
                 />
             )}
 

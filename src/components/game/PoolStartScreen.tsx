@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Play, ArrowLeft, Coins, Trophy } from 'lucide-react';
+import { Play, ArrowLeft, Coins, Trophy, Home, PanelLeft } from 'lucide-react';
 
 interface PoolStartScreenProps {
   onStartGame: () => void;
@@ -12,6 +12,24 @@ interface PoolStartScreenProps {
 export const PoolStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, onStartBetting, onStartBonusMode }: PoolStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-emerald-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-[200000] p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
+      {/* Menu Buttons */}
+      <div className="absolute top-4 left-4 z-[200001] flex gap-2">
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          onClick={onGoToMenu}
+          className="h-10 w-10 bg-black/50 hover:bg-black/70 text-white border border-white/20"
+        >
+          <Home className="h-5 w-5" />
+        </Button>
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          className="h-10 w-10 bg-black/50 hover:bg-black/70 text-white border border-white/20"
+        >
+          <PanelLeft className="h-5 w-5" />
+        </Button>
+      </div>
       {/* Game Title */}
       <div className="text-center">
         <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-8xl xl:text-9xl font-headline text-lime-400 uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '2px black', textShadow: '0 0 20px rgba(124, 252, 0, 0.5)' }}>

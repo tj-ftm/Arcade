@@ -1,108 +1,129 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 
 interface PaymentLoadingScreenProps {
-  isVisible: boolean;
-  paymentTxHash?: string;
-  onCancel?: () => void;
-  onSuccess?: () => void;
-  gameType: 'uno' | 'chess' | 'snake' | 'pool';
+  onPaymentComplete: () => void;
+  onCancel: () => void;
+  gameType: 'uno' | 'chess' | 'snake';
+  amount: string;
 }
 
-type PaymentStatus = 'waiting' | 'processing' | 'confirming' | 'success' | 'failed';
+type PaymentStatus = 'waiting' | 'processing' | 'completed' | 'failed' | 'timeout';
 
-const getGameGradient = (gameType: string) => {
-  switch (gameType) {
-    case 'uno':
-      return 'from-red-900 via-red-700 to-orange-900';
-    case 'chess':
-      return 'from-purple-900 via-purple-700 to-indigo-900';
-    case 'snake':
-      return 'from-green-900 via-green-700 to-lime-900';
-    case 'pool':
-      return 'from-green-900 via-green-700 to-emerald-900';
-    default:
-      return 'from-gray-900 via-gray-700 to-black';
-  }
-};
-
-const getGameColor = (gameType: string) => {
-  switch (gameType) {
-    case 'uno':
-      return 'text-yellow-400';
-    case 'chess':
-      return 'text-purple-400';
-    case 'snake':
-      return 'text-green-400';
-    case 'pool':
-      return 'text-lime-400';
-    default:
-      return 'text-white';
-  }
-};
-
-export const PaymentLoadingScreen = ({ 
-  isVisible, 
-  paymentTxHash, 
-  onCancel, 
-  onSuccess, 
-  gameType 
-}: PaymentLoadingScreenProps) => {
-  const [status, setStatus] = useState<PaymentStatus>('waiting');
+const PaymentLoadingScreen: React.FC<PaymentLoadingScreenProps> = ({
+  onPaymentComplete,
+  onCancel,
+  gameType,
+  amount
+}) => {
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('waiting');
   const [progress, setProgress] = useState(0);
-  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds timeout
+  const [statusMessage, setStatusMessage] = useState('Waiting for payment...');
 
-  useEffect(() => {
-    if (!isVisible) {
-      setStatus('waiting');
-      setProgress(0);
-      setTimeElapsed(0);
-      return;
+  // Game-specific styling
+  const getGameTheme = () => {
+    switch (gameType) {
+      case 'uno':
+        return {
+          bg: 'bg-gradient-to-br from-red-600 via-yellow-500 to-blue-600',
+          accent: 'text-yellow-400',
+          button: 'bg-red-600 hover:bg-red-700'
+        };
+      case 'chess':
+        return {
+          bg: 'bg-gradient-to-br from-amber-900 via-yellow-600 to-amber-800',
+          accent: 'text-amber-300',
+          button: 'bg-amber-700 hover:bg-amber-800'
+        };
+      case 'snake':
+        return {
+          bg: 'bg-gradient-to-br from-green-800 via-lime-600 to-green-700',
+          accent: 'text-lime-300',
+          button: 'bg-green-600 hover:bg-green-700'
+        };
+      default:
+        return {
+          bg: 'bg-gradient-to-br from-purple-600 to-blue-600',
+          accent: 'text-blue-300',
+          button: 'bg-blue-600 hover:bg-blue-700'
+        };
     }
+  };
 
+  const theme = getGameTheme();
+
+  // Simulate payment verification process
+  useEffect(() => {
     const timer = setInterval(() => {
-      setTimeElapsed(prev => prev + 1);
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setPaymentStatus('timeout');
+          setStatusMessage('Payment timeout. Please try again.');
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isVisible]);
+  }, []);
 
+  // Simulate payment progress
   useEffect(() => {
-    if (!isVisible) return;
+    if (paymentStatus === 'waiting') {
+      const progressTimer = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) {
+            setPaymentStatus('processing');
+            setStatusMessage('Processing payment...');
+            return 100;
+          }
+          return prev + 2;
+        });
+      }, 100);
 
-    if (!paymentTxHash) {
-      setStatus('waiting');
-      setProgress(25);
-    } else {
-      setStatus('processing');
-      setProgress(50);
-      
-      // Simulate confirmation process
-      const confirmTimer = setTimeout(() => {
-        setStatus('confirming');
-        setProgress(75);
-        
-        const successTimer = setTimeout(() => {
-          setStatus('success');
-          setProgress(100);
-          
-          const completeTimer = setTimeout(() => {
-            onSuccess?.();
-          }, 2000);
-          
-          return () => clearTimeout(completeTimer);
-        }, 3000);
-        
-        return () => clearTimeout(successTimer);
-      }, 2000);
-      
-      return () => clearTimeout(confirmTimer);
+      return () => clearInterval(progressTimer);
     }
-  }, [paymentTxHash, isVisible, onSuccess]);
+  }, [paymentStatus]);
 
-  if (!isVisible) return null;
+  // Handle payment processing
+  useEffect(() => {
+    if (paymentStatus === 'processing') {
+      const processingTimer = setTimeout(() => {
+        // Simulate random success/failure (90% success rate)
+        const success = Math.random() > 0.1;
+        if (success) {
+          setPaymentStatus('completed');
+          setStatusMessage('Payment successful! Redirecting to game...');
+          setTimeout(() => {
+            onPaymentComplete();
+          }, 2000);
+        } else {
+          setPaymentStatus('failed');
+          setStatusMessage('Payment failed. Please try again.');
+        }
+      }, 3000);
+
+      return () => clearTimeout(processingTimer);
+    }
+  }, [paymentStatus, onPaymentComplete]);
+
+  const getStatusIcon = () => {
+    switch (paymentStatus) {
+      case 'waiting':
+      case 'processing':
+        return <Loader2 className="w-16 h-16 animate-spin" />;
+      case 'completed':
+        return <CheckCircle className="w-16 h-16 text-green-400" />;
+      case 'failed':
+      case 'timeout':
+        return <XCircle className="w-16 h-16 text-red-400" />;
+      default:
+        return <Clock className="w-16 h-16" />;
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -110,148 +131,79 @@ export const PaymentLoadingScreen = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getStatusMessage = () => {
-    switch (status) {
-      case 'waiting':
-        return 'Waiting for payment confirmation...';
-      case 'processing':
-        return 'Processing payment transaction...';
-      case 'confirming':
-        return 'Confirming transaction on blockchain...';
-      case 'success':
-        return 'Payment confirmed! Starting game...';
-      case 'failed':
-        return 'Payment failed. Please try again.';
-      default:
-        return 'Processing...';
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="w-16 h-16 text-green-400" />;
-      case 'failed':
-        return <XCircle className="w-16 h-16 text-red-400" />;
-      default:
-        return <Loader2 className="w-16 h-16 animate-spin text-blue-400" />;
-    }
-  };
-
   return (
-    <div className={cn(
-      "absolute inset-0 z-50 flex items-center justify-center",
-      "bg-gradient-to-br",
-      getGameGradient(gameType)
-    )}>
-      <div className="w-full max-w-md mx-4">
-        <div className="bg-black/80 backdrop-blur-sm rounded-xl p-8 border border-white/20">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className={cn(
-              "text-4xl font-headline uppercase tracking-wider mb-2",
-              getGameColor(gameType)
-            )}>
-              Pay & Play
-            </h1>
-            <p className="text-white/70 text-lg">0.1 S Payment Required</p>
-          </div>
+    <div className={`w-full h-full flex flex-col justify-center items-center text-white font-headline relative overflow-hidden ${theme.bg}`}>
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
+      </div>
 
-          {/* Status Icon */}
-          <div className="flex justify-center mb-6">
-            {getStatusIcon()}
-          </div>
+      <div className="relative z-10 flex flex-col items-center space-y-8 p-8 max-w-md mx-auto text-center">
+        {/* Game Title */}
+        <h1 className="text-4xl md:text-6xl font-bold uppercase tracking-wider">
+          {gameType.toUpperCase()}
+        </h1>
 
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex justify-between text-sm text-white/60 mb-2">
-              <span>Progress</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className={cn(
-                  "h-2 rounded-full transition-all duration-500",
-                  status === 'success' ? 'bg-green-400' : 
-                  status === 'failed' ? 'bg-red-400' : 'bg-blue-400'
-                )}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Status Message */}
-          <div className="text-center mb-6">
-            <p className="text-white text-lg font-medium mb-2">
-              {getStatusMessage()}
-            </p>
-            <p className="text-white/50 text-sm">
-              Time elapsed: {formatTime(timeElapsed)}
-            </p>
-          </div>
-
-          {/* Transaction Hash */}
-          {paymentTxHash && (
-            <div className="mb-6 p-3 bg-white/5 rounded-lg border border-white/10">
-              <p className="text-white/70 text-sm mb-2">Transaction Hash:</p>
-              <div className="flex items-center gap-2">
-                <code className="text-blue-400 text-xs break-all flex-1">
-                  {paymentTxHash}
-                </code>
-                <a
-                  href={`https://sonicscan.org/tx/${paymentTxHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            {status === 'failed' && onCancel && (
-              <Button
-                onClick={onCancel}
-                variant="outline"
-                className="flex-1 border-white/20 text-white hover:bg-white/10"
-              >
-                Try Again
-              </Button>
-            )}
-            {(status === 'waiting' || status === 'processing') && onCancel && (
-              <Button
-                onClick={onCancel}
-                variant="outline"
-                className="flex-1 border-white/20 text-white hover:bg-white/10"
-              >
-                Cancel
-              </Button>
-            )}
-            {status === 'success' && (
-              <Button
-                disabled
-                className="flex-1 bg-green-600 text-white"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Payment Confirmed
-              </Button>
-            )}
-          </div>
-
-          {/* Help Text */}
-          <div className="mt-6 text-center">
-            <p className="text-white/40 text-xs">
-              {status === 'waiting' && "Please confirm the payment in your wallet"}
-              {status === 'processing' && "Do not close this window while processing"}
-              {status === 'confirming' && "Waiting for blockchain confirmation"}
-              {status === 'success' && "Redirecting to game..."}
-              {status === 'failed' && "Check your wallet and try again"}
-            </p>
-          </div>
+        {/* Payment Amount */}
+        <div className={`text-2xl md:text-3xl font-bold ${theme.accent}`}>
+          Pay & Play: {amount}
         </div>
+
+        {/* Status Icon */}
+        <div className="flex justify-center">
+          {getStatusIcon()}
+        </div>
+
+        {/* Status Message */}
+        <div className="text-xl md:text-2xl font-semibold">
+          {statusMessage}
+        </div>
+
+        {/* Progress Bar */}
+        {paymentStatus === 'waiting' && (
+          <div className="w-full bg-black/30 rounded-full h-4">
+            <div 
+              className={`h-4 rounded-full transition-all duration-300 ${theme.accent.replace('text-', 'bg-')}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        )}
+
+        {/* Timer */}
+        {(paymentStatus === 'waiting' || paymentStatus === 'processing') && (
+          <div className="text-lg">
+            Time remaining: <span className={theme.accent}>{formatTime(timeLeft)}</span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-4 mt-8">
+          {(paymentStatus === 'failed' || paymentStatus === 'timeout') && (
+            <Button
+              onClick={onCancel}
+              className={`px-8 py-3 text-lg font-bold uppercase tracking-wider ${theme.button} text-white border-2 border-white/20 hover:border-white/40 transition-all duration-300`}
+            >
+              Try Again
+            </Button>
+          )}
+          
+          {paymentStatus !== 'completed' && (
+            <Button
+              onClick={onCancel}
+              variant="outline"
+              className="px-8 py-3 text-lg font-bold uppercase tracking-wider bg-transparent text-white border-2 border-white/50 hover:bg-white/10 transition-all duration-300"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+
+        {/* Payment Instructions */}
+        {paymentStatus === 'waiting' && (
+          <div className="text-sm opacity-75 max-w-sm">
+            Please complete the payment in your wallet to continue. The game will start automatically once payment is confirmed.
+          </div>
+        )}
       </div>
     </div>
   );

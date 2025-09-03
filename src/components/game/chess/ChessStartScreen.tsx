@@ -1,16 +1,38 @@
-import { Button } from '@/components/ui/button';
-import { Play, Users, Coins } from 'lucide-react';
+"use client";
 
+import { Button } from '@/components/ui/button';
+import { Play, Users, Coins, Home, PanelLeft } from 'lucide-react';
 interface ChessStartScreenProps {
   onStartGame: () => void;
   onStartMultiplayer?: () => void;
   onStartBonusMode: () => void;
   onNavigateToBetting?: () => void;
+  onGoToMenu?: () => void;
 }
 
-export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonusMode, onNavigateToBetting }: ChessStartScreenProps) => {
+export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonusMode, onNavigateToBetting, onGoToMenu }: ChessStartScreenProps) => {
   return (
     <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-[200000] p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
+      {/* Menu Buttons */}
+      {onGoToMenu && (
+        <div className="absolute top-4 left-4 z-[200001] flex gap-2">
+          <Button 
+            variant="secondary" 
+            size="icon" 
+            onClick={onGoToMenu}
+            className="h-10 w-10 bg-black/50 hover:bg-black/70 text-white border border-white/20"
+          >
+            <Home className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="secondary" 
+            size="icon" 
+            className="h-10 w-10 bg-black/50 hover:bg-black/70 text-white border border-white/20"
+          >
+            <PanelLeft className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
       {/* Game Title */}
       <div className="text-center">
         <h1 className="text-7xl sm:text-7xl md:text-8xl lg:text-9xl font-headline text-purple-600 uppercase tracking-wider mb-4" style={{ WebkitTextStroke: '0.5px white', textShadow: '0 0 20px rgba(128, 0, 128, 0.5)' }}>

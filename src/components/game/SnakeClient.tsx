@@ -14,8 +14,7 @@ import { errorLogger } from '@/lib/error-logger';
 import { MintSuccessModal } from './MintSuccessModal';
 import { SnakeStartScreen } from './snake/SnakeStartScreen';
 import { SnakeEndGameScreen } from './snake/SnakeEndGameScreen';
-import { PaymentLoadingScreen } from './PaymentLoadingScreen';
-import { WalletConnectionDialog } from './WalletConnectionDialog';
+import PaymentLoadingScreen from './PaymentLoadingScreen';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const GRID_SIZE = 20;
@@ -57,7 +56,7 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     const [isBonusMode, setIsBonusMode] = useState(false);
     const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
     const [paymentTxHash, setPaymentTxHash] = useState<string>('');
-    const [showWalletDialog, setShowWalletDialog] = useState(false);
+    const [showPaymentScreen, setShowPaymentScreen] = useState(false);
 
     const generateFood = useCallback(() => {
         let newFoodPosition: { x: number; y: number };
@@ -153,7 +152,7 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
         const signer = getSigner();
         
         if (!provider || !signer || !account) {
-            setShowWalletDialog(true);
+            alert('Please connect your wallet first');
             return;
         }
 
@@ -178,7 +177,18 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
     };
 
     const handleStartBonusMode = () => {
+        setShowPaymentScreen(true);
+        setShowStartScreen(false);
+    };
+
+    const handlePaymentComplete = () => {
+        setShowPaymentScreen(false);
         handleBonusPayment();
+    };
+
+    const handlePaymentCancel = () => {
+        setShowPaymentScreen(false);
+        setShowStartScreen(true);
     };
 
     const handleShowStartScreen = () => {
@@ -288,30 +298,21 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
 
     useInterval(gameLoop, gameState === 'running' ? GAME_SPEED : null);
 
+    if (showPaymentScreen) {
+        return (
+            <div className="w-full h-full flex flex-col justify-center items-center text-white font-headline relative overflow-hidden">
+                <PaymentLoadingScreen
+                    onPaymentComplete={handlePaymentComplete}
+                    onCancel={handlePaymentCancel}
+                    gameType="snake"
+                    amount="0.1 S"
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col items-center justify-center text-white font-headline animate-fade-in h-full w-full max-w-4xl mx-auto p-4 overflow-hidden touch-none">
-            {/* Payment Loading Screen */}
-            <PaymentLoadingScreen
-                isVisible={isVerifyingPayment}
-                paymentTxHash={paymentTxHash}
-                onCancel={() => {
-                    setIsVerifyingPayment(false);
-                    setPaymentTxHash('');
-                }}
-                onSuccess={() => {
-                    setIsVerifyingPayment(false);
-                    setShowStartScreen(false);
-                }}
-                gameType="snake"
-            />
-            
-            {/* Wallet Connection Dialog */}
-            <WalletConnectionDialog
-                isOpen={showWalletDialog}
-                onClose={() => setShowWalletDialog(false)}
-                gameType="snake"
-                message="Please connect your wallet first to play Pay & Earn mode and earn ARC tokens."
-            />
             {showStartScreen && (
                 <SnakeStartScreen 
                     onStartGame={() => handleStartGame(false)} 

@@ -14,7 +14,9 @@ import { UnoClient } from '@/components/game/UnoClient';
 import { SnakeClient } from '@/components/game/SnakeClient';
 import { ChessClient } from '@/components/game/ChessClient';
 import { MultiplayerChessClient } from '@/components/game/chess/MultiplayerChessClient';
-
+import { PoolClient } from '@/components/game/pool/PoolClient';
+import { PoolStartScreen } from '@/components/game/PoolStartScreen';
+import { PoolEndGameScreen } from '@/components/game/PoolEndGameScreen';
 import { ChessStartScreen } from '@/components/game/ChessStartScreen';
 import { ChessEndGameScreen } from '@/components/game/chess/ChessEndGameScreen';
 import { BettingLobby } from '@/components/game/BettingLobby';
@@ -49,7 +51,7 @@ import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResul
 import { useBetResolver } from '@/lib/bet-resolver';
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'docs' | 'volume-bot';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-betting' | 'pool-betting-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs' | 'volume-bot';
 
 // --- Replicated Page Components ---
 
@@ -146,7 +148,7 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
 
         {/* Game Type Tabs */}
         <div className="flex bg-black/20 rounded-lg p-1 mb-6 max-w-md mx-auto">
-          {(['all', 'chess', 'uno'] as GameType[]).map((gameType) => (
+          {(['all', 'chess', 'uno', 'pool'] as GameType[]).map((gameType) => (
             <button
               key={gameType}
               onClick={() => setSelectedGameType(gameType)}
@@ -514,7 +516,10 @@ export default function HomePage() {
   const [isUnoHost, setIsUnoHost] = useState(false);
   const [simpleGambleGame, setSimpleGambleGame] = useState<SimpleGambleGame | null>(null);
   const [isSimpleGambleHost, setIsSimpleGambleHost] = useState(false);
-
+  const [poolLobby, setPoolLobby] = useState<Lobby | null>(null);
+  const [isPoolHost, setIsPoolHost] = useState(false);
+  const [poolBettingLobby, setPoolBettingLobby] = useState<Lobby | null>(null);
+  const [isPoolBettingHost, setIsPoolBettingHost] = useState(false);
   const [chessBettingLobby, setChessBettingLobby] = useState<Lobby | null>(null);
   const [isChessBettingHost, setIsChessBettingHost] = useState(false);
   const [unoBettingLobby, setUnoBettingLobby] = useState<Lobby | null>(null);
@@ -589,22 +594,22 @@ export default function HomePage() {
     if (view === 'menu') {
       // Only show warning if actually in an active lobby, not just browsing
       const isInActiveLobby = (
-        (['uno-multiplayer', 'chess-multiplayer'].includes(activeView) && 
-         (chessLobby || unoLobby)) ||
-        (['uno-betting', 'chess-betting'].includes(activeView) && 
-         (chessBettingLobby || unoBettingLobby)) ||
+        (['uno-multiplayer', 'chess-multiplayer', 'pool-multiplayer'].includes(activeView) && 
+         (chessLobby || unoLobby || poolLobby)) ||
+        (['uno-betting', 'chess-betting', 'pool-betting'].includes(activeView) && 
+         (chessBettingLobby || unoBettingLobby || poolBettingLobby)) ||
         (['uno-gamble', 'uno-simple-gamble'].includes(activeView) && 
          (simpleGambleGame))
       );
       
       const isInMultiplayerGame = [
-        'uno-multiplayer-game', 'chess-multiplayer-game',
-        'uno-betting-game', 'chess-betting-game',
+        'uno-multiplayer-game', 'chess-multiplayer-game', 'pool-multiplayer-game',
+        'uno-betting-game', 'chess-betting-game', 'pool-betting-game',
         'uno-gamble-game', 'uno-simple-gamble-game'
       ].includes(activeView);
       
       const isInSinglePlayerGame = [
-        'uno', 'chess', 'snake', 'platformer'
+        'uno', 'chess', 'pool', 'snake', 'platformer'
       ].includes(activeView);
       
       if (isInActiveLobby || isInMultiplayerGame || isInSinglePlayerGame) {
@@ -625,10 +630,14 @@ export default function HomePage() {
       setIsChessHost(false);
       setUnoLobby(null);
       setIsUnoHost(false);
+      setPoolLobby(null);
+      setIsPoolHost(false);
       setChessBettingLobby(null);
       setIsChessBettingHost(false);
       setUnoBettingLobby(null);
       setIsUnoBettingHost(false);
+      setPoolBettingLobby(null);
+      setIsPoolBettingHost(false);
       setSimpleGambleGame(null);
       setIsSimpleGambleHost(false);
       
@@ -711,7 +720,64 @@ export default function HomePage() {
     setActiveView('uno-end-game');
   }, []);
 
+  const handlePoolMultiplayerStart = useCallback(() => {
+    console.log('🎮 [MAIN PAGE] Navigating to pool multiplayer lobby');
+    setActiveView('pool-multiplayer');
+  }, []);
 
+  const handlePoolMultiplayerGameStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] Pool multiplayer game starting:', { lobby, isHost });
+    setPoolLobby(lobby);
+    setIsPoolHost(isHost);
+    setActiveView('pool-multiplayer-game');
+  }, []);
+
+  const handlePoolSinglePlayerStart = useCallback(() => {
+    setActiveView('pool-singleplayer-game');
+  }, []);
+
+  const handlePoolMultiplayerEnd = useCallback((gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] Pool multiplayer game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
+    setPoolLobby(null);
+    setIsPoolHost(false);
+    setEndGameData({ game: 'pool', didWin, lobby: poolLobby, gameResult });
+    setActiveView('pool-end-game');
+  }, [account, poolLobby]);
+
+  const handlePoolSinglePlayerEnd = useCallback((didWin: boolean) => {
+    console.log('🏁 [MAIN PAGE] Pool single player game ended');
+    setEndGameData({ game: 'pool', didWin, lobby: null });
+    setActiveView('pool-end-game');
+  }, []);
+
+  // Pool Betting Handlers
+  const handlePoolBettingStart = useCallback((lobby: Lobby, isHost: boolean) => {
+    console.log('🎮 [MAIN PAGE] Pool betting game starting:', { lobby, isHost });
+    setPoolBettingLobby(lobby);
+    setIsPoolBettingHost(isHost);
+    setActiveView('pool-betting-game');
+  }, []);
+
+  const handlePoolBettingEnd = useCallback(async (gameResult: any) => {
+    console.log('🏁 [MAIN PAGE] Pool betting game ended', gameResult);
+    const didWin = gameResult?.winnerId === account;
+    
+    // Resolve bet on smart contract if there's a winner
+    if (poolBettingLobby && gameResult?.winnerAddress) {
+      console.log('💰 [MAIN PAGE] Resolving Pool bet for lobby:', poolBettingLobby.id, 'Winner:', gameResult.winnerAddress);
+      try {
+        await resolveBet(poolBettingLobby.id, gameResult.winnerAddress);
+      } catch (error) {
+        console.error('❌ [MAIN PAGE] Failed to resolve Pool bet:', error);
+      }
+    }
+    
+    setPoolBettingLobby(null);
+    setIsPoolBettingHost(false);
+    setEndGameData({ game: 'pool', didWin, lobby: poolBettingLobby, gameResult });
+    setActiveView('pool-end-game');
+  }, [account, poolBettingLobby, resolveBet]);
 
   // Chess Betting Handlers
   const handleChessBettingStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -783,7 +849,12 @@ export default function HomePage() {
         return 'uno';
       case 'snake':
         return 'snake';
-
+      case 'pool':
+      case 'pool-multiplayer':
+      case 'pool-multiplayer-game':
+      case 'pool-singleplayer':
+      case 'pool-singleplayer-game':
+        return 'pool';
       case 'shop':
         return 'shop';
       default:
@@ -807,7 +878,42 @@ export default function HomePage() {
             />
           </div>
         ) : null;
-
+      case 'pool':
+        return <PoolStartScreen key={`pool-start-${gameKey}-${Date.now()}`} onStartGame={handlePoolSinglePlayerStart} onStartMultiplayer={handlePoolMultiplayerStart} onStartBetting={() => handleNavigate('pool-betting')} onGoToMenu={() => handleNavigate('menu')} />;
+      case 'pool-betting':
+        return <BettingLobby gameType="pool" onStartGame={handlePoolBettingStart} onBackToMenu={() => handleNavigate('pool')} />;
+      case 'pool-betting-game':
+        return poolBettingLobby ? (
+          <div className="w-full h-full">
+            <PoolClient
+              lobby={poolBettingLobby}
+              isHost={isPoolBettingHost}
+              skipStartScreen={true}
+              onGameEnd={handlePoolBettingEnd}
+            />
+          </div>
+        ) : null;
+      case 'pool-multiplayer-game':
+        return poolLobby ? (
+          <div className="w-full h-full">
+            <PoolClient
+              lobby={poolLobby}
+              isHost={isPoolHost}
+              onGameEnd={handlePoolMultiplayerEnd}
+            />
+          </div>
+        ) : null;
+      case 'pool-singleplayer-game':
+        return (
+          <div className="w-full h-full">
+            <PoolClient
+              lobby={null}
+              isHost={true}
+              skipStartScreen={true}
+              onGameEnd={handlePoolSinglePlayerEnd}
+            />
+          </div>
+        );
       case 'pay-uno':
         
       case 'shop':
@@ -910,7 +1016,16 @@ export default function HomePage() {
             />
           </div>
         );
-
+      case 'pool-multiplayer':
+        return (
+          <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-center pt-16">
+            <MultiplayerLobby
+              gameType="pool"
+              onStartGame={handlePoolMultiplayerGameStart}
+              onBackToMenu={() => handleNavigate('menu')}
+            />
+          </div>
+        );
       case 'chess-multiplayer-game':
         return chessLobby ? (
           <div className="w-full h-full">
@@ -933,7 +1048,16 @@ export default function HomePage() {
             onBackToMenu={() => handleNavigate('menu')}
           />
         ) : null;
-
+      case 'pool-end-game':
+        return endGameData ? (
+          <PoolEndGameScreen
+            gameType={endGameData.game}
+            didWin={endGameData.didWin}
+            lobby={endGameData.lobby}
+            onPlayAgain={() => handleNavigate(endGameData.game === 'pool' ? 'pool' : 'menu')}
+            onBackToMenu={() => handleNavigate('menu')}
+          />
+        ) : null;
       case 'leaderboard':
         return <LeaderboardContent onBack={() => handleNavigate('menu')} onNavigate={handleNavigate} />;
       case 'settings':
@@ -993,7 +1117,25 @@ export default function HomePage() {
                          </div>
                     </div>
                   
+                  <div className="animate-fade-in text-center">
+                    <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
+                       <div className="pt-0 sm:pt-1">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-headline text-green-500 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>POOL</h1>
+                        </div>
+                        <div className="relative">
+                           <img src="/pool_icon.png" alt="POOL Game" className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mb-1 object-contain mx-auto drop-shadow-lg" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="absolute top-[50px] right-0 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs sm:text-sm md:text-xs lg:text-sm xl:text-base font-bold text-center flex items-center justify-center w-auto h-auto px-2 py-1">
+                                   COMING SOON
+                               </div>
+                           </div>
+                         </div>
 
+                        <Button onClick={() => handleNavigate('pool')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group mx-auto whitespace-normal leading-tight tracking-wider border border-white">
+                            Play
+                          </Button>
+                         </div>
+                    </div>
 
                   <div className="animate-fade-in text-center">
                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-green-600 to-green-700 text-white shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight tracking-wider">
@@ -1067,23 +1209,6 @@ export default function HomePage() {
                           </div>
                      </div>
 
-                  <div className="animate-fade-in text-center">
-                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-gray-600 to-gray-700 text-white shadow-lg hover:from-gray-500 hover:to-gray-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
-                        <div className="pt-0 sm:pt-1">
-                             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-gray-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>DOCS</h1>
-                         </div>
-                         <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1 flex items-center justify-center">
-                           <svg className="w-full h-full text-gray-300 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
-                             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                           </svg>
-                         </div>
- 
-                         <Button onClick={() => handleNavigate('docs')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-gray-600 to-gray-700 text-white rounded-xl shadow-lg hover:from-gray-500 hover:to-gray-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
-                             View
-                           </Button>
-                          </div>
-                     </div>
-
 
 
                 </div>
@@ -1127,12 +1252,7 @@ export default function HomePage() {
   const showShopHeader = activeView === 'shop';
   const showLeaderboardHeader = activeView === 'leaderboard';
   const showTokenomicsHeader = activeView === 'tokenomics';
-  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader && !showLeaderboardHeader && !showTokenomicsHeader && [
-    'uno', 'chess', 'snake', 'platformer',
-    'uno-betting-game', 'chess-betting-game',
-    'uno-multiplayer-game', 'chess-multiplayer-game',
-    'uno-gamble-game', 'uno-simple-gamble-game'
-  ].includes(activeView);
+  const isGameActive = !showMainMenuHeader && !showMultiplayerHeader && !showShopHeader && !showLeaderboardHeader;
 
   return (
     
@@ -1261,26 +1381,27 @@ export default function HomePage() {
           gameType={(() => {
             if (activeView.includes('chess')) return 'chess';
             if (activeView.includes('uno')) return 'uno';
+            if (activeView.includes('pool')) return 'pool';
             if (activeView.includes('snake')) return 'snake';
             if (activeView.includes('platformer')) return 'platformer';
             return 'game';
           })()}
           isInLobby={(
-            (['uno-multiplayer', 'chess-multiplayer'].includes(activeView) && 
-             (chessLobby || unoLobby)) ||
-            (['uno-betting', 'chess-betting'].includes(activeView) && 
-             (chessBettingLobby || unoBettingLobby)) ||
+            (['uno-multiplayer', 'chess-multiplayer', 'pool-multiplayer'].includes(activeView) && 
+             (chessLobby || unoLobby || poolLobby)) ||
+            (['uno-betting', 'chess-betting', 'pool-betting'].includes(activeView) && 
+             (chessBettingLobby || unoBettingLobby || poolBettingLobby)) ||
             (['uno-gamble', 'uno-simple-gamble'].includes(activeView) && 
              (simpleGambleGame))
           )}
           isInGame={[
-            'uno-multiplayer-game', 'chess-multiplayer-game',
-            'uno-betting-game', 'chess-betting-game',
+            'uno-multiplayer-game', 'chess-multiplayer-game', 'pool-multiplayer-game',
+            'uno-betting-game', 'chess-betting-game', 'pool-betting-game',
             'uno-gamble-game', 'uno-simple-gamble-game',
-            'uno', 'chess', 'snake', 'platformer'
+            'uno', 'chess', 'pool', 'snake', 'platformer'
           ].includes(activeView)}
           isSinglePlayer={[
-            'uno', 'chess', 'snake', 'platformer'
+            'uno', 'chess', 'pool', 'snake', 'platformer'
           ].includes(activeView)}
         />
       </main>
