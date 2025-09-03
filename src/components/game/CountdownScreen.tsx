@@ -25,7 +25,7 @@ export const CountdownScreen: React.FC<CountdownScreenProps> = ({
         };
       case 'snake':
         return {
-          bg: 'bg-gray-800 bg-gradient-to-br from-gray-900 via-gray-700 to-black',
+          bg: 'bg-green-800 bg-gradient-to-br from-green-900 via-green-700 to-lime-900',
           text: 'text-green-400',
           glow: 'shadow-green-400/50',
           border: 'border-green-400/30'

@@ -58,7 +58,7 @@ export const GameLayout = () => {
       case 'menu':
         return (
           <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl p-4">
-            <h1 className="text-6xl md:text-8xl font-headline text-accent uppercase tracking-wider mb-8 text-center" style={{ WebkitTextStroke: '4px black' }}>Sonic Arcade</h1>
+            <h1 className="text-6xl md:text-8xl font-headline text-accent uppercase tracking-wider mb-8 text-center" style={{ WebkitTextStroke: '4px black' }}>Retro Arcade</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               <Button onClick={() => handleNavigate('uno')} size="lg" className="font-headline text-2xl py-8"><Gamepad2 className="mr-2" /> Play UNO</Button>
               <Button onClick={() => handleNavigate('snake')} size="lg" className="font-headline text-2xl py-8"><Gamepad2 className="mr-2" /> Play Snake</Button>
@@ -436,7 +436,7 @@ export default function MainApp() {
         return (
           <div className="w-full max-w-4xl z-10 animate-fade-in">
             <div className="bg-black/50 p-8 rounded-xl">
-              <h1 className="text-8xl font-headline text-accent uppercase tracking-wider mb-4 text-left" style={{ WebkitTextStroke: '4px black' }}>Sonic Arcade</h1>
+              <h1 className="text-8xl font-headline text-accent uppercase tracking-wider mb-4 text-left" style={{ WebkitTextStroke: '4px black' }}>Retro Arcade</h1>
               <p className="text-white/70 mb-12 text-xl">Choose your game and start playing!</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

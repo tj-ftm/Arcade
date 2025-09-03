@@ -474,47 +474,9 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
            </Card>
          )}
          
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+         <div className="grid grid-cols-1 gap-4 md:gap-6">
 
-      <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-accent">Minted Tokens Over Time</CardTitle>
-        </CardHeader>
-        <CardContent className="min-h-[200px] md:min-h-[250px]">
-          {loading ? (
-            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
-              <p className="text-gray-400">Loading chart data...</p>
-            </div>
-          ) : error ? (
-            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
-              <div className="text-center">
-                <p className="text-red-400 mb-2">Chart data unavailable</p>
-                <p className="text-sm text-gray-400">Check console for details</p>
-              </div>
-            </div>
-          ) : chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                <XAxis dataKey="date" stroke="#888" />
-                <YAxis stroke="#888" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#333', border: 'none' }} 
-                  labelStyle={{ color: '#fff' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => [`${value.toFixed(4)} ARC`, 'Minted']}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="minted" stroke="#8884d8" activeDot={{ r: 8 }} name="Minted ARC" />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[200px] md:h-[250px]">
-              <p className="text-gray-400">No minting data available</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
 
       {/* Game Mint Logs Card */}
       <Card className="bg-black/70 backdrop-blur-sm text-white border border-orange-300/20 shadow-xl">

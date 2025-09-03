@@ -367,7 +367,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   return (
     <div className={`w-full h-full flex flex-col items-center justify-center p-4 ${theme.bg} text-white overflow-auto`}>
       <div className="w-full max-w-6xl mx-auto h-full flex flex-col justify-start relative z-20 overflow-auto pb-4 sm:pb-6 pt-20 md:pt-24 lg:pt-28">
-      <div className={`${theme.cardBg} border ${theme.border} rounded-xl p-4 sm:p-6 flex-1 max-h-[85vh] sm:max-h-[90vh] overflow-hidden relative z-10`}>
+      <div className={`${theme.cardBg} border ${theme.border} rounded-xl p-4 sm:p-6 flex-1 min-h-[90vh] sm:min-h-[95vh] overflow-auto relative z-10`}>
         <div className="text-center mb-4 sm:mb-6">
           <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
             {theme.title} Betting

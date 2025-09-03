@@ -361,62 +361,80 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
         )}
       </div>
 
-      {/* Recent Token Mints Section */}
+      {/* Game Tokens & Betting History Section */}
       <div className="w-full max-w-4xl">
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-           {/* Recent Mint Logs */}
+           {/* Game Token Earnings */}
            <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
              <CardHeader>
-               <CardTitle className="text-white">Recent Token Mints</CardTitle>
+               <CardTitle className="text-white">Token Earnings by Game</CardTitle>
              </CardHeader>
              <CardContent className="min-h-[300px]">
                {mintLogsLoading ? (
                  <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">Loading recent mints...</p>
+                   <p className="text-white/70">Loading token data...</p>
                  </div>
                ) : playerMintLogs.length > 0 ? (
                  <ScrollArea className="h-[300px]">
-                   <div className="space-y-2">
-                     {playerMintLogs.slice(0, 10).map((mint) => (
-                       <div key={mint.id} className="bg-black/20 rounded-lg p-3 border border-white/20">
-                         <div className="flex justify-between items-start mb-1">
-                           <div className="flex-1">
-                             <div className="flex items-center gap-2 mb-1">
-                               <span className="text-sm font-semibold text-green-300">
-                                 +{mint.amountFormatted} ARC
-                               </span>
-                               <span className="text-xs bg-blue-600 px-2 py-1 rounded uppercase">
-                                 {mint.gameType}
-                               </span>
-                             </div>
-                             <div className="text-xs text-white/70">
-                               {new Date(mint.timestamp).toLocaleDateString()}
-                             </div>
+                   <div className="space-y-3">
+                     {/* Group tokens by game type */}
+                     {Object.entries(
+                       playerMintLogs.reduce((acc, mint) => {
+                         if (!acc[mint.gameType]) {
+                           acc[mint.gameType] = { total: 0, count: 0, mints: [] };
+                         }
+                         acc[mint.gameType].total += mint.amount;
+                         acc[mint.gameType].count += 1;
+                         acc[mint.gameType].mints.push(mint);
+                         return acc;
+                       }, {} as Record<string, { total: number; count: number; mints: any[] }>)
+                     ).map(([gameType, data]) => (
+                       <div key={gameType} className="bg-black/20 rounded-lg p-4 border border-white/20">
+                         <div className="flex justify-between items-center mb-2">
+                           <div className="flex items-center gap-2">
+                             <span className={`text-xs px-2 py-1 rounded uppercase font-bold ${
+                               gameType === 'uno' ? 'bg-red-600' :
+                               gameType === 'chess' ? 'bg-purple-600' :
+                               gameType === 'snake' ? 'bg-green-600' : 'bg-blue-600'
+                             }`}>
+                               {gameType}
+                             </span>
                            </div>
-                           <a 
-                             href={`https://sonicscan.org/tx/${mint.txHash}`}
-                             target="_blank"
-                             rel="noopener noreferrer"
-                             className="text-xs text-blue-300 hover:text-blue-200 underline"
-                           >
-                             View TX
-                           </a>
+                           <span className="text-lg font-bold text-green-300">
+                             {data.total.toFixed(2)} ARC
+                           </span>
+                         </div>
+                         <div className="text-sm text-white/70">
+                           {data.count} games played • Avg: {(data.total / data.count).toFixed(2)} ARC per game
                          </div>
                        </div>
                      ))}
-                     {playerMintLogs.length > 10 && (
-                       <div className="text-center text-sm text-white/50 mt-2">
-                         Showing latest 10 of {playerMintLogs.length} total mints
-                       </div>
-                     )}
                    </div>
                  </ScrollArea>
                ) : (
                  <div className="flex items-center justify-center h-[300px]">
-                   <p className="text-white/70">No token mints found</p>
+                   <p className="text-white/70">No token earnings found</p>
                  </div>
                )}
+             </CardContent>
+           </Card>
+
+           {/* Betting History */}
+           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
+             <CardHeader>
+               <CardTitle className="text-white">Betting History</CardTitle>
+             </CardHeader>
+             <CardContent className="min-h-[300px]">
+               <ScrollArea className="h-[300px]">
+                 <div className="space-y-3">
+                   {/* Placeholder for betting history - will be populated from Firebase */}
+                   <div className="text-center text-white/70 mt-20">
+                     <p>Betting history coming soon!</p>
+                     <p className="text-sm mt-2">Your betting stats will appear here</p>
+                   </div>
+                 </div>
+               </ScrollArea>
                
                {/* Summary Stats */}
                {playerMintLogs.length > 0 && (

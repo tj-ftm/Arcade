@@ -603,7 +603,7 @@ export default function DocsPage({ onBack }: DocsPageProps) {
           <div className="flex items-center justify-center gap-4 mb-4">
             <Gamepad2 className="w-8 h-8 text-blue-400" />
             <h3 className="text-2xl sm:text-3xl font-headline text-white uppercase tracking-wider" style={{ WebkitTextStroke: '1px black' }}>
-              Sonic Arcade
+              Retro Arcade
             </h3>
             <Users className="w-8 h-8 text-purple-400" />
           </div>

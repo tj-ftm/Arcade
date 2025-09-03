@@ -214,12 +214,21 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
             console.log('🔔 [FIREBASE MULTIPLAYER] Lobby ready with both players:', {
               player1: data.player1Name,
               player2: data.player2Name,
-              lobbyId: lobbyId
+              lobbyId: lobbyId,
+              status: data.status
             });
-            lobbyJoinedCallbacks.forEach(callback => {
-              console.log('📞 [FIREBASE MULTIPLAYER] Calling lobby joined callback for lobby:', lobbyId);
-              callback(updatedLobby);
-            });
+            
+            // Ensure callbacks are called with a small delay to allow state updates
+            setTimeout(() => {
+              lobbyJoinedCallbacks.forEach(callback => {
+                console.log('📞 [FIREBASE MULTIPLAYER] Calling lobby joined callback for lobby:', lobbyId);
+                try {
+                  callback(updatedLobby);
+                } catch (callbackError) {
+                  console.error('❌ [FIREBASE MULTIPLAYER] Error in lobby joined callback:', callbackError);
+                }
+              });
+            }, 100); // Small delay to ensure state consistency
           }
         } else {
           // Lobby was deleted
@@ -236,12 +245,12 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
     }
   };
 
-  const joinLobby = async (lobbyId: string, player2Name: string, player2Id: string) => {
-    console.log('🔄 [JOIN LOBBY] Starting join process:', { lobbyId, player2Name, player2Id, isConnected });
+  const joinLobby = async (lobbyId: string, player2Name: string, player2Id: string, retryCount = 0) => {
+    console.log('🔄 [JOIN LOBBY] Starting join process:', { lobbyId, player2Name, player2Id, isConnected, retryCount });
     
     if (!isConnected) {
       console.error('❌ [JOIN LOBBY] Not connected to Firebase');
-      return;
+      throw new Error('Not connected to Firebase');
     }
 
     try {
@@ -319,6 +328,14 @@ export const useFirebaseMultiplayer = (chain: 'sonic' | 'base' = 'sonic', gameTy
 
     } catch (error) {
       console.error('💥 [JOIN LOBBY] Error joining lobby:', error);
+      
+      // Retry logic for network issues
+      if (retryCount < 3 && (error as any)?.code === 'NETWORK_ERROR') {
+        console.log(`🔄 [JOIN LOBBY] Retrying join (attempt ${retryCount + 1}/3)...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+        return joinLobby(lobbyId, player2Name, player2Id, retryCount + 1);
+      }
+      
       throw error;
     }
   };

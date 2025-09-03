@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useWeb3 } from '../web3/Web3Provider';
+import { ConnectWallet } from '../web3/ConnectWallet';
 import { sendBonusPayment } from '@/lib/payment-verification';
 
 interface PaymentLoadingScreenProps {
@@ -62,8 +63,8 @@ const PaymentLoadingScreen: React.FC<PaymentLoadingScreenProps> = ({
   useEffect(() => {
     const processPayment = async () => {
       if (!account) {
-        setPaymentStatus('failed');
-        setStatusMessage('Please connect your wallet first.');
+        // Don't set failed status, just wait for wallet connection
+        setStatusMessage('Please connect your wallet to continue.');
         return;
       }
 
@@ -182,6 +183,13 @@ const PaymentLoadingScreen: React.FC<PaymentLoadingScreenProps> = ({
         <div className="text-xl md:text-2xl font-semibold">
           {statusMessage}
         </div>
+        
+        {/* Connect Wallet Button */}
+        {!account && (
+          <div className="mt-4">
+            <ConnectWallet />
+          </div>
+        )}
 
         {/* Progress Bar */}
         {paymentStatus === 'waiting' && (
