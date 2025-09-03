@@ -799,25 +799,22 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         onGameEnd();
     };
 
-    // Show loading screen only when waiting for opponent
-    if (!lobby.player2Id) {
+    // Show loading screen
+    if (isLoadingGame || !gameState) {
+        let message = "Starting game...";
+        if (!lobby.player2Id) {
+            message = "Waiting for opponent...";
+        } else if (!gameState && !isHost) {
+            message = "Waiting for host to start game...";
+        } else if (!gameState && isHost) {
+            message = "Initializing game...";
+        }
+            
         return (
             <div className="w-full h-full flex items-center justify-center text-white">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
-                    <p className="text-2xl font-headline">Waiting for opponent...</p>
-                </div>
-            </div>
-        );
-    }
-    
-    // If no game state yet, show basic game interface with placeholder
-    if (!gameState) {
-        return (
-            <div className="w-full h-full flex items-center justify-center text-white">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
-                    <p className="text-2xl font-headline">Game starting...</p>
+                    <p className="text-2xl font-headline">{message}</p>
                 </div>
             </div>
         );
@@ -829,14 +826,15 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     }
 
     // Find current user's player data by matching account ID
-    const player = gameState?.players?.find(p => p.id === account);
-    const opponent = gameState?.players?.find(p => p.id !== account);
-    const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1];
+    const player = gameState?.players?.find(p => p.id === account) || { id: account || '', name: username || 'Player', hand: [], handSize: 0 };
+    const opponent = gameState?.players?.find(p => p.id !== account) || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 };
+    const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1] || { color: 'Red', value: '0' } as UnoCard;
     const currentPlayerId = gameState?.players?.[gameState.activePlayerIndex]?.id;
     const isMyTurn = gameState && currentPlayerId === account;
     const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor)) || false;
 
-    // Removed safety checks - allow game UI to show even with incomplete data
+    // Show game interface even if some data is missing - using fallbacks to prevent blocking
+    // Removed safety checks that were preventing player 2 from seeing the game
 
     // Hand styling function - sophisticated spacing like singleplayer
     const handStyle = (index: number, handSize: number) => {

@@ -602,22 +602,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
 
   return (
     <div className="w-full h-full flex flex-col md:flex-row justify-between items-center text-white font-headline relative overflow-hidden pt-16 md:pt-8 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
-      {!lobby.player2Id ? (
-        <div className="flex flex-col items-center justify-center w-full h-full">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4"></div>
-          <h2 className="text-4xl font-bold mb-4">Waiting for opponent...</h2>
-          <p className="text-lg">Lobby ID: {lobby.id}</p>
-        </div>
-      ) : (
-        // Show game interface even without complete game state
-        <div className="w-full h-full">
-          {!chessGameState ? (
-            <div className="flex flex-col items-center justify-center w-full h-full">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mb-4"></div>
-              <h2 className="text-4xl font-bold mb-4">Game starting...</h2>
-              <p className="text-sm text-white/70 mt-2">Both players connected</p>
-            </div>
-          ) : (
+      {/* Always show game interface - removed loading condition that blocked player 2 */}
+      {true && (
         !showEndGameScreen && (
           <>
             {/* Game Info Sidebar - Hidden on mobile */}
@@ -677,11 +663,9 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
                 </Button>
               )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
 
-      <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative mt-4 md:mt-0">
+          <div className="flex-1 h-full flex flex-col justify-center items-center py-2 relative mt-4 md:mt-0">
             {/* Top Player Name Tag */}
             {chessGameState && (
               <div className={cn(
