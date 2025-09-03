@@ -38,7 +38,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   const gameStartingRef = useRef(false);
   
   const { account, currentChain } = useWeb3();
-  const { onLobbyJoined, startGame, checkForExistingLobby, leaveLobby } = useFirebaseMultiplayer(gameType);
+  const { onLobbyJoined, startGame, checkForExistingLobby, leaveLobby } = useFirebaseMultiplayer(currentChain, gameType);
   
   const currentUserId = account || `guest-${Date.now()}`;
   
@@ -61,19 +61,12 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
   }, [gameType, checkForExistingLobby]);
   
   const handleGameStart = useCallback(async (lobby: Lobby, isHost: boolean) => {
-    // Prevent multiple game starts
-    if (gameStartingRef.current) {
-      console.log('🚫 [MULTIPLAYER LOBBY] Game already starting, ignoring duplicate call');
-      return;
-    }
-    
     console.log('🎯 [MULTIPLAYER LOBBY] Game start triggered:', {
       lobby: lobby,
       isHost: isHost,
       currentUserId: currentUserId
     });
     
-    gameStartingRef.current = true;
     setGameStarting(true);
     
     // Only the host should update the lobby status to 'playing'
@@ -93,8 +86,6 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
     } catch (error) {
       console.error('❌ [MULTIPLAYER LOBBY] Error in onStartGame callback:', error);
     }
-    
-    gameStartingRef.current = false;
   }, [onStartGame, startGame]);
 
   // Set up lobby joined callback for both host and joining player
@@ -118,12 +109,11 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       });
       
       // Trigger for both host and joining player when lobby has both players
-      if ((isHost || isJoiningPlayer) && lobby.player2Id && !gameStartingRef.current) {
+      if ((isHost || isJoiningPlayer) && lobby.player2Id) {
         console.log('🚀 [MULTIPLAYER LOBBY] Conditions met, starting game:', {
           isHost: isHost,
           isJoiningPlayer: isJoiningPlayer,
-          hasPlayer2: !!lobby.player2Id,
-          gameStarting: gameStartingRef.current
+          hasPlayer2: !!lobby.player2Id
         });
         handleGameStart(lobby, isHost);
       } else {

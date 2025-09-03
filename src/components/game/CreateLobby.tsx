@@ -28,7 +28,7 @@ interface CreateLobbyProps {
 
 export function CreateLobby({ gameType, onLobbyCreated, onGameStart, onBackToMenu }: CreateLobbyProps) {
   const { username, account, currentChain } = useWeb3();
-  const { createLobby, leaveLobby, currentLobby, isConnected } = useFirebaseMultiplayer(gameType);
+  const { createLobby, leaveLobby, currentLobby, isConnected } = useFirebaseMultiplayer(currentChain, gameType);
   const [hostName, setHostName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
