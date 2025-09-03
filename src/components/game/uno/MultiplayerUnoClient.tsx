@@ -799,7 +799,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         onGameEnd();
     };
 
-    // Only show loading screen if waiting for player 2 to join
+    // Show loading screen only when waiting for opponent
     if (!lobby.player2Id) {
         return (
             <div className="w-full h-full flex items-center justify-center text-white">
@@ -811,8 +811,17 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         );
     }
     
-    // Show game interface immediately when both players are present
-    // Game state will be initialized in the background
+    // If no game state yet, show basic game interface with placeholder
+    if (!gameState) {
+        return (
+            <div className="w-full h-full flex items-center justify-center text-white">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
+                    <p className="text-2xl font-headline">Game starting...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Check if game has ended and show end screen automatically
     if (gameState.winner && !showEndGameScreen) {
@@ -827,8 +836,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const isMyTurn = gameState && currentPlayerId === account;
     const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor)) || false;
 
-    // Show game interface even if data is not fully loaded yet
-    // This prevents player 2 from getting stuck on loading screens
+    // Removed safety checks - allow game UI to show even with incomplete data
 
     // Hand styling function - sophisticated spacing like singleplayer
     const handStyle = (index: number, handSize: number) => {
