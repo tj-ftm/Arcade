@@ -195,9 +195,10 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   useEffect(() => {
     const unsubscribe = onGameMove((moveData: any) => {
       console.log('📨 [CHESS MULTIPLAYER] Received move data:', moveData);
-      if (moveData.type === 'chess-init' && moveData.gameState) {
+      if ((moveData.type === 'chess-init' || moveData.type === 'chess-update') && moveData.gameState && !chessGameState) {
         console.log('🎮 [CHESS MULTIPLAYER] Receiving initial game state');
         const receivedGameState = moveData.gameState;
+        console.log('🔍 [CHESS MULTIPLAYER] Player assignment - account:', account, 'isHost:', isHost, 'player1:', receivedGameState.player1, 'player2:', receivedGameState.player2);
         setChessGameState(receivedGameState);
         
         // Load the game position from FEN
