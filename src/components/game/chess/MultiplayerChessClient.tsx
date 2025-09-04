@@ -84,7 +84,7 @@ const ChessSquare = ({ piece, square, isLight, onSquareClick, isSelected, isPoss
   return (
     <div
       className={cn(
-        "w-full h-full aspect-square flex items-center justify-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl cursor-pointer transition-all duration-200",
+        "w-full h-full aspect-square flex items-center justify-center text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl cursor-pointer transition-all duration-200",
         isLight ? "bg-purple-200/80" : "bg-purple-800/80",
         isSelected && "ring-4 ring-yellow-400 bg-yellow-200/50",
         isPossibleMove && "ring-2 ring-green-400 bg-green-200/30",
@@ -275,16 +275,14 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   }, [onGameMove, isHost, game, chessGameState]);
 
   const initializeChessGame = () => {
-    // Randomly assign colors - host gets random color, guest gets opposite
-    const hostIsWhite = Math.random() < 0.5;
-    const player1Color = hostIsWhite ? 'w' : 'b';
-    const player2Color = hostIsWhite ? 'b' : 'w';
+    // Fixed assignment: Player 1 (lobby creator) is always white, Player 2 (joiner) is always black
+    const player1Color = 'w'; // Player 1 (lobby creator) is always white
+    const player2Color = 'b'; // Player 2 (joiner) is always black
     
-    console.log('🎨 [CHESS MULTIPLAYER] Color assignment:', {
+    console.log('🎨 [CHESS MULTIPLAYER] Fixed color assignment:', {
       isHost,
-      hostIsWhite,
-      player1Color,
-      player2Color
+      player1Color: 'white (lobby creator)',
+      player2Color: 'black (joiner)'
     });
 
     // Ensure proper player assignment: lobby creator = player1, joiner = player2
@@ -307,8 +305,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
       player1,
       player2,
       currentTurn: 'w', // White always starts
-      activePlayerIndex: player1Color === 'w' ? 0 : 1, // Player with white pieces starts
-      gameLog: ['Game started!', `${player1Color === 'w' ? player1.name : player2.name} (White) goes first!`],
+      activePlayerIndex: 0, // Player 1 (white) always starts first
+      gameLog: ['Game started!', `${player1.name} (White) goes first!`],
       fen: game.fen(),
       moveCount: 0,
       winner: null,
@@ -321,8 +319,8 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     
     // Show initial turn message
     const myColor = isHost ? player1.color : player2.color;
-    const isMyTurn = myColor === 'w'; // White always starts
-    const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
+    const isMyTurn = myColor === 'w'; // White (player 1) always starts
+    const whitePlayerName = player1.name; // Player 1 is always white
     setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
     
     // Send initial game state using chess-update type (same as moves) for immediate visibility
@@ -692,7 +690,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
               </div>
             )}
             
-            <div className="w-full max-w-[95vw] max-h-[95vh] sm:max-w-[90vmin] md:max-w-[85vh] lg:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
+            <div className="w-full max-w-[95vw] max-h-[95vh] sm:max-w-[95vmin] md:max-w-[90vh] lg:max-w-[85vh] xl:max-w-[80vh] aspect-square grid grid-cols-8 grid-rows-8 border-4 border-purple-400 rounded-lg shadow-2xl gap-0 overflow-hidden">
               {(() => {
                 // Determine if board should be flipped (player with black pieces sees their pieces at bottom)
                 const myColor = chessGameState ? (isHost ? chessGameState.player1.color : chessGameState.player2.color) : 'w';

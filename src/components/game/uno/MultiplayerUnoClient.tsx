@@ -677,8 +677,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             
             // Show turn message
             const nextPlayer = newGameState.players[newGameState.activePlayerIndex];
-            const nextPlayerId = newGameState.players[newGameState.activePlayerIndex].id;
-            const isMyNextTurn = nextPlayerId === account;
+            // Check if it's my turn based on host status and active player index
+            const isMyNextTurn = (isHost && newGameState.activePlayerIndex === 0) || (!isHost && newGameState.activePlayerIndex === 1);
             setTimeout(() => {
                 setTurnMessage(isMyNextTurn ? "Your Turn!" : `${nextPlayer.name}'s Turn`);
             }, card.value.startsWith("Draw") || card.value === 'Skip' ? 1600 : 100);
