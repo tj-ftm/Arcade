@@ -358,19 +358,19 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setGameState(initialGameState);
         setGameStartTime(Date.now());
         
-        // Send initial game state using uno-update type (same as card plays) for immediate visibility
+        // Send initial game state using uno-init type for proper handling
         sendGameMove(lobby.id, {
-            type: 'uno-update',
+            type: 'uno-init',
             gameState: initialGameState
         });
-        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-update for immediate player 2 visibility');
+        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-init for proper player 2 setup');
     };
 
     // Listen for game state updates from opponent
     useEffect(() => {
         const unsubscribe = onGameMove((moveData: any) => {
             console.log('📨 [UNO MULTIPLAYER] Received move data:', moveData);
-            if ((moveData.type === 'uno-init' || moveData.type === 'uno-update') && moveData.gameState && !gameState) {
+            if (moveData.type === 'uno-init' && moveData.gameState) {
                 console.log('🎮 [UNO MULTIPLAYER] Non-host receiving initial game state');
                 // For non-host players, we need to adjust the game state
                 const receivedGameState = moveData.gameState;
@@ -406,14 +406,28 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 setIsLoadingGame(false);
                 console.log('✅ [UNO MULTIPLAYER] Game state fully initialized for both players');
             } else if (moveData.type === 'uno-update' && moveData.gameState) {
-                const newGameState = moveData.gameState;
-                setGameState(newGameState);
+                const receivedGameState = moveData.gameState;
+                
+                // For non-host players, adjust the game state to show their own hand
+                if (!isHost) {
+                    const adjustedGameState = {
+                        ...receivedGameState,
+                        playerHand: receivedGameState.players[1].hand, // Non-host gets player2's hand
+                        players: [
+                            receivedGameState.players[0], // Host player (opponent for non-host)
+                            receivedGameState.players[1]  // Non-host player (current player)
+                        ]
+                    };
+                    setGameState(adjustedGameState);
+                } else {
+                    setGameState(receivedGameState);
+                }
                 
                 // Show turn message when receiving opponent's move
-                if (!newGameState.winner) {
-                    const currentPlayer = newGameState.players[newGameState.activePlayerIndex];
-                    const currentPlayerId = newGameState.players[newGameState.activePlayerIndex].id;
-        const isMyTurn = currentPlayerId === account;
+                if (!receivedGameState.winner) {
+                    const currentPlayer = receivedGameState.players[receivedGameState.activePlayerIndex];
+                    const currentPlayerId = receivedGameState.players[receivedGameState.activePlayerIndex].id;
+                    const isMyTurn = currentPlayerId === account;
                     setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                     
                     // Show color change message if opponent played a wild card
@@ -818,10 +832,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     }
 
     // Find current user's player data by matching account ID
-    console.log('🔍 [UNO MULTIPLAYER] Player matching - account:', account, 'gameState players:', gameState?.players?.map(p => ({id: p.id, name: p.name, handSize: p.hand?.length})));
     const player = gameState?.players?.find(p => p.id === account) || { id: account || '', name: username || 'Player', hand: [], handSize: 0 };
     const opponent = gameState?.players?.find(p => p.id !== account) || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 };
-    console.log('🎯 [UNO MULTIPLAYER] Found player:', {id: player.id, name: player.name, handSize: player.hand?.length}, 'opponent:', {id: opponent.id, name: opponent.name, handSize: opponent.handSize});
     const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1] || { color: 'Red', value: '0' } as UnoCard;
     const currentPlayerId = gameState?.players?.[gameState.activePlayerIndex]?.id;
     const isMyTurn = gameState && currentPlayerId === account;

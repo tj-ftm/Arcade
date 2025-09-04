@@ -11,7 +11,7 @@ import { useGameBetting } from '@/lib/game-betting';
 import { useWeb3 } from '@/components/web3/Web3Provider';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebaseBetting } from '@/hooks/use-firebase-betting';
-import SimpleBettingPayment from './SimpleBettingPayment';
+import BettingPaymentScreen from './BettingPaymentScreen';
 
 interface Lobby {
   id: string;
@@ -259,7 +259,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
   // Show payment screen if needed
   if (showPaymentScreen) {
     return (
-      <SimpleBettingPayment
+      <BettingPaymentScreen
         onPaymentComplete={handlePaymentComplete}
         onCancel={handlePaymentCancel}
         gameType={gameType}

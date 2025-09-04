@@ -170,6 +170,12 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
           setProgress(90);
           await createBetTx.wait();
           
+          setStatusMessage('Updating lobby with payment status...');
+          setProgress(95);
+          // Update Firebase lobby to mark player1 as paid
+          // Note: We need to implement updateBettingLobbyPayment function
+          console.log('✅ [BETTING PAYMENT] Payment successful, lobby already created:', lobby.id, 'TxHash:', createBetTx.hash);
+          
           setStatusMessage('Lobby created! Waiting for opponent...');
           setProgress(100);
           setPaymentStatus('waiting_for_player');
@@ -186,7 +192,7 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
           
           setStatusMessage('Joining lobby...');
           setProgress(95);
-          await joinBettingLobby(lobbyToJoin.id, currentUserName, currentUserId);
+          await joinBettingLobby(lobbyToJoin.id, currentUserName, currentUserId, joinBetTx.hash);
           
           setStatusMessage('Successfully joined! Starting game...');
           setProgress(100);

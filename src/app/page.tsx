@@ -121,7 +121,17 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
 
   return (
     <div className="w-full h-full flex flex-col z-10 animate-fade-in">
-      <div className="flex-1 w-full max-w-7xl mx-auto px-2 md:px-4 lg:px-6 pt-4 pb-8"> {/* Combined header and content container */}
+      {/* Header with Navigation */}
+      <header className="absolute top-5 left-0 w-full z-20 p-2 sm:p-4">
+        <div className="flex justify-between items-center w-full">
+          <Button onClick={onBack} variant="secondary" className="font-headline text-lg sm:text-2xl">
+            Main Menu
+          </Button>
+          <MobileSidebar onNavigate={onNavigate} />
+        </div>
+      </header>
+      
+      <div className="flex-1 w-full max-w-7xl mx-auto px-2 md:px-4 lg:px-6 pt-20 pb-8"> {/* Added top padding for header */}
         <div className="mb-6 text-center">
           <h1 className="text-4xl sm:text-6xl font-headline text-white uppercase tracking-wider mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
             Leaderboard
@@ -1331,22 +1341,6 @@ export default function HomePage() {
                              <ConnectWallet />
                          </div>
                          <MobileSidebar onNavigate={handleNavigate} theme="shop" />
-                     </div>
-                </div>
-            </header>
-        )}
-
-         {showLeaderboardHeader && (
-             <header className="w-full z-10 animate-fade-in flex-shrink-0 pt-4 sm:pt-4">
-                <div className="flex justify-between items-center p-3 sm:p-2">
-                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
-                        Main Menu
-                    </Button>
-                    <div className="flex items-center gap-2">
-                         <div className="hidden md:block">
-                             <ConnectWallet />
-                         </div>
-                         <MobileSidebar onNavigate={handleNavigate} theme="leaderboard" />
                      </div>
                 </div>
             </header>

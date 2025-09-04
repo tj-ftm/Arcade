@@ -195,10 +195,9 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   useEffect(() => {
     const unsubscribe = onGameMove((moveData: any) => {
       console.log('📨 [CHESS MULTIPLAYER] Received move data:', moveData);
-      if ((moveData.type === 'chess-init' || moveData.type === 'chess-update') && moveData.gameState && !chessGameState) {
+      if (moveData.type === 'chess-init' && moveData.gameState) {
         console.log('🎮 [CHESS MULTIPLAYER] Receiving initial game state');
         const receivedGameState = moveData.gameState;
-        console.log('🔍 [CHESS MULTIPLAYER] Player assignment - account:', account, 'isHost:', isHost, 'player1:', receivedGameState.player1, 'player2:', receivedGameState.player2);
         setChessGameState(receivedGameState);
         
         // Load the game position from FEN
@@ -326,12 +325,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
     setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
     
-    // Send initial game state using chess-update type (same as moves) for immediate visibility
+    // Send initial game state using chess-init type for proper handling
     sendGameMove(lobby.id, {
-      type: 'chess-update',
+      type: 'chess-init',
       gameState: initialGameState
     });
-    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-update for immediate player 2 visibility');
+    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-init for proper player 2 setup');
   };
 
   const addGameLog = useCallback((message: string) => {

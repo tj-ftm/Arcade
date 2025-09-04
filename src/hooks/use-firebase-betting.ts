@@ -27,8 +27,8 @@ interface BettingLobby {
 interface UseFirebaseBettingReturn {
   isConnected: boolean;
   bettingLobbies: BettingLobby[];
-  createBettingLobby: (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, betAmount: string) => Promise<BettingLobby>;
-  joinBettingLobby: (lobbyId: string, player2Name: string, player2Id: string) => Promise<void>;
+  createBettingLobby: (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, betAmount: string, txHash?: string) => Promise<BettingLobby>;
+  joinBettingLobby: (lobbyId: string, player2Name: string, player2Id: string, txHash?: string) => Promise<void>;
   leaveBettingLobby: (lobbyId: string, playerId?: string) => Promise<void>;
   startBettingGame: (lobbyId: string) => Promise<void>;
   endBettingGame: (lobbyId: string, winnerId: string, winnerName: string, loserId: string, loserName: string) => Promise<void>;
@@ -116,7 +116,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
     return `${prefix}-${pin}`;
   };
 
-  const createBettingLobby = async (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, betAmount: string): Promise<BettingLobby> => {
+  const createBettingLobby = async (gameType: 'chess' | 'uno' | 'pool', player1Name: string, player1Id: string, betAmount: string, txHash?: string): Promise<BettingLobby> => {
     if (!isConnected) throw new Error('Not connected to Firebase');
 
     try {
@@ -137,9 +137,10 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
         expiresAt: expirationTime,
         isGamble: true,
         betAmount,
-        player1Paid: false,
+        player1Paid: !!txHash,
         player2Paid: false,
-        contractDeployed: false,
+        contractDeployed: !!txHash,
+        player1TxHash: txHash,
         chain
       };
 
@@ -179,7 +180,7 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
     }
   };
 
-  const joinBettingLobby = async (lobbyId: string, player2Name: string, player2Id: string): Promise<void> => {
+  const joinBettingLobby = async (lobbyId: string, player2Name: string, player2Id: string, txHash?: string): Promise<void> => {
     if (!isConnected) throw new Error('Not connected to Firebase');
 
     try {
@@ -220,6 +221,8 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
         ...lobbyData,
         player2Id: finalPlayer2Id,
         player2Name: finalPlayer2Name,
+        player2Paid: !!txHash,
+        player2TxHash: txHash,
         status: 'playing', // Change status to playing when both players are present
         lastActivity: serverTimestamp(),
         gameStartTime: serverTimestamp()
