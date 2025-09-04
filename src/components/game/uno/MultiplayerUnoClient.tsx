@@ -389,8 +389,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                     
                     // Show initial turn message for joining player
                     const currentPlayer = adjustedGameState.players[adjustedGameState.activePlayerIndex];
-                    const currentPlayerId = adjustedGameState.players[adjustedGameState.activePlayerIndex].id;
-                    const isMyTurn = currentPlayerId === account;
+                    // Check if it's my turn based on host status and active player index
+                    const isMyTurn = (isHost && adjustedGameState.activePlayerIndex === 0) || (!isHost && adjustedGameState.activePlayerIndex === 1);
                     setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                     console.log('🎯 [UNO MULTIPLAYER] Initial turn message set for joining player:', isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                 } else {
@@ -398,22 +398,38 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                     
                     // Show initial turn message for host
                     const currentPlayer = receivedGameState.players[receivedGameState.activePlayerIndex];
-                    const currentPlayerId = receivedGameState.players[receivedGameState.activePlayerIndex].id;
-                    const isMyTurn = currentPlayerId === account;
+                    // Check if it's my turn based on host status and active player index
+                    const isMyTurn = (isHost && receivedGameState.activePlayerIndex === 0) || (!isHost && receivedGameState.activePlayerIndex === 1);
                     setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                     console.log('🎯 [UNO MULTIPLAYER] Initial turn message set for host:', isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                 }
                 setIsLoadingGame(false);
                 console.log('✅ [UNO MULTIPLAYER] Game state fully initialized for both players');
             } else if (moveData.type === 'uno-update' && moveData.gameState) {
-                const newGameState = moveData.gameState;
-                setGameState(newGameState);
+                console.log('🎮 [UNO MULTIPLAYER] Receiving game state update');
+                const receivedGameState = moveData.gameState;
+                
+                // For non-host players, ensure they see their own hand correctly
+                if (!isHost && !gameState) {
+                    // First time receiving game state as non-host
+                    console.log('🔄 [UNO MULTIPLAYER] Non-host receiving initial game state via uno-update');
+                    const adjustedGameState = {
+                        ...receivedGameState,
+                        playerHand: receivedGameState.players[1].hand, // Non-host gets player2's hand
+                    };
+                    setGameState(adjustedGameState);
+                    setIsLoadingGame(false);
+                    console.log('✅ [UNO MULTIPLAYER] Game state set for non-host player');
+                } else {
+                    // Regular game state update
+                    setGameState(receivedGameState);
+                }
                 
                 // Show turn message when receiving opponent's move
-                if (!newGameState.winner) {
-                    const currentPlayer = newGameState.players[newGameState.activePlayerIndex];
-                    const currentPlayerId = newGameState.players[newGameState.activePlayerIndex].id;
-        const isMyTurn = currentPlayerId === account;
+                if (!receivedGameState.winner) {
+                    const currentPlayer = receivedGameState.players[receivedGameState.activePlayerIndex];
+                    // Check if it's my turn based on host status and active player index
+                    const isMyTurn = (isHost && receivedGameState.activePlayerIndex === 0) || (!isHost && receivedGameState.activePlayerIndex === 1);
                     setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                     
                     // Show color change message if opponent played a wild card
@@ -441,8 +457,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         if (!gameState || gameState.winner) return;
         
         const currentPlayer = gameState.players[gameState.activePlayerIndex];
-        const currentPlayerId = gameState.players[gameState.activePlayerIndex].id;
-        const isMyTurn = currentPlayerId === account;
+        // Check if it's my turn based on host status and active player index
+        const isMyTurn = (isHost && gameState.activePlayerIndex === 0) || (!isHost && gameState.activePlayerIndex === 1);
+        
+        console.log('🎯 [UNO MULTIPLAYER] Turn check:', {
+            isHost,
+            activePlayerIndex: gameState.activePlayerIndex,
+            isMyTurn
+        });
         
         if (!isMyTurn) {
             setTurnMessage("Not your turn!");
@@ -818,11 +840,25 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     }
 
     // Find current user's player data by matching account ID
-    const player = gameState?.players?.find(p => p.id === account) || { id: account || '', name: username || 'Player', hand: [], handSize: 0 };
-    const opponent = gameState?.players?.find(p => p.id !== account) || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 };
+    // For host: player1 is self, player2 is opponent
+    // For non-host: player2 is self, player1 is opponent
+    const player = isHost 
+        ? (gameState?.players?.[0] || { id: account || '', name: username || 'Player', hand: [], handSize: 0 })
+        : (gameState?.players?.[1] || { id: account || '', name: username || 'Player', hand: [], handSize: 0 });
+    const opponent = isHost 
+        ? (gameState?.players?.[1] || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 })
+        : (gameState?.players?.[0] || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 });
+    
+    console.log('🎯 [UNO MULTIPLAYER] Player data:', {
+        isHost,
+        playerName: player.name,
+        playerHandSize: player.hand?.length || 0,
+        opponentName: opponent.name,
+        opponentHandSize: opponent.hand?.length || 0
+    });
     const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1] || { color: 'Red', value: '0' } as UnoCard;
-    const currentPlayerId = gameState?.players?.[gameState.activePlayerIndex]?.id;
-    const isMyTurn = gameState && currentPlayerId === account;
+    // Check if it's my turn based on host status and active player index
+    const isMyTurn = gameState && ((isHost && gameState.activePlayerIndex === 0) || (!isHost && gameState.activePlayerIndex === 1));
     const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor || 'Red')) || false;
 
     // Show game interface even if some data is missing - using fallbacks to prevent blocking
