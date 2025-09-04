@@ -799,22 +799,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         onGameEnd();
     };
 
-    // Show loading screen
-    if (isLoadingGame || !gameState) {
-        let message = "Starting game...";
-        if (!lobby.player2Id) {
-            message = "Waiting for opponent...";
-        } else if (!gameState && !isHost) {
-            message = "Waiting for host to start game...";
-        } else if (!gameState && isHost) {
-            message = "Initializing game...";
-        }
-            
+    // Initialize game state if missing (for joining players)
+    if (!gameState && lobby.player2Id) {
+        // Show a minimal loading state while game initializes
         return (
             <div className="w-full h-full flex items-center justify-center text-white">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
-                    <p className="text-2xl font-headline">{message}</p>
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                    <p className="text-lg font-headline">Joining game...</p>
                 </div>
             </div>
         );

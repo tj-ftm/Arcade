@@ -120,20 +120,8 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
   };
 
   return (
-    <div className="w-full h-full flex flex-col z-10 animate-fade-in bg-gradient-to-br from-blue-600 to-blue-700">
-      <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
-          <div className="flex justify-between items-center w-full">
-              <Button onClick={() => onNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
-                  Main Menu
-              </Button>
-              <div className="flex items-center gap-2">
-                  <ConnectWallet />
-                  <MobileSidebar onNavigate={onNavigate} theme="leaderboard" />
-              </div>
-          </div>
-      </header>
-
-      <div className="flex-1 w-full max-w-7xl mx-auto px-2 md:px-4 lg:px-6 pt-20 pb-8"> {/* Combined header and content container */}
+    <div className="w-full h-full flex flex-col z-10 animate-fade-in">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-2 md:px-4 lg:px-6 pt-4 pb-8"> {/* Combined header and content container */}
         <div className="mb-6 text-center">
           <h1 className="text-4xl sm:text-6xl font-headline text-white uppercase tracking-wider mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
             Leaderboard
@@ -671,11 +659,9 @@ export default function HomePage() {
 
   const handleChessMultiplayerEnd = useCallback((gameResult: any) => {
     console.log('🏁 [MAIN PAGE] Chess multiplayer game ended', gameResult);
-    const didWin = gameResult?.winnerId === account;
     setChessLobby(null);
     setIsChessHost(false);
-    setEndGameData({ game: 'chess', didWin, lobby: chessLobby, gameResult });
-    setActiveView('chess-end-game');
+    setActiveView('menu');
   }, [account, chessLobby]);
 
   const handleUnoMultiplayerStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -687,11 +673,9 @@ export default function HomePage() {
 
   const handleUnoMultiplayerEnd = useCallback((gameResult: any) => {
     console.log('🏁 [MAIN PAGE] UNO multiplayer game ended', gameResult);
-    const didWin = gameResult?.winnerId === account;
     setUnoLobby(null);
     setIsUnoHost(false);
-    setEndGameData({ game: 'uno', didWin, lobby: unoLobby, gameResult });
-    setActiveView('uno-end-game');
+    setActiveView('menu');
   }, [account, unoLobby]);
 
   const handleUnoGambleStart = useCallback((lobby: Lobby, isHost: boolean) => {
@@ -742,11 +726,9 @@ export default function HomePage() {
 
   const handlePoolMultiplayerEnd = useCallback((gameResult: any) => {
     console.log('🏁 [MAIN PAGE] Pool multiplayer game ended', gameResult);
-    const didWin = gameResult?.winnerId === account;
     setPoolLobby(null);
     setIsPoolHost(false);
-    setEndGameData({ game: 'pool', didWin, lobby: poolLobby, gameResult });
-    setActiveView('pool-end-game');
+    setActiveView('menu');
   }, [account, poolLobby]);
 
   const handlePoolSinglePlayerEnd = useCallback((didWin: boolean) => {
@@ -779,8 +761,7 @@ export default function HomePage() {
     
     setPoolBettingLobby(null);
     setIsPoolBettingHost(false);
-    setEndGameData({ game: 'pool', didWin, lobby: poolBettingLobby, gameResult });
-    setActiveView('pool-end-game');
+    setActiveView('menu');
   }, [account, poolBettingLobby, resolveBet]);
 
   // Chess Betting Handlers
@@ -807,8 +788,7 @@ export default function HomePage() {
     
     setChessBettingLobby(null);
     setIsChessBettingHost(false);
-    setEndGameData({ game: 'chess', didWin, lobby: chessBettingLobby, gameResult });
-    setActiveView('chess-end-game');
+    setActiveView('menu');
   }, [account, chessBettingLobby, resolveBet]);
 
   // UNO Betting Handlers
@@ -835,8 +815,7 @@ export default function HomePage() {
     
     setUnoBettingLobby(null);
     setIsUnoBettingHost(false);
-    setEndGameData({ game: 'uno', didWin, lobby: unoBettingLobby, gameResult });
-    setActiveView('uno-end-game');
+    setActiveView('menu');
   }, [account, unoBettingLobby, resolveBet]);
 
   const getSidebarTheme = () => {
@@ -1246,6 +1225,7 @@ export default function HomePage() {
           default:
               return 'bg-background';
           case 'leaderboard':
+              return 'bg-gradient-to-br from-blue-600 to-blue-700';
           case 'settings':
               return 'bg-gradient-to-br from-yellow-500 to-yellow-600';
 
