@@ -113,8 +113,8 @@ const EXCHANGES = [
     url: 'https://equalizer.exchange',
     contracts: {
       v2Router: '0x7635cD591CFE965bE8beC60Da6eA69b6dcD27e4b',
-      v3Router: '0xcC6169aA1E879d3a4227536671F85afdb2d23fAD',
-      factory: '0xDDD9845Ba0D8f38d3045f804f67A1a8B9A528FcC'
+      v2Factory: '0xDDD9845Ba0D8f38d3045f804f67A1a8B9A528FcC',
+      v3Router: '0xcC6169aA1E879d3a4227536671F85afdb2d23fAD'
     }
   },
   { 
@@ -1047,6 +1047,11 @@ export const VolumeBot: React.FC = () => {
           }
           
           const v2Router = new ethers.Contract(exchange.contracts.v2Router, UNISWAP_V2_ROUTER_ABI, signer);
+          
+          // Validate router contract has the required function
+          if (!v2Router.swapExactETHForTokens) {
+            throw new Error(`Router contract for ${exchange.name} does not support swapExactETHForTokens`);
+          }
           
           // Calculate minimum output with slippage protection
           const path = [WETH_ADDRESS, tokenInfo.address];

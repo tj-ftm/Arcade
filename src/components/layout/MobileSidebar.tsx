@@ -32,6 +32,12 @@ export function MobileSidebar({ onNavigate, theme, onShowGameLog, showGameLogBut
         return 'linear-gradient(to bottom right, #166534, #16a34a, #22c55e)';
       case 'shop':
         return 'linear-gradient(to bottom right, #d97706, #f59e0b, #fbbf24)';
+      case 'leaderboard':
+        return 'linear-gradient(to bottom right, #2563eb, #1d4ed8, #1e40af)';
+      case 'profile':
+        return 'linear-gradient(to bottom right, #65a30d, #16a34a, #15803d)';
+      case 'tokenomics':
+        return 'linear-gradient(to bottom right, #fb923c, #f97316, #ea580c)';
       default:
         return 'linear-gradient(to bottom right, #7f1d1d, #991b1b, #dc2626)';
     }

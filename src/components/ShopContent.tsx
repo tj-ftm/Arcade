@@ -462,8 +462,8 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
     setImageLoadStates({}); // Clear image states
     
     try {
-      // Use the correct Paintswap API endpoint for user NFTs
-      const response = await fetch(`https://api.paintswap.finance/userNFTs/${account}`);
+      // Use the correct Paintswap API endpoint for user NFTs with query parameter
+      const response = await fetch(`https://api.paintswap.finance/userNFTs/?user=${account}`);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -474,8 +474,8 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       const data = await response.json();
       console.log('Paintswap API Response:', data);
       
-      // Paintswap API returns an array of NFT objects
-      const nftArray = Array.isArray(data) ? data : [];
+      // Paintswap API can return either a direct array or an object with 'nfts' property
+      const nftArray = Array.isArray(data) ? data : (data.nfts && Array.isArray(data.nfts) ? data.nfts : []);
       console.log(`Found ${nftArray.length} NFTs from Paintswap API`);
       
       if (nftArray.length === 0) {
@@ -486,53 +486,88 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       
       const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' fill='%23D1D5DB' font-family='Arial' font-size='16'%3ENo Image%3C/text%3E%3C/svg%3E";
       
-      // Process NFTs from Paintswap API response
-      const nfts: NFT[] = nftArray.map((item: any, index: number) => {
-        // Paintswap API structure: each item has nft object with metadata
+      // Process NFTs from Paintswap API response and fetch metadata
+      const nfts: NFT[] = [];
+      
+      // Process each NFT and fetch its metadata
+      for (let i = 0; i < nftArray.length; i++) {
+        const item = nftArray[i];
         const nftData = item.nft || item;
         const tokenId = item.tokenId || nftData.tokenId || item.id || 'unknown';
         const contractAddress = item.address || nftData.address || item.contractAddress || 'unknown';
         
-        // Extract image URL from Paintswap API response
-        let imageUrl = null;
-        
-        // Try Paintswap specific image fields first
-        if (nftData.cachedFileUrl) {
-          imageUrl = nftData.cachedFileUrl;
-        } else if (nftData.cached_file_url) {
-          imageUrl = nftData.cached_file_url;
-        } else if (nftData.fileUrl) {
-          imageUrl = nftData.fileUrl;
-        } else if (nftData.file_url) {
-          imageUrl = nftData.file_url;
-        } else if (nftData.image) {
-          imageUrl = nftData.image;
-        } else if (nftData.imageUrl) {
-          imageUrl = nftData.imageUrl;
-        } else if (nftData.image_url) {
-          imageUrl = nftData.image_url;
-        } else if (nftData.metadata?.image) {
-          imageUrl = nftData.metadata.image;
+        try {
+          // Fetch metadata from Paintswap metadata endpoint
+          const metadataResponse = await fetch(`https://api.paintswap.finance/metadata/${contractAddress}/${tokenId}`);
+          let metadata = null;
+          let imageUrl = null;
+          let name = `NFT #${tokenId}`;
+          let description = "No description available";
+          
+          if (metadataResponse.ok) {
+            metadata = await metadataResponse.json();
+            console.log(`Metadata for ${contractAddress}/${tokenId}:`, metadata);
+            
+            // Extract image URL from metadata
+            if (metadata.cachedFileUrl) {
+              imageUrl = metadata.cachedFileUrl;
+            } else if (metadata.cached_file_url) {
+              imageUrl = metadata.cached_file_url;
+            } else if (metadata.fileUrl) {
+              imageUrl = metadata.fileUrl;
+            } else if (metadata.file_url) {
+              imageUrl = metadata.file_url;
+            } else if (metadata.image) {
+              imageUrl = metadata.image;
+            } else if (metadata.imageUrl) {
+              imageUrl = metadata.imageUrl;
+            } else if (metadata.image_url) {
+              imageUrl = metadata.image_url;
+            } else if (metadata.metadata?.image) {
+              imageUrl = metadata.metadata.image;
+            }
+            
+            // Extract name and description
+            name = metadata.name || metadata.title || metadata.metadata?.name || `NFT #${tokenId}`;
+            description = metadata.description || metadata.desc || metadata.metadata?.description || "No description available";
+          } else {
+            console.warn(`Failed to fetch metadata for ${contractAddress}/${tokenId}`);
+          }
+          
+          // Convert IPFS URLs to HTTP if needed
+          if (imageUrl && imageUrl.startsWith('ipfs://')) {
+            const ipfsHash = imageUrl.replace('ipfs://', '');
+            imageUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+          }
+          
+          const nft: NFT = {
+            tokenId: tokenId,
+            contractAddress: contractAddress,
+            name: name,
+            description: description,
+            image: imageUrl || placeholderImage,
+            metadata: { ...item, fetchedMetadata: metadata }
+          };
+          
+          nfts.push(nft);
+        } catch (metadataError) {
+          console.warn(`Error fetching metadata for ${contractAddress}/${tokenId}:`, metadataError);
+          
+          // Create NFT with basic info if metadata fetch fails
+          const nft: NFT = {
+            tokenId: tokenId,
+            contractAddress: contractAddress,
+            name: `NFT #${tokenId}`,
+            description: "Metadata unavailable",
+            image: placeholderImage,
+            metadata: item
+          };
+          
+          nfts.push(nft);
         }
-        
-        // Convert IPFS URLs to HTTP if needed
-        if (imageUrl && imageUrl.startsWith('ipfs://')) {
-          const ipfsHash = imageUrl.replace('ipfs://', '');
-          imageUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
-        }
-        
-        const nft: NFT = {
-          tokenId: tokenId,
-          contractAddress: contractAddress,
-          name: nftData.name || nftData.title || nftData.metadata?.name || `NFT #${tokenId}`,
-          description: nftData.description || nftData.desc || nftData.metadata?.description || "No description available",
-          image: imageUrl || placeholderImage,
-          metadata: item
-        };
-        
-        return nft;
-      });
+      }
       
+      console.log(`Processed ${nfts.length} NFTs with metadata`);
       setOwnedNFTs(nfts);
       setLoading(false);
       
@@ -573,20 +608,7 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
               View Owned NFTs
             </Button>
             
-            <Button 
-              onClick={() => {
-                if (account) {
-                  window.open(`https://sonicscan.org/address/${account}#tokentxnsErc721`, '_blank');
-                } else {
-                  setError('Please connect your wallet first');
-                }
-              }}
-              className="w-full text-sm sm:text-lg h-10 sm:h-12 bg-blue-600 hover:bg-blue-500 rounded-lg font-headline group whitespace-normal leading-tight"
-              size="lg"
-            >
-              <Eye className="mr-2 h-5 w-5" />
-              Inspect on SonicScan
-            </Button>
+
           </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap items-center justify-center gap-4 w-full max-w-xs sm:max-w-none mx-auto">
           <div className="sm:flex-1 animate-fade-in text-center">
@@ -665,18 +687,18 @@ const ShopContent = ({ onBack }: { onBack: () => void }) => {
       
       {/* NFT Modal */}
       {showNFTModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-orange-600 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-yellow-400/50 shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 pt-20">
+          <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-orange-600 rounded-xl max-w-4xl w-full max-h-[85vh] overflow-hidden border border-yellow-400/50 shadow-2xl mt-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-yellow-400/30">
               <h2 className="text-2xl font-bold text-white font-headline uppercase tracking-wider" style={{ WebkitTextStroke: '1px black' }}>Your Owned NFTs</h2>
               <Button
                 onClick={() => setShowNFTModal(false)}
                 variant="ghost"
-                size="sm"
-                className="text-white/70 hover:text-white hover:bg-black/20 rounded-lg"
+                size="lg"
+                className="text-white/70 hover:text-white hover:bg-black/20 rounded-lg p-3"
               >
-                <X className="h-6 w-6" />
+                <X className="h-8 w-8" />
               </Button>
             </div>
             

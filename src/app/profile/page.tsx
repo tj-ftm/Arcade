@@ -251,7 +251,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
   }, [playerMintLogs]);
 
   return (
-    <div className="relative flex flex-col items-center justify-start min-h-screen w-full bg-gradient-to-br from-pink-600 to-purple-700 text-white p-2 sm:p-4 pt-20 sm:pt-8 overflow-auto">
+    <div className="relative flex flex-col items-center justify-start min-h-screen w-full bg-gradient-to-br from-lime-500 to-green-600 text-white p-2 sm:p-4 pt-24 sm:pt-20 overflow-auto">
       <div className="w-full max-w-6xl">
         <div className="flex justify-between items-center mb-4 sm:mb-8">
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-headline">Profile Page</h1>
@@ -267,7 +267,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
 
         {/* Wallet Information */}
         {web3?.account && (
-          <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl mb-6">
+          <Card className="bg-lime-500/20 backdrop-blur-sm text-white border border-lime-400/30 shadow-xl mb-6">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Wallet className="w-5 h-5" />
@@ -366,7 +366,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
            {/* Game Token Earnings */}
-           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
+           <Card className="bg-lime-500/20 backdrop-blur-sm text-white border border-lime-400/30 shadow-xl">
              <CardHeader>
                <CardTitle className="text-white">Token Earnings by Game</CardTitle>
              </CardHeader>
@@ -423,7 +423,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ onBack }) => {
            </Card>
 
            {/* Betting History */}
-           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
+           <Card className="bg-lime-500/20 backdrop-blur-sm text-white border border-lime-400/30 shadow-xl">
              <CardHeader>
                <CardTitle className="text-white">Betting History</CardTitle>
              </CardHeader>

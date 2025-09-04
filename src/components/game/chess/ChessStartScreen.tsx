@@ -12,7 +12,7 @@ interface ChessStartScreenProps {
 
 export const ChessStartScreen = ({ onStartGame, onStartMultiplayer, onStartBonusMode, onNavigateToBetting, onGoToMenu }: ChessStartScreenProps) => {
   return (
-    <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-[200000] p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
+    <div className="absolute inset-0 bg-purple-800 bg-gradient-to-br from-purple-900 via-purple-700 to-indigo-900 flex flex-col items-center justify-center gap-4 animate-fade-in rounded-xl z-10 p-4 sm:p-6 md:p-8 pt-20 md:pt-24 lg:pt-28">
 
       {/* Game Title */}
       <div className="text-center">

@@ -120,7 +120,7 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
   };
 
   return (
-    <div className="w-full h-full flex flex-col z-10 animate-fade-in bg-gradient-to-br from-yellow-500 to-yellow-600">
+    <div className="w-full h-full flex flex-col z-10 animate-fade-in bg-gradient-to-br from-blue-600 to-blue-700">
       <header className="absolute top-5 left-0 w-full z-[100000] px-1 pb-1 sm:px-2 sm:pb-2">
           <div className="flex justify-between items-center w-full">
               <Button onClick={() => onNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
@@ -861,6 +861,12 @@ export default function HomePage() {
         return 'pool';
       case 'shop':
         return 'shop';
+      case 'leaderboard':
+        return 'leaderboard';
+      case 'profile':
+        return 'profile';
+      case 'tokenomics':
+        return 'tokenomics';
       default:
         return undefined;
     }
@@ -1168,13 +1174,13 @@ export default function HomePage() {
                      </div>
 
                   <div className="animate-fade-in text-center">
-                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-pink-600 to-purple-700 text-white shadow-lg hover:from-pink-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
+                     <div className="py-2 px-2 sm:py-3 sm:px-3 pb-3 sm:pb-4 rounded-xl h-full flex flex-col justify-between bg-gradient-to-br from-lime-500 to-green-600 text-white shadow-lg hover:from-lime-400 hover:to-green-500 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight">
                         <div className="pt-0 sm:pt-1">
-                             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-pink-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>PROFILE</h1>
+                             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-headline text-lime-300 uppercase tracking-wider mb-1 sm:mb-2 leading-tight" style={{ WebkitTextStroke: '0.5px white' }}>PROFILE</h1>
                          </div>
                          <img src="/profile_icon.png" alt="Profile" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-1 drop-shadow-lg" />
  
-                         <Button onClick={() => handleNavigate('profile')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-pink-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-pink-500 hover:to-purple-600 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
+                         <Button onClick={() => handleNavigate('profile')} variant="default" size="sm" className="w-full py-2 sm:py-3 text-xs sm:text-sm md:text-base lg:text-base xl:text-lg font-bold bg-gradient-to-br from-lime-500 to-green-600 text-white rounded-xl shadow-lg hover:from-lime-400 hover:to-green-500 transition-all duration-300 ease-in-out transform hover:scale-105 font-headline group whitespace-normal leading-tight border border-white">
                              View
                            </Button>
                           </div>

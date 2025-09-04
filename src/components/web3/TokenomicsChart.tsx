@@ -322,9 +322,9 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
         {/* ARC Contract Address */}
         <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 mb-6 border border-orange-300/20">
           <div className="text-center">
-            <p className="text-sm text-gray-400 mb-2">ARC Token Contract Address (Same on Both Chains)</p>
+            <p className="text-xs sm:text-sm text-gray-400 mb-2">ARC Token Contract Address (Same on Both Chains)</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-              <code className="bg-black/30 px-3 py-1 rounded text-orange-300 font-mono text-sm">
+              <code className="bg-black/30 px-2 py-1 rounded text-orange-300 font-mono text-xs sm:text-sm break-all max-w-full overflow-hidden">
                 {ARC_TOKEN_ADDRESS}
               </code>
               <div className="flex gap-2">
@@ -368,8 +368,8 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
           {/* Sonic Chain Supply */}
           <Card className="bg-black/50 backdrop-blur-sm border border-orange-300/20">
             <CardHeader>
-              <CardTitle className="text-orange-300 text-center text-xl flex items-center justify-center gap-2">
-                <img src="/sonic_icon.png" alt="Sonic" className="w-6 h-6" />
+              <CardTitle className="text-orange-300 text-center text-sm sm:text-lg flex items-center justify-center gap-2">
+                <img src="/sonic_icon.png" alt="Sonic" className="w-4 h-4 sm:w-6 sm:h-6" />
                 Sonic Chain Supply
               </CardTitle>
             </CardHeader>
@@ -380,7 +380,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
                     <div className="h-10 bg-orange-300/20 rounded mb-2"></div>
                   </div>
                 ) : (
-                  <p className="text-3xl font-bold text-orange-300">
+                  <p className="text-xl sm:text-2xl font-bold text-orange-300">
                     {parseFloat(sonicSupply).toLocaleString()} ARC
                   </p>
                 )}
@@ -391,8 +391,8 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
           {/* Base Chain Supply */}
           <Card className="bg-black/50 backdrop-blur-sm border border-blue-300/20">
             <CardHeader>
-              <CardTitle className="text-blue-300 text-center text-xl flex items-center justify-center gap-2">
-                <img src="/base_icon.png" alt="Base" className="w-6 h-6" />
+              <CardTitle className="text-blue-300 text-center text-sm sm:text-lg flex items-center justify-center gap-2">
+                <img src="/base_icon.png" alt="Base" className="w-4 h-4 sm:w-6 sm:h-6" />
                 Base Chain Supply
               </CardTitle>
             </CardHeader>
@@ -403,7 +403,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
                     <div className="h-10 bg-blue-300/20 rounded mb-2"></div>
                   </div>
                 ) : (
-                  <p className="text-3xl font-bold text-blue-300">
+                  <p className="text-xl sm:text-2xl font-bold text-blue-300">
                     {parseFloat(baseSupply).toLocaleString()} ARC
                   </p>
                 )}
@@ -414,7 +414,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
           {/* Total Supply */}
           <Card className="bg-black/50 backdrop-blur-sm border border-green-300/20">
             <CardHeader>
-              <CardTitle className="text-green-300 text-center text-xl">Total Supply</CardTitle>
+              <CardTitle className="text-green-300 text-center text-sm sm:text-lg">Total Supply</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center">
@@ -428,7 +428,7 @@ const TokenomicsChart: React.FC<TokenomicsChartProps> = ({ onBack }) => {
                   </div>
                 ) : (
                   <>
-                    <p className="text-3xl font-bold text-green-300">
+                    <p className="text-xl sm:text-2xl font-bold text-green-300">
                       {parseFloat(totalSupply).toLocaleString()} ARC
                     </p>
                     <p className="text-xs text-gray-400 mt-1">Combined across all chains</p>

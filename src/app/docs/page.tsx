@@ -36,7 +36,7 @@ export default function DocsPage({ onBack }: DocsPageProps) {
         </div>
       </div>
 
-      <div className="w-full h-full max-w-4xl animate-fade-in my-auto mx-auto px-4 py-8">
+      <div className="w-full h-full max-w-4xl animate-fade-in my-auto mx-auto px-4 py-8 pt-24">
         {/* Table of Contents */}
         <div className="mb-12 bg-black/50 rounded-xl p-6 border-2 border-white/20 hover:border-white/40 transition-all duration-300">
           <h2 className="text-3xl sm:text-4xl font-headline text-yellow-500 uppercase tracking-wider mb-6 flex items-center gap-3" style={{ WebkitTextStroke: '1px black' }}>
