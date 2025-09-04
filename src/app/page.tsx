@@ -645,6 +645,12 @@ export default function HomePage() {
     setShowMainMenuConfirmation(false);
   };
   
+  const handleBackToMenu = useCallback(() => {
+    console.log('🔙 [MAIN PAGE] Back to menu from game');
+    setGameKey(prev => prev + 1); // Reset game state
+    setActiveView('menu');
+  }, []);
+
   const handleGameEnd = useCallback((gameType: GameType, didWin: boolean) => {
     setEndGameData({ game: gameType, didWin, lobby: null });
     setActiveView(`${gameType}-end-game`);
@@ -854,7 +860,7 @@ export default function HomePage() {
   const renderContent = () => {
     switch (activeView) {
       case 'uno':
-        return <UnoClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('uno', didWin)} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} onNavigateToBetting={() => handleNavigate('uno-betting')} />;
+        return <UnoClient key={gameKey} onGameEnd={handleBackToMenu} onNavigateToMultiplayer={() => handleNavigate('uno-multiplayer')} onNavigateToBetting={() => handleNavigate('uno-betting')} />;
       case 'uno-betting':
         return <BettingLobby gameType="uno" onStartGame={handleUnoBettingStart} onBackToMenu={() => handleNavigate('uno')} />;
       case 'uno-betting-game':
@@ -908,9 +914,9 @@ export default function HomePage() {
       case 'shop':
          return <ShopContent onBack={() => handleNavigate('menu')} />;
       case 'snake':
-        return <SnakeClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('snake', didWin)} />;
+        return <SnakeClient key={gameKey} onGameEnd={handleBackToMenu} />;
       case 'chess':
-        return <ChessClient key={gameKey} onGameEnd={(didWin) => handleGameEnd('chess', didWin)} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} onNavigateToBetting={() => handleNavigate('chess-betting')} />;
+        return <ChessClient key={gameKey} onGameEnd={handleBackToMenu} onNavigateToMultiplayer={() => handleNavigate('chess-multiplayer')} onNavigateToBetting={() => handleNavigate('chess-betting')} />;
       case 'chess-betting':
         return <BettingLobby gameType="chess" onStartGame={handleChessBettingStart} onBackToMenu={() => handleNavigate('chess')} />;
       case 'chess-betting-game':

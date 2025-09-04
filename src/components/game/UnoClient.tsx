@@ -469,7 +469,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         if (!showEndGameScreen) return; // Prevent multiple calls
         console.log('🔙 [UNO SINGLEPLAYER] Back to menu clicked');
         setShowEndGameScreen(false);
-        // Simple onGameEnd call like multiplayer - let parent handle navigation
+        // Call onGameEnd to go back to main menu
         onGameEnd && onGameEnd();
     };
 
