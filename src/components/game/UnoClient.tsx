@@ -464,6 +464,25 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         setShowStartScreen(true);
     };
 
+    const handleBackToMenu = () => {
+        // Only call onGameEnd once when going back to menu
+        if (!showEndGameScreen) return; // Prevent multiple calls
+        console.log('🔙 [UNO SINGLEPLAYER] Back to menu clicked');
+        setShowEndGameScreen(false);
+        // Reset all game state
+        setGameState(null);
+        setShowStartScreen(true);
+        setHasWon(false);
+        setIsMinting(false);
+        setMintTxHash('');
+        setTokensEarned(0);
+        setIsLoggingGame(false);
+        // Don't call onGameEnd to prevent duplicate screens
+        if (onGameEnd) {
+            onGameEnd();
+        }
+    };
+
     const handleTestWin = async () => {
         if (!gameState) {
             alert('Please start a game first!');
@@ -1205,7 +1224,7 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                 <UnoEndGameScreen
                     hasWon={hasWon}
                     onNewGame={handleNewGame}
-                    onBackToMenu={onGameEnd || (() => {})}
+                    onBackToMenu={handleBackToMenu}
                     isMinting={isMinting}
                     mintTxHash={mintTxHash}
                     tokensEarned={tokensEarned}

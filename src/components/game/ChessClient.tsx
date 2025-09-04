@@ -268,6 +268,27 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
         handleNewGame();
     }, [handleNewGame]);
 
+    const handleBackToMenu = useCallback(() => {
+        // Only call onGameEnd once when going back to menu
+        if (!showEndGameScreen) return; // Prevent multiple calls
+        console.log('🔙 [CHESS SINGLEPLAYER] Back to menu clicked');
+        setShowEndGameScreen(false);
+        // Reset all game state
+        setChess(new Chess());
+        setSelectedSquare(null);
+        setPossibleMoves([]);
+        setShowStartScreen(true);
+        setHasWon(false);
+        setIsMinting(false);
+        setMintTxHash('');
+        setTokensEarned(0);
+        setIsLoggingGame(false);
+        // Don't call onGameEnd to prevent duplicate screens
+        if (onGameEnd) {
+            onGameEnd();
+        }
+    }, [showEndGameScreen, onGameEnd]);
+
     const handleStartMultiplayer = () => {
         console.log("Starting multiplayer Chess game...");
         // Navigate to the multiplayer lobby for chess within the SPA
@@ -584,7 +605,7 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
                 <ChessEndGameScreen
                     hasWon={hasWon}
                     onNewGame={handleNewGame}
-                    onBackToMenu={handleShowStartScreen}
+                    onBackToMenu={handleBackToMenu}
                     isMinting={isMinting}
                     tokensEarned={tokensEarned}
                     mintTxHash={mintTxHash}
