@@ -120,13 +120,23 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
 
   const InnerContent = () => {
     if (card.value === 'Wild' || card.value === 'Draw Four') {
+      const cornerTextSize = size === 'large' ? 'text-lg md:text-xl lg:text-2xl' : 'text-base md:text-lg lg:text-xl';
+      const centerTextSize = size === 'large' ? 'text-xl md:text-2xl lg:text-3xl' : 'text-sm md:text-lg lg:text-xl';
+      const drawFourText = card.value === 'Draw Four' ? '+4' : '';
+      
       return (
         <div className="relative w-full h-full flex items-center justify-center">
           <div className="absolute w-1/2 h-1/2 bg-red-600 top-0 left-0"></div>
           <div className="absolute w-1/2 h-1/2 bg-green-600 top-0 right-0"></div>
           <div className="absolute w-1/2 h-1/2 bg-blue-600 bottom-0 left-0"></div>
           <div className="absolute w-1/2 h-1/2 bg-yellow-500 bottom-0 right-0"></div>
-          <span className="relative text-white font-bold text-sm md:text-lg drop-shadow-lg">{card.value === 'Draw Four' ? '+4' : ''}</span>
+          {card.value === 'Draw Four' && (
+            <>
+              <div className={cn("absolute top-0.5 left-1 md:top-1 md:left-2 font-bold text-white drop-shadow-lg", cornerTextSize)}>+4</div>
+              <div className={cn("absolute bottom-0.5 right-1 md:bottom-1 md:right-2 font-bold text-white drop-shadow-lg transform rotate-180", cornerTextSize)}>+4</div>
+            </>
+          )}
+          <span className={cn("relative text-white font-bold drop-shadow-lg", centerTextSize)}>{drawFourText}</span>
         </div>
       );
     }
@@ -607,10 +617,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 loserAddress
             };
             
-            // Call onGameEnd with game result for gambling integration
-            setTimeout(() => {
-                onGameEnd(gameResult);
-            }, 2000); // Delay to show winner screen first
+            // Don't automatically call onGameEnd - let user click back to menu button
+            // onGameEnd will be called from handleBackToMenu when user clicks the button
         }
         
         // Move to next player (multiple number cards don't have special effects)
@@ -727,10 +735,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 loserAddress
             };
             
-            // Call onGameEnd with game result for gambling integration
-            setTimeout(() => {
-                onGameEnd(gameResult);
-            }, 2000); // Delay to show winner screen first
+            // Don't automatically call onGameEnd - let user click back to menu button
+            // onGameEnd will be called from handleBackToMenu when user clicks the button
         }
         
         // Check for UNO call requirement
@@ -1045,9 +1051,19 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         const isMobile = windowWidth < 768;
         
         if (isMobile) {
-            // Mobile: Use much larger spacing for touch-friendly interaction
-             const spacingMultiplier = 50; // Increased from 40 to 50
-             const maxSpreadLimit = 500; // Increased from 400 to 500
+            // Mobile: Adaptive spacing based on hand size to prevent overflow
+            let spacingMultiplier = 50;
+            let maxSpreadLimit = 500;
+            
+            // Reduce spacing for large hands to prevent overflow
+            if (handSize > 10) {
+                spacingMultiplier = 25;
+                maxSpreadLimit = 300;
+            } else if (handSize > 7) {
+                spacingMultiplier = 35;
+                maxSpreadLimit = 400;
+            }
+            
             const maxSpread = Math.min(handSize * spacingMultiplier, maxSpreadLimit);
             const finalSpread = maxSpread / handSize;
             const startOffset = -(maxSpread / 2) + (finalSpread / 2);

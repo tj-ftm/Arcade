@@ -159,6 +159,19 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
           setPaymentStatus('processing');
           setStatusMessage('Creating lobby...');
           setProgress(65);
+          
+          // Wait for Firebase connection if not connected
+          let retryCount = 0;
+          while (!isConnected && retryCount < 10) {
+            console.log(`🔄 [BETTING PAYMENT] Waiting for Firebase connection, attempt ${retryCount + 1}`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retryCount++;
+          }
+          
+          if (!isConnected) {
+            throw new Error('Failed to connect to Firebase after multiple attempts');
+          }
+          
           const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, betAmount);
           setCurrentLobby(lobby);
           

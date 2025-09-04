@@ -601,14 +601,21 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
             return;
         }
 
-        // Check for multiple cards of the same value
+        // Check for multiple cards of the same number (only number cards, not action cards)
         const player = gameState!.players[0];
-        const sameValueCards = player.hand.filter(c => c.value === card.value && c.value !== 'Wild');
+        const isNumberCard = !['Skip', 'Reverse', 'Draw Two', 'Wild', 'Draw Four'].includes(card.value);
         
-        if (sameValueCards.length > 1 && card.value !== 'Wild') {
-            // Play all cards of the same value
-            playMultipleCards(sameValueCards);
-            return;
+        if (isNumberCard) {
+            const sameNumberCards = player.hand.filter(c => 
+                c.value === card.value && 
+                !['Skip', 'Reverse', 'Draw Two', 'Wild', 'Draw Four'].includes(c.value)
+            );
+            
+            if (sameNumberCards.length > 1) {
+                // Play all cards of the same number with proper color ordering
+                playMultipleCards(sameNumberCards, gameState!.activeColor);
+                return;
+            }
         }
 
         const cardRect = e.currentTarget.getBoundingClientRect();
@@ -624,15 +631,22 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         }, 500);
     };
 
-    const playMultipleCards = (cards: UnoCard[]) => {
+    const playMultipleCards = (cards: UnoCard[], activeColor: UnoColor) => {
         setGameState(prev => {
             if (!prev) return null;
             let newState: UnoGameState = JSON.parse(JSON.stringify(prev));
             const playerIndex = newState.activePlayerIndex;
             const currentPlayer = newState.players[playerIndex];
 
-            // Remove all matching cards from hand
-            cards.forEach(card => {
+            // Sort cards to play matching color first, then others
+            const sortedCards = [...cards].sort((a, b) => {
+                if (a.color === activeColor && b.color !== activeColor) return -1;
+                if (a.color !== activeColor && b.color === activeColor) return 1;
+                return 0;
+            });
+
+            // Remove all matching cards from hand and add to discard pile in correct order
+            sortedCards.forEach(card => {
                 const cardIdx = currentPlayer.hand.findIndex((c: UnoCard) => 
                     c.value === card.value && c.color === card.color
                 );
@@ -642,8 +656,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
                 }
             });
 
-            // Set active color to the last card played
-            const lastCard = cards[cards.length - 1];
+            // Set active color to the last card played (which should be the matching color if available)
+            const lastCard = sortedCards[sortedCards.length - 1];
             newState.activeColor = lastCard.color;
             
             const playerName = currentPlayer.id === 'player' ? 'You' : 'Bot';
