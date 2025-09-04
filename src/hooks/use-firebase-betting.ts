@@ -51,13 +51,20 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
   const mountedRef = useRef(true);
 
   useEffect(() => {
-    // Try to connect to Firebase
-    try {
-      if (!database) {
-        console.warn('Firebase not configured. Betting features disabled.');
-        setIsConnected(false);
-        return;
-      }
+    // Try to connect to Firebase with retry logic
+    const connectToFirebase = async () => {
+      try {
+        if (!database) {
+          console.warn('Firebase not configured. Betting features disabled.');
+          setIsConnected(false);
+          // Retry connection after 2 seconds
+          setTimeout(() => {
+            if (database) {
+              connectToFirebase();
+            }
+          }, 2000);
+          return;
+        }
 
       // Listen to chain and game-specific betting lobbies
       const collectionPath = gameType ? 
@@ -87,12 +94,20 @@ export const useFirebaseBetting = (chain: 'sonic' | 'base' = 'sonic', gameType?:
       setIsConnected(true);
 
       return () => {
-        unsubscribeLobbies();
-      };
-    } catch (error) {
-      console.error('Error connecting to Firebase for betting:', error);
-      setIsConnected(false);
-    }
+          unsubscribeLobbies();
+        };
+      } catch (error) {
+        console.error('Error connecting to Firebase:', error);
+        setIsConnected(false);
+        // Retry connection after 3 seconds on error
+        setTimeout(() => {
+          connectToFirebase();
+        }, 3000);
+      }
+    };
+    
+    // Initial connection attempt
+    connectToFirebase();
   }, [chain, gameType]);
 
   const generateBettingLobbyId = (gameType: 'chess' | 'uno' | 'pool'): string => {

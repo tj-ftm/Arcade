@@ -156,6 +156,7 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
         }
         
         if (mode === 'create') {
+          setPaymentStatus('processing');
           setStatusMessage('Creating lobby...');
           setProgress(65);
           const lobby = await createBettingLobby(gameType, currentUserName, currentUserId, betAmount);
@@ -174,6 +175,7 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
           setPaymentStatus('waiting_for_player');
           
         } else if (mode === 'join' && lobbyToJoin) {
+          setPaymentStatus('processing');
           setStatusMessage('Joining blockchain bet...');
           setProgress(70);
           const joinBetTx = await service.joinBet(lobbyToJoin.id);

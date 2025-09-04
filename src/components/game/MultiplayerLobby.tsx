@@ -134,7 +134,7 @@ export function MultiplayerLobby({ gameType, onStartGame, onBackToMenu }: Multip
       console.log('🔇 [MULTIPLAYER LOBBY] Unsubscribing from lobby joined listener');
       unsubscribe();
     };
-  }, [currentUserId, onLobbyJoined]);
+  }, [currentUserId, onLobbyJoined, handleGameStart]);
   
   // Cleanup timeout on unmount
   useEffect(() => {

@@ -154,7 +154,9 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         }
       } else {
         console.error(`Failed to switch to ${chain} network`, switchError);
-        throw switchError;
+        // Don't throw the error, just log it and continue
+        // This prevents the betting flow from breaking due to network switch failures
+        console.warn(`Continuing without network switch. Current network may not be ${chain}.`);
       }
     }
   }

@@ -51,17 +51,17 @@ import { GameStatistics, type LeaderboardEntry, type PlayerStats, type GameResul
 import { useBetResolver } from '@/lib/bet-resolver';
 
 
-type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-betting' | 'pool-betting-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs' | 'volume-bot';
+type View = 'menu' | 'uno' | 'snake' | 'chess' | 'multiplayer' | 'leaderboard' | 'settings' | 'pay-uno' | 'shop' | 'uno-multiplayer' | 'uno-multiplayer-game' | 'uno-betting' | 'uno-betting-game' | 'uno-gamble' | 'uno-gamble-game' | 'uno-simple-gamble' | 'uno-simple-gamble-game' | 'chess-multiplayer' | 'chess-multiplayer-game' | 'chess-betting' | 'chess-betting-game' | 'platformer' | 'tokenomics' | 'profile' | 'pool' | 'pool-multiplayer' | 'pool-multiplayer-game' | 'pool-betting' | 'pool-betting-game' | 'pool-singleplayer' | 'pool-singleplayer-game' | 'docs' | 'volume-bot' | 'chess-end-game' | 'uno-end-game' | 'snake-end-game' | 'all-end-game';
 
 // --- Replicated Page Components ---
 
 // Simplified UI components for consistency
-const Badge = ({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'secondary' | 'outline' }) => (
+const Badge = ({ children, variant = 'default', className }: { children: React.ReactNode; variant?: 'default' | 'secondary' | 'outline'; className?: string }) => (
   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
     variant === 'outline' ? 'border border-white/30 text-white/80' :
     variant === 'secondary' ? 'bg-gray-600 text-white' :
     'bg-blue-600 text-white'
-  }`}>{children}</span>
+  } ${className || ''}`}>{children}</span>
 );
 
 type GameType = 'all' | 'chess' | 'uno' | 'snake';
@@ -81,7 +81,7 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
     setError(null);
     try {
       // Load leaderboard
-      const gameTypeFilter = selectedGameType === 'all' ? undefined : selectedGameType;
+      const gameTypeFilter = selectedGameType === 'all' || selectedGameType === 'snake' ? undefined : selectedGameType as 'chess' | 'uno';
       const leaderboardData = await GameStatistics.getLeaderboard(gameTypeFilter, 10);
       setLeaderboard(leaderboardData);
 
@@ -91,7 +91,7 @@ const LeaderboardContent = ({ onBack, onNavigate }: { onBack: () => void; onNavi
 
       // Load player stats for current user (if available)
       if (account) {
-        const playerStatsData = await GameStatistics.getPlayerStats(account, username);
+        const playerStatsData = await GameStatistics.getPlayerStats(account, username || undefined);
         setPlayerStats(playerStatsData);
       }
     } catch (error) {
@@ -525,7 +525,7 @@ export default function HomePage() {
   const [unoBettingLobby, setUnoBettingLobby] = useState<Lobby | null>(null);
   const [isUnoBettingHost, setIsUnoBettingHost] = useState(false);
   const [showChessGameLog, setShowChessGameLog] = useState(false);
-  const [endGameData, setEndGameData] = useState<{ game: GameType; didWin: boolean; lobby: Lobby | null } | null>(null);
+  const [endGameData, setEndGameData] = useState<{ game: GameType; didWin: boolean; lobby: Lobby | null; gameResult?: any } | null>(null);
   const [showMainMenuConfirmation, setShowMainMenuConfirmation] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<View | null>(null);
   const isMobile = useIsMobile();

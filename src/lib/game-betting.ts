@@ -104,10 +104,16 @@ export class GameBettingService {
   async checkAllowance(userAddress: string, amount: string): Promise<boolean> {
     if (!this.arcTokenContract) throw new Error('Not initialized');
     
-    const allowance = await this.arcTokenContract.allowance(userAddress, GAME_BETTING_CONTRACT_ADDRESS);
-    const amountWei = ethers.parseEther(amount);
-    
-    return allowance >= amountWei;
+    try {
+      const allowance = await this.arcTokenContract.allowance(userAddress, GAME_BETTING_CONTRACT_ADDRESS);
+      const amountWei = ethers.parseEther(amount);
+      
+      return allowance >= amountWei;
+    } catch (error) {
+      console.error('Error checking allowance:', error);
+      // If allowance check fails, assume no allowance and require approval
+      return false;
+    }
   }
 
   // Approve tokens for betting
