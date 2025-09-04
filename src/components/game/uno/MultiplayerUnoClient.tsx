@@ -98,7 +98,7 @@ const calculateUnoScore = (hand: UnoCard[]): number => {
   }, 0);
 };
 
-const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal' }: { card: UnoCard, isPlayer: boolean, onClick?: (e: React.MouseEvent) => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large' }) => {
+const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style, size = 'normal', handSize = 7 }: { card: UnoCard, isPlayer: boolean, onClick?: (e: React.MouseEvent) => void, isPlayable: boolean, isLastCard?: boolean, style?: React.CSSProperties, size?: 'normal' | 'large', handSize?: number }) => {
   const colorClasses: Record<UnoColor | 'Wild', string> = {
     Red: 'bg-red-600',
     Green: 'bg-green-600',
@@ -107,10 +107,32 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
     Wild: 'bg-black',
   };
 
-  const sizeClasses = {
-      normal: 'w-[18vw] max-w-[100px] md:max-w-[90px] min-w-[60px] md:min-w-[60px] h-auto aspect-[5/7]', // Increased mobile size
-      large: 'w-[22vw] max-w-[130px] md:max-w-[120px] min-w-[80px] md:min-w-[80px] h-auto aspect-[5/7]', // Increased mobile size
-  }
+  // Dynamic sizing based on hand size for mobile
+  const getDynamicSizeClass = () => {
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) {
+      return size === 'large' 
+        ? 'w-[22vw] max-w-[130px] md:max-w-[120px] min-w-[80px] md:min-w-[80px] h-auto aspect-[5/7]'
+        : 'w-[18vw] max-w-[100px] md:max-w-[90px] min-w-[60px] md:min-w-[60px] h-auto aspect-[5/7]';
+    }
+    
+    // Mobile dynamic sizing
+    if (handSize > 12) {
+      return size === 'large' 
+        ? 'w-[12vw] max-w-[70px] min-w-[45px] h-auto aspect-[5/7]'
+        : 'w-[10vw] max-w-[60px] min-w-[40px] h-auto aspect-[5/7]';
+    } else if (handSize > 8) {
+      return size === 'large' 
+        ? 'w-[16vw] max-w-[90px] min-w-[55px] h-auto aspect-[5/7]'
+        : 'w-[14vw] max-w-[80px] min-w-[50px] h-auto aspect-[5/7]';
+    } else {
+      return size === 'large' 
+        ? 'w-[22vw] max-w-[130px] min-w-[80px] h-auto aspect-[5/7]'
+        : 'w-[18vw] max-w-[100px] min-w-[60px] h-auto aspect-[5/7]';
+    }
+  };
+  
+  const dynamicSizeClass = getDynamicSizeClass();
 
   const cardStyle = {
     ...style,
@@ -120,23 +142,19 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
 
   const InnerContent = () => {
     if (card.value === 'Wild' || card.value === 'Draw Four') {
-      const cornerTextSize = size === 'large' ? 'text-lg md:text-xl lg:text-2xl' : 'text-base md:text-lg lg:text-xl';
-      const centerTextSize = size === 'large' ? 'text-xl md:text-2xl lg:text-3xl' : 'text-sm md:text-lg lg:text-xl';
-      const drawFourText = card.value === 'Draw Four' ? '+4' : '';
-      
       return (
         <div className="relative w-full h-full flex items-center justify-center">
           <div className="absolute w-1/2 h-1/2 bg-red-600 top-0 left-0"></div>
           <div className="absolute w-1/2 h-1/2 bg-green-600 top-0 right-0"></div>
           <div className="absolute w-1/2 h-1/2 bg-blue-600 bottom-0 left-0"></div>
           <div className="absolute w-1/2 h-1/2 bg-yellow-500 bottom-0 right-0"></div>
+          <span className="relative text-white font-bold text-sm md:text-lg drop-shadow-lg">{card.value === 'Draw Four' ? '+4' : ''}</span>
           {card.value === 'Draw Four' && (
             <>
-              <div className={cn("absolute top-0.5 left-1 md:top-1 md:left-2 font-bold text-white drop-shadow-lg", cornerTextSize)}>+4</div>
-              <div className={cn("absolute bottom-0.5 right-1 md:bottom-1 md:right-2 font-bold text-white drop-shadow-lg transform rotate-180", cornerTextSize)}>+4</div>
+              <div className="absolute top-0.5 left-1 md:top-1 md:left-2 text-white font-bold text-xs md:text-sm drop-shadow-lg">+4</div>
+              <div className="absolute bottom-0.5 right-1 md:bottom-1 md:right-2 text-white font-bold text-xs md:text-sm drop-shadow-lg transform rotate-180">+4</div>
             </>
           )}
-          <span className={cn("relative text-white font-bold drop-shadow-lg", centerTextSize)}>{drawFourText}</span>
         </div>
       );
     }
@@ -159,7 +177,7 @@ const CardComponent = ({ card, isPlayer, onClick, isPlayable, isLastCard, style,
         "rounded-lg flex items-center justify-center text-white relative border-2 md:border-4 border-white/80",
         onClick ? "cursor-pointer" : "cursor-default",
         colorClasses[card.color],
-        sizeClasses[size],
+        dynamicSizeClass,
          "transition-transform duration-300 ease-out",
         isPlayer && "hover:-translate-y-4 hover:scale-110 z-0 hover:z-20"
       )}
@@ -503,8 +521,15 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 .filter(({ card: c }) => c.value === card.value && !['Skip', 'Reverse', 'Draw Two', 'Wild', 'Draw Four'].includes(c.value));
             
             if (sameNumberCards.length > 1) {
-                // Play all cards of the same number
-                playMultipleCards(sameNumberCards.map(c => c.index), card.color);
+                // Sort cards to put matching color first, then others
+                const sortedCards = sameNumberCards.sort((a, b) => {
+                    if (a.card.color === gameState.activeColor && b.card.color !== gameState.activeColor) return -1;
+                    if (b.card.color === gameState.activeColor && a.card.color !== gameState.activeColor) return 1;
+                    return 0;
+                });
+                
+                // Play all cards of the same number with proper ordering
+                playMultipleCards(sortedCards.map(c => c.index), sortedCards);
                 return;
             }
         }
@@ -512,17 +537,19 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         playCard(cardIndex, card.color);
     };
 
-    const playMultipleCards = (cardIndices: number[], chosenColor?: UnoColor) => {
+    const playMultipleCards = (cardIndices: number[], sortedCards: { card: UnoCard, index: number }[]) => {
         if (!gameState) return;
         
         const currentPlayer = gameState.players[gameState.activePlayerIndex];
-        const cards = cardIndices.map(i => currentPlayer.hand[i]);
-        const firstCard = cards[0];
+        const cards = sortedCards.map(sc => sc.card);
+        const firstCard = cards[0]; // This should be the matching color card
         
         console.log('🎴 [UNO MULTIPLAYER] Playing multiple cards:', {
             count: cards.length,
             value: firstCard.value,
-            indices: cardIndices
+            indices: cardIndices,
+            firstCardColor: firstCard.color,
+            activeColor: gameState.activeColor
         });
         
         // Create flying card animations for all cards
@@ -557,8 +584,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         // Add all cards to discard pile
         newGameState.discardPile = [...gameState.discardPile, ...cards];
         
-        // Set active color
-        newGameState.activeColor = chosenColor || firstCard.color;
+        // Set active color to the first card's color (which should match current active color)
+        newGameState.activeColor = firstCard.color;
         
         // Add to game log
         newGameState.gameLog = [...gameState.gameLog, `${currentPlayer.name} played ${cards.length}x ${firstCard.value} ${firstCard.color}`];
@@ -617,8 +644,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 loserAddress
             };
             
-            // Don't automatically call onGameEnd - let user click back to menu button
-            // onGameEnd will be called from handleBackToMenu when user clicks the button
+            // Don't automatically call onGameEnd - let user choose via buttons
+            // onGameEnd will be called from handleBackToMenu or handleNewGame
         }
         
         // Move to next player (multiple number cards don't have special effects)
@@ -735,8 +762,8 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 loserAddress
             };
             
-            // Don't automatically call onGameEnd - let user click back to menu button
-            // onGameEnd will be called from handleBackToMenu when user clicks the button
+            // Don't automatically call onGameEnd - let user choose via buttons
+            // onGameEnd will be called from handleBackToMenu or handleNewGame
         }
         
         // Check for UNO call requirement
@@ -1051,15 +1078,15 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         const isMobile = windowWidth < 768;
         
         if (isMobile) {
-            // Mobile: Adaptive spacing based on hand size to prevent overflow
+            // Mobile: Dynamic spacing and sizing based on hand size to prevent overflow
             let spacingMultiplier = 50;
             let maxSpreadLimit = 500;
             
-            // Reduce spacing for large hands to prevent overflow
-            if (handSize > 10) {
+            // Adjust spacing and card size for large hands
+            if (handSize > 12) {
                 spacingMultiplier = 25;
                 maxSpreadLimit = 300;
-            } else if (handSize > 7) {
+            } else if (handSize > 8) {
                 spacingMultiplier = 35;
                 maxSpreadLimit = 400;
             }
@@ -1198,6 +1225,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                                         isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState?.activeColor || 'Red')}
                                         isLastCard={(displayPlayer.hand?.length || 0) === 1}
                                         size={windowWidth < 768 ? 'large' : 'normal'}
+                                        handSize={displayPlayer.hand?.length || 0}
                                     />
                                 )}
                             </div>
