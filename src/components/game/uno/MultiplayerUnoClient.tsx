@@ -552,14 +552,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             activeColor: gameState.activeColor
         });
         
-        // Create flying card animations for all cards
+        // Create flying card animations for all cards using correct indices
         if (playerHandRef.current) {
-            cardIndices.forEach((cardIndex, i) => {
-                const cardElement = playerHandRef.current?.children[cardIndex] as HTMLElement;
+            sortedCards.forEach((sortedCard, i) => {
+                const cardElement = playerHandRef.current?.children[sortedCard.index] as HTMLElement;
                 if (cardElement) {
                     setTimeout(() => {
                         setFlyingCard({
-                            card: cards[i],
+                            card: sortedCard.card,
                             startRect: cardElement.getBoundingClientRect()
                         });
                         setTimeout(() => setFlyingCard(null), 600);
@@ -574,18 +574,20 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         newCurrentPlayer.hand = [...currentPlayer.hand];
         
         // Remove all played cards (sort indices in descending order to avoid index shifting)
-        const sortedIndices = [...cardIndices].sort((a, b) => b - a);
+        const sortedIndices = sortedCards.map(sc => sc.index).sort((a, b) => b - a);
         sortedIndices.forEach(index => {
             newCurrentPlayer.hand.splice(index, 1);
         });
         
         newGameState.players[gameState.activePlayerIndex] = newCurrentPlayer;
         
-        // Add all cards to discard pile
+        // Add cards to discard pile in correct order: matching color card first, then others
+        // This ensures the top card (last in array) is the one that determines next play
         newGameState.discardPile = [...gameState.discardPile, ...cards];
         
-        // Set active color to the first card's color (which should match current active color)
-        newGameState.activeColor = firstCard.color;
+        // Set active color to the last card's color (the top card on the pile)
+        const topCard = cards[cards.length - 1];
+        newGameState.activeColor = topCard.color;
         
         // Add to game log
         newGameState.gameLog = [...gameState.gameLog, `${currentPlayer.name} played ${cards.length}x ${firstCard.value} ${firstCard.color}`];
