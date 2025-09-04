@@ -1336,6 +1336,22 @@ export default function HomePage() {
             </header>
         )}
 
+         {showLeaderboardHeader && (
+             <header className="w-full z-10 animate-fade-in flex-shrink-0 pt-4 sm:pt-4">
+                <div className="flex justify-between items-center p-3 sm:p-2">
+                    <Button onClick={() => handleNavigate('menu')} variant="ghost" size="lg" className="text-white/70 hover:text-white hover:bg-white/10 font-headline text-xl justify-start">
+                        Main Menu
+                    </Button>
+                    <div className="flex items-center gap-2">
+                         <div className="hidden md:block">
+                             <ConnectWallet />
+                         </div>
+                         <MobileSidebar onNavigate={handleNavigate} theme="leaderboard" />
+                     </div>
+                </div>
+            </header>
+        )}
+
 
 
          {isGameActive && activeView !== 'platformer' && !showMultiplayerHeader && (

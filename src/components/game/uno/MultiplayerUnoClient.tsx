@@ -370,7 +370,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     useEffect(() => {
         const unsubscribe = onGameMove((moveData: any) => {
             console.log('📨 [UNO MULTIPLAYER] Received move data:', moveData);
-            if (moveData.type === 'uno-init' && moveData.gameState) {
+            if ((moveData.type === 'uno-init' || moveData.type === 'uno-update') && moveData.gameState && !gameState) {
                 console.log('🎮 [UNO MULTIPLAYER] Non-host receiving initial game state');
                 // For non-host players, we need to adjust the game state
                 const receivedGameState = moveData.gameState;
@@ -818,8 +818,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     }
 
     // Find current user's player data by matching account ID
+    console.log('🔍 [UNO MULTIPLAYER] Player matching - account:', account, 'gameState players:', gameState?.players?.map(p => ({id: p.id, name: p.name, handSize: p.hand?.length})));
     const player = gameState?.players?.find(p => p.id === account) || { id: account || '', name: username || 'Player', hand: [], handSize: 0 };
     const opponent = gameState?.players?.find(p => p.id !== account) || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 };
+    console.log('🎯 [UNO MULTIPLAYER] Found player:', {id: player.id, name: player.name, handSize: player.hand?.length}, 'opponent:', {id: opponent.id, name: opponent.name, handSize: opponent.handSize});
     const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1] || { color: 'Red', value: '0' } as UnoCard;
     const currentPlayerId = gameState?.players?.[gameState.activePlayerIndex]?.id;
     const isMyTurn = gameState && currentPlayerId === account;
