@@ -839,6 +839,9 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setShowEndGameScreen(true); // Show end screen immediately
     }
 
+    // Check if game has actually started (player 1 has made a move)
+    const gameHasStarted = gameState && gameState.discardPile.length > 1;
+    
     // Find current user's player data by matching account ID
     // For host: player1 is self, player2 is opponent
     // For non-host: player2 is self, player1 is opponent
@@ -849,17 +852,31 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         ? (gameState?.players?.[1] || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 })
         : (gameState?.players?.[0] || { id: 'opponent', name: 'Opponent', hand: [], handSize: 0 });
     
+    // For joining player, show card backs until game starts
+    const displayPlayer = (!isHost && !gameHasStarted) 
+        ? { ...player, hand: Array(7).fill({ color: 'Red', value: '0' }), handSize: 7 }
+        : player;
+    const displayOpponent = (!isHost && !gameHasStarted)
+        ? { ...opponent, hand: Array(7).fill({ color: 'Red', value: '0' }), handSize: 7 }
+        : opponent;
+    
     console.log('🎯 [UNO MULTIPLAYER] Player data:', {
         isHost,
-        playerName: player.name,
-        playerHandSize: player.hand?.length || 0,
-        opponentName: opponent.name,
-        opponentHandSize: opponent.hand?.length || 0
+        gameHasStarted,
+        playerName: displayPlayer.name,
+        playerHandSize: displayPlayer.hand?.length || 0,
+        opponentName: displayOpponent.name,
+        opponentHandSize: displayOpponent.hand?.length || 0
     });
     const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1] || { color: 'Red', value: '0' } as UnoCard;
     // Check if it's my turn based on host status and active player index
     const isMyTurn = gameState && ((isHost && gameState.activePlayerIndex === 0) || (!isHost && gameState.activePlayerIndex === 1));
-    const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor || 'Red')) || false;
+    const playerHasPlayableCard = displayPlayer?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor || 'Red')) || false;
+    
+    // Show card back for played card if game hasn't started for joining player
+    const displayTopCard = (!isHost && !gameHasStarted) 
+        ? { color: 'Red', value: '0' } as UnoCard
+        : topCard;
 
     // Show game interface even if some data is missing - using fallbacks to prevent blocking
     // Removed safety checks that were preventing player 2 from seeing the game
@@ -943,10 +960,10 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
              <div className="flex-1 h-full flex flex-col justify-between items-center py-2 md:py-4 px-2 md:px-4">
                 {/* Opponent Area */}
                 <div className="flex flex-col items-center gap-2 md:gap-4 min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] w-full max-w-7xl">
-                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", !isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{opponent.name} ({opponent.hand?.length || 0} cards)</div>
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", !isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{displayOpponent.name} ({displayOpponent.hand?.length || 0} cards)</div>
                     <div className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
-                          {(opponent.hand || []).map((_, i) => (
-                              <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, opponent.hand?.length || 0), top: 0 }}>
+                          {(displayOpponent.hand || []).map((_, i) => (
+                              <div key={i} className="absolute transition-transform duration-300 ease-out" style={{ ...handStyle(i, displayOpponent.hand?.length || 0), top: 0 }}>
                                 <CardBack size={windowWidth < 768 ? 'large' : 'normal'} />
                             </div>
                         ))}
@@ -974,7 +991,11 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                         </div>
                         
                         <div className="flex justify-center items-start w-20 md:w-32">
-                            <CardComponent card={topCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
+                            {(!isHost && !gameHasStarted) ? (
+                                <CardBack size="large" />
+                            ) : (
+                                <CardComponent card={displayTopCard} isPlayer={false} onClick={()=>{}} isPlayable={false} size="large" />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -982,29 +1003,33 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 {/* Player Area */}
                 <div className="flex flex-col items-center gap-2 md:gap-4 w-full max-w-7xl min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] pb-0 mb-2 md:mb-4">
                     <div ref={playerHandRef} className="relative flex justify-center items-center flex-1 w-full px-4 md:px-8 overflow-visible">
-                        {(player.hand || []).map((card, i) => (
+                        {(displayPlayer.hand || []).map((card, i) => (
                             <div
                               key={`${card.color}-${card.value}-${i}`}
                               className="absolute"
                               style={{
-                                  ...handStyle(i, player.hand?.length || 0),
+                                  ...handStyle(i, displayPlayer.hand?.length || 0),
                                   visibility: flyingCard?.card === card ? 'hidden' : 'visible',
                                   bottom: 0,
                               }}
                             >
-                                <CardComponent 
-                                    card={card} 
-                                    isPlayer={true} 
-                                    onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
-                                    isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState?.activeColor || 'Red')}
-                                    isLastCard={(player.hand?.length || 0) === 1}
-                                    size={windowWidth < 768 ? 'large' : 'normal'}
-                                />
+                                {(!isHost && !gameHasStarted) ? (
+                                    <CardBack size={windowWidth < 768 ? 'large' : 'normal'} />
+                                ) : (
+                                    <CardComponent 
+                                        card={card} 
+                                        isPlayer={true} 
+                                        onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
+                                        isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState?.activeColor || 'Red')}
+                                        isLastCard={(displayPlayer.hand?.length || 0) === 1}
+                                        size={windowWidth < 768 ? 'large' : 'normal'}
+                                    />
+                                )}
                             </div>
                         )
                         )}
                     </div>
-                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{player.name} ({player.hand?.length || 0} cards)</div>
+                     <div className={cn("text-sm md:text-xl lg:text-2xl uppercase tracking-wider bg-black/50 px-4 md:px-6 py-1 md:py-2 rounded-full transition-all duration-300", isMyTurn && "shadow-[0_0_20px_5px] shadow-yellow-400")}>{displayPlayer.name} ({displayPlayer.hand?.length || 0} cards)</div>
                 </div>
             </div>
 
