@@ -31,25 +31,35 @@ export const UnoStartScreen = ({ onStartGame, onGoToMenu, onStartMultiplayer, on
           <Play className="mr-4 h-8 w-8" />
           Pay & Play (0.1 S)
         </Button>
-        <Button 
-          size="lg" 
-          onClick={onStartMultiplayer}
-          className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-blue-600 hover:bg-blue-700 text-white border-2 border-white/20"
-        >
-          <Play className="mr-4 h-8 w-8" />
-          Multiplayer
-        </Button>
+        <div className="relative">
+          <Button 
+            size="lg" 
+            onClick={onStartMultiplayer}
+            className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-blue-600 hover:bg-blue-700 text-white border-2 border-white/20"
+          >
+            <Play className="mr-4 h-8 w-8" />
+            Multiplayer
+          </Button>
+          <div className="absolute top-2 right-2 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs font-bold text-center flex items-center justify-center px-2 py-1">
+            DND
+          </div>
+        </div>
 
         
         {onNavigateToBetting && (
-          <Button 
-            size="lg" 
-            onClick={onNavigateToBetting}
-            className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-2 border-orange-400/30 shadow-lg"
-          >
-            <Coins className="mr-4 h-8 w-8" />
-            Bet Mode
-          </Button>
+          <div className="relative">
+            <Button 
+              size="lg" 
+              onClick={onNavigateToBetting}
+              className="font-headline text-xl sm:text-2xl md:text-3xl px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white border-2 border-orange-400/30 shadow-lg"
+            >
+              <Coins className="mr-4 h-8 w-8" />
+              Bet Mode
+            </Button>
+            <div className="absolute top-2 right-2 bg-orange-500 bg-opacity-70 rounded-lg p-1 text-white text-xs font-bold text-center flex items-center justify-center px-2 py-1">
+              DND
+            </div>
+          </div>
         )}
 
         {/* Rewards Info */}

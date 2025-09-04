@@ -204,6 +204,28 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
         setGameState('idle');
     };
 
+    const handleBackToMenu = () => {
+        // Only call onGameEnd once when going back to menu
+        if (!showEndGameScreen) return; // Prevent multiple calls
+        console.log('🔙 [SNAKE SINGLEPLAYER] Back to menu clicked');
+        setShowEndGameScreen(false);
+        // Reset all game state
+        setSnake(INITIAL_SNAKE);
+        setFood(INITIAL_FOOD);
+        setDirection(INITIAL_DIRECTION);
+        setScore(0);
+        setGameState('idle');
+        setShowStartScreen(true);
+        setIsMinting(false);
+        setMintTxHash('');
+        setTokensEarned(0);
+        setIsLoggingGame(false);
+        // Don't call onGameEnd to prevent duplicate screens
+        if (onGameEnd) {
+            onGameEnd();
+        }
+    };
+
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         switch (e.key.toLowerCase()) {
             case 'arrowup': case 'w':
@@ -344,7 +366,7 @@ export const SnakeClient = ({ onGameEnd }: SnakeClientProps) => {
                 <SnakeEndGameScreen
                     score={score}
                     onPlayAgain={handleNewGame}
-                    onGoToMenu={handleShowStartScreen}
+                    onGoToMenu={handleBackToMenu}
                     mintTxHash={mintTxHash}
                     account={account}
                     isMinting={isMinting}
