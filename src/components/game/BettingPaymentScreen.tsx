@@ -174,6 +174,14 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
           setProgress(100);
           setPaymentStatus('waiting_for_player');
           
+          // If no opponent joins within timeout, still allow host to proceed
+          setTimeout(() => {
+            if (paymentStatus === 'waiting_for_player') {
+              console.log('🎯 [BETTING PAYMENT] Host proceeding to game after lobby creation');
+              onPaymentComplete(lobby, true);
+            }
+          }, 3000); // 3 second delay to allow for immediate joins
+          
         } else if (mode === 'join' && lobbyToJoin) {
           setPaymentStatus('processing');
           setStatusMessage('Joining blockchain bet...');

@@ -215,18 +215,26 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
         console.log('🔄 [CHESS MULTIPLAYER] Game state received and applied');
       } else if (moveData.type === 'chess-update' && moveData.gameState) {
         console.log('🎮 [CHESS MULTIPLAYER] Receiving game state update');
-        const newGameState = moveData.gameState;
-        setChessGameState(newGameState);
+        const receivedGameState = moveData.gameState;
+        
+        // For non-host players receiving initial game state via chess-update
+        if (!isHost && !chessGameState) {
+          console.log('🔄 [CHESS MULTIPLAYER] Non-host receiving initial game state via chess-update');
+          setChessGameState(receivedGameState);
+          setIsLoadingGame(false);
+        } else {
+          setChessGameState(receivedGameState);
+        }
         
         // Load the updated position from FEN
-        game.load(newGameState.fen);
+        game.load(receivedGameState.fen);
         setBoard(game.board());
         
         // Show turn message based on chess game state
-        const myColor = isHost ? newGameState.player1.color : newGameState.player2.color;
+        const myColor = isHost ? receivedGameState.player1.color : receivedGameState.player2.color;
         const currentChessTurn = game.turn();
         const isMyTurn = myColor === currentChessTurn;
-        const currentPlayerName = currentChessTurn === newGameState.player1.color ? newGameState.player1.name : newGameState.player2.name;
+        const currentPlayerName = currentChessTurn === receivedGameState.player1.color ? receivedGameState.player1.name : receivedGameState.player2.name;
         setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayerName}'s Turn!`);
         
         console.log('🔄 [CHESS MULTIPLAYER] Game state updated and synchronized');

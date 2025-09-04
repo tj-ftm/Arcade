@@ -528,8 +528,15 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             newGameState.winner = currentPlayer.name;
             newGameState.gameLog.push(`${currentPlayer.name} wins!`);
             // Check if the current user is the winner based on their position in the lobby
-            const currentUserIsWinner = (isHost && currentPlayer.id === 'player1') || (!isHost && currentPlayer.id === 'player2');
+            const currentUserIsWinner = (isHost && currentPlayer.id === lobby.player1Id) || (!isHost && currentPlayer.id === lobby.player2Id);
             setHasWon(currentUserIsWinner);
+            console.log('🎯 [UNO MULTIPLAYER] Winner check details:', {
+                currentPlayerId: currentPlayer.id,
+                lobbyPlayer1Id: lobby.player1Id,
+                lobbyPlayer2Id: lobby.player2Id,
+                isHost,
+                currentUserIsWinner
+            });
             console.log('🏆 [UNO MULTIPLAYER] Winner determined:', {
                 winnerId: currentPlayer.id,
                 winnerName: currentPlayer.name,
@@ -817,7 +824,9 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const handleBackToMenu = () => {
         // Only call onGameEnd once when going back to menu
         if (!showEndGameScreen) return; // Prevent multiple calls
+        console.log('🔙 [UNO MULTIPLAYER] Back to menu clicked');
         setShowEndGameScreen(false);
+        // Don't pass game result when going back to menu
         onGameEnd();
     };
 
