@@ -485,7 +485,157 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
             return;
         }
 
+        // Check for multiple cards of same number (only for number cards, not action cards)
+        const isNumberCard = !['Skip', 'Reverse', 'Draw Two', 'Wild', 'Draw Four'].includes(card.value);
+        if (isNumberCard) {
+            const sameNumberCards = currentPlayer.hand
+                .map((c, i) => ({ card: c, index: i }))
+                .filter(({ card: c }) => c.value === card.value && !['Skip', 'Reverse', 'Draw Two', 'Wild', 'Draw Four'].includes(c.value));
+            
+            if (sameNumberCards.length > 1) {
+                // Play all cards of the same number
+                playMultipleCards(sameNumberCards.map(c => c.index), card.color);
+                return;
+            }
+        }
+
         playCard(cardIndex, card.color);
+    };
+
+    const playMultipleCards = (cardIndices: number[], chosenColor?: UnoColor) => {
+        if (!gameState) return;
+        
+        const currentPlayer = gameState.players[gameState.activePlayerIndex];
+        const cards = cardIndices.map(i => currentPlayer.hand[i]);
+        const firstCard = cards[0];
+        
+        console.log('🎴 [UNO MULTIPLAYER] Playing multiple cards:', {
+            count: cards.length,
+            value: firstCard.value,
+            indices: cardIndices
+        });
+        
+        // Create flying card animations for all cards
+        if (playerHandRef.current) {
+            cardIndices.forEach((cardIndex, i) => {
+                const cardElement = playerHandRef.current?.children[cardIndex] as HTMLElement;
+                if (cardElement) {
+                    setTimeout(() => {
+                        setFlyingCard({
+                            card: cards[i],
+                            startRect: cardElement.getBoundingClientRect()
+                        });
+                        setTimeout(() => setFlyingCard(null), 600);
+                    }, i * 100); // Stagger animations
+                }
+            });
+        }
+        
+        // Update game state
+        const newGameState = { ...gameState };
+        const newCurrentPlayer = { ...currentPlayer };
+        newCurrentPlayer.hand = [...currentPlayer.hand];
+        
+        // Remove all played cards (sort indices in descending order to avoid index shifting)
+        const sortedIndices = [...cardIndices].sort((a, b) => b - a);
+        sortedIndices.forEach(index => {
+            newCurrentPlayer.hand.splice(index, 1);
+        });
+        
+        newGameState.players[gameState.activePlayerIndex] = newCurrentPlayer;
+        
+        // Add all cards to discard pile
+        newGameState.discardPile = [...gameState.discardPile, ...cards];
+        
+        // Set active color
+        newGameState.activeColor = chosenColor || firstCard.color;
+        
+        // Add to game log
+        newGameState.gameLog = [...gameState.gameLog, `${currentPlayer.name} played ${cards.length}x ${firstCard.value} ${firstCard.color}`];
+        
+        // Check for winner
+        if (newCurrentPlayer.hand.length === 0) {
+            newGameState.winner = currentPlayer.name;
+            newGameState.gameLog.push(`${currentPlayer.name} wins!`);
+            // Check if the current user is the winner based on their position in the lobby
+            const currentUserIsWinner = (isHost && currentPlayer.id === lobby.player1Id) || (!isHost && currentPlayer.id === lobby.player2Id);
+            setHasWon(currentUserIsWinner);
+            console.log('🎯 [UNO MULTIPLAYER] Winner check details:', {
+                currentPlayerId: currentPlayer.id,
+                lobbyPlayer1Id: lobby.player1Id,
+                lobbyPlayer2Id: lobby.player2Id,
+                isHost,
+                currentUserIsWinner
+            });
+            console.log('🏆 [UNO MULTIPLAYER] Winner determined:', {
+                winnerId: currentPlayer.id,
+                winnerName: currentPlayer.name,
+                isHost: isHost,
+                currentUserIsWinner: currentUserIsWinner,
+                currentAccount: account
+            });
+            
+            // Record game result in Firebase
+            const winnerId = currentPlayer.id;
+            const winnerName = currentPlayer.name;
+            const loserId = currentPlayer.id === lobby.player1Id ? lobby.player2Id! : lobby.player1Id;
+            const loserName = currentPlayer.id === lobby.player1Id ? lobby.player2Name! : lobby.player1Name;
+            
+            // Get wallet addresses for gambling games
+            const winnerAddress = winnerId === lobby.player1Id ? lobby.player1Id : (lobby.player2Id || '');
+            const loserAddress = loserId === lobby.player1Id ? lobby.player1Id : (lobby.player2Id || '');
+            
+            console.log('🏆 [UNO MULTIPLAYER] Recording game result:', {
+                winnerId,
+                winnerName,
+                winnerAddress,
+                loserId,
+                loserName,
+                loserAddress
+            });
+            
+            // Call endGame to record statistics and cleanup lobby
+            endGame(lobby.id, winnerId, winnerName, loserId, loserName);
+            
+            // For gambling games, pass result data to onGameEnd
+            const gameResult = {
+                winnerId,
+                winnerName,
+                winnerAddress,
+                loserId,
+                loserName,
+                loserAddress
+            };
+            
+            // Call onGameEnd with game result for gambling integration
+            setTimeout(() => {
+                onGameEnd(gameResult);
+            }, 2000); // Delay to show winner screen first
+        }
+        
+        // Move to next player (multiple number cards don't have special effects)
+        if (!newGameState.winner) {
+            newGameState.activePlayerIndex = (gameState.activePlayerIndex + 1) % 2;
+            
+            // Show turn message
+            const nextPlayer = newGameState.players[newGameState.activePlayerIndex];
+            // Check if it's my turn based on host status and active player index
+            const isMyNextTurn = (isHost && newGameState.activePlayerIndex === 0) || (!isHost && newGameState.activePlayerIndex === 1);
+            setTimeout(() => {
+                setTurnMessage(isMyNextTurn ? "Your Turn!" : `${nextPlayer.name}'s Turn`);
+            }, 100);
+        }
+        
+        setGameState(newGameState);
+        
+        // Send move data
+        const moveData: any = {
+            type: 'uno-update',
+            gameState: newGameState
+        };
+        
+        sendGameMove(lobby.id, moveData);
+        console.log('📤 [UNO MULTIPLAYER] Multiple cards move sent:', moveData);
     };
 
     const playCard = (cardIndex: number, chosenColor?: UnoColor) => {
