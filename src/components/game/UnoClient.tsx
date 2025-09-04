@@ -469,18 +469,8 @@ export const UnoClient = ({ onGameEnd, onNavigateToMultiplayer, onNavigateToBett
         if (!showEndGameScreen) return; // Prevent multiple calls
         console.log('🔙 [UNO SINGLEPLAYER] Back to menu clicked');
         setShowEndGameScreen(false);
-        // Reset all game state
-        setGameState(null);
-        setShowStartScreen(true);
-        setHasWon(false);
-        setIsMinting(false);
-        setMintTxHash('');
-        setTokensEarned(0);
-        setIsLoggingGame(false);
-        // Don't call onGameEnd to prevent duplicate screens
-        if (onGameEnd) {
-            onGameEnd();
-        }
+        // Simple onGameEnd call like multiplayer - let parent handle navigation
+        onGameEnd && onGameEnd();
     };
 
     const handleTestWin = async () => {

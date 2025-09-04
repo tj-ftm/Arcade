@@ -273,20 +273,8 @@ export const ChessClient = ({ onNavigateToMultiplayer, onNavigateToBetting, onGa
         if (!showEndGameScreen) return; // Prevent multiple calls
         console.log('🔙 [CHESS SINGLEPLAYER] Back to menu clicked');
         setShowEndGameScreen(false);
-        // Reset all game state
-        setChess(new Chess());
-        setSelectedSquare(null);
-        setPossibleMoves([]);
-        setShowStartScreen(true);
-        setHasWon(false);
-        setIsMinting(false);
-        setMintTxHash('');
-        setTokensEarned(0);
-        setIsLoggingGame(false);
-        // Don't call onGameEnd to prevent duplicate screens
-        if (onGameEnd) {
-            onGameEnd();
-        }
+        // Simple onGameEnd call like multiplayer - let parent handle navigation
+        onGameEnd && onGameEnd();
     }, [showEndGameScreen, onGameEnd]);
 
     const handleStartMultiplayer = () => {
