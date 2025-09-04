@@ -70,8 +70,14 @@ export class GameBettingService {
   }
 
   async initialize(provider: ethers.BrowserProvider, signer: ethers.Signer) {
+    console.log('🔧 [GAME BETTING] Initializing service...');
     this.provider = provider;
     this.signer = signer;
+    
+    console.log('🔧 [GAME BETTING] Contract addresses:', {
+      gameBetting: GAME_BETTING_CONTRACT_ADDRESS,
+      arcToken: ARC_TOKEN_ADDRESS
+    });
     
     if (!GAME_BETTING_CONTRACT_ADDRESS) {
       throw new Error('GameBetting contract address not set');
@@ -88,6 +94,8 @@ export class GameBettingService {
       ARC_TOKEN_ABI,
       signer
     );
+    
+    console.log('✅ [GAME BETTING] Service initialized successfully');
   }
 
   // Check if user has sufficient ARC token balance

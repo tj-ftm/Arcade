@@ -325,12 +325,12 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
     const whitePlayerName = player1Color === 'w' ? player1.name : player2.name;
     setTurnMessage(isMyTurn ? "Your Turn!" : `${whitePlayerName}'s Turn!`);
     
-    // Send initial game state using chess-init type for proper handling
+    // Send initial game state using chess-update type (same as moves) for immediate visibility
     sendGameMove(lobby.id, {
-      type: 'chess-init',
+      type: 'chess-update',
       gameState: initialGameState
     });
-    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-init for proper player 2 setup');
+    console.log('🚀 [CHESS MULTIPLAYER] Game initialized and sent as chess-update for immediate player 2 visibility');
   };
 
   const addGameLog = useCallback((message: string) => {
@@ -484,11 +484,20 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
   const handleSquareClick = (square: Square) => {
     if (!chessGameState || chessGameState.winner) return;
     
-    // Validate turn based on chess game state and player color using account ID
-    const myPlayer = chessGameState.player1.id === account ? chessGameState.player1 : chessGameState.player2;
+    // Validate turn based on chess game state and player color using currentUserId
+    const myPlayer = chessGameState.player1.id === currentUserId ? chessGameState.player1 : chessGameState.player2;
     const myColor = myPlayer.color;
     const currentChessTurn = game.turn();
     const isMyTurn = myColor === currentChessTurn;
+    
+    console.log('🎯 [CHESS MULTIPLAYER] Turn validation:', {
+      currentUserId,
+      player1Id: chessGameState.player1.id,
+      player2Id: chessGameState.player2.id,
+      myColor,
+      currentChessTurn,
+      isMyTurn
+    });
     
     if (!isMyTurn) {
       console.log('🚫 [CHESS MULTIPLAYER] Not your turn!', { myColor, currentChessTurn, isHost, isMyTurn });
@@ -524,7 +533,7 @@ export const MultiplayerChessClient = ({ lobby, isHost, onGameEnd, showGameLogMo
           console.log('♟️ [CHESS MULTIPLAYER] Move made:', move.san, 'New turn:', game.turn());
           
           // Show turn message - now it's opponent's turn
-          const opponentPlayer = chessGameState.player1.id === account ? chessGameState.player2 : chessGameState.player1;
+          const opponentPlayer = chessGameState.player1.id === currentUserId ? chessGameState.player2 : chessGameState.player1;
           const opponentName = opponentPlayer.name;
           setTurnMessage(`${opponentName}'s Turn!`);
           

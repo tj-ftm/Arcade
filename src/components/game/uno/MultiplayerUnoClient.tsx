@@ -358,12 +358,12 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
         setGameState(initialGameState);
         setGameStartTime(Date.now());
         
-        // Send initial game state using uno-init type for proper handling
+        // Send initial game state using uno-update type (same as card plays) for immediate visibility
         sendGameMove(lobby.id, {
-            type: 'uno-init',
+            type: 'uno-update',
             gameState: initialGameState
         });
-        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-init for proper player 2 setup');
+        console.log('🚀 [UNO MULTIPLAYER] Game initialized and sent as uno-update for immediate player 2 visibility');
     };
 
     // Listen for game state updates from opponent
@@ -406,28 +406,14 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 setIsLoadingGame(false);
                 console.log('✅ [UNO MULTIPLAYER] Game state fully initialized for both players');
             } else if (moveData.type === 'uno-update' && moveData.gameState) {
-                const receivedGameState = moveData.gameState;
-                
-                // For non-host players, adjust the game state to show their own hand
-                if (!isHost) {
-                    const adjustedGameState = {
-                        ...receivedGameState,
-                        playerHand: receivedGameState.players[1].hand, // Non-host gets player2's hand
-                        players: [
-                            receivedGameState.players[0], // Host player (opponent for non-host)
-                            receivedGameState.players[1]  // Non-host player (current player)
-                        ]
-                    };
-                    setGameState(adjustedGameState);
-                } else {
-                    setGameState(receivedGameState);
-                }
+                const newGameState = moveData.gameState;
+                setGameState(newGameState);
                 
                 // Show turn message when receiving opponent's move
-                if (!receivedGameState.winner) {
-                    const currentPlayer = receivedGameState.players[receivedGameState.activePlayerIndex];
-                    const currentPlayerId = receivedGameState.players[receivedGameState.activePlayerIndex].id;
-                    const isMyTurn = currentPlayerId === account;
+                if (!newGameState.winner) {
+                    const currentPlayer = newGameState.players[newGameState.activePlayerIndex];
+                    const currentPlayerId = newGameState.players[newGameState.activePlayerIndex].id;
+        const isMyTurn = currentPlayerId === account;
                     setTurnMessage(isMyTurn ? "Your Turn!" : `${currentPlayer.name}'s Turn`);
                     
                     // Show color change message if opponent played a wild card

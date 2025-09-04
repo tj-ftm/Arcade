@@ -170,12 +170,6 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
           setProgress(90);
           await createBetTx.wait();
           
-          setStatusMessage('Updating lobby with payment status...');
-          setProgress(95);
-          // Update Firebase lobby to mark player1 as paid
-          // Note: We need to implement updateBettingLobbyPayment function
-          console.log('✅ [BETTING PAYMENT] Payment successful, lobby already created:', lobby.id, 'TxHash:', createBetTx.hash);
-          
           setStatusMessage('Lobby created! Waiting for opponent...');
           setProgress(100);
           setPaymentStatus('waiting_for_player');
@@ -192,7 +186,7 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
           
           setStatusMessage('Joining lobby...');
           setProgress(95);
-          await joinBettingLobby(lobbyToJoin.id, currentUserName, currentUserId, joinBetTx.hash);
+          await joinBettingLobby(lobbyToJoin.id, currentUserName, currentUserId);
           
           setStatusMessage('Successfully joined! Starting game...');
           setProgress(100);
@@ -204,7 +198,13 @@ const BettingPaymentScreen: React.FC<BettingPaymentScreenProps> = ({
         }
         
       } catch (error: any) {
-        console.error('Payment error:', error);
+        console.error('🚨 [BETTING PAYMENT] Payment error:', error);
+        console.error('🚨 [BETTING PAYMENT] Error details:', {
+          message: error.message,
+          code: error.code,
+          reason: error.reason,
+          stack: error.stack
+        });
         setPaymentStatus('failed');
         setStatusMessage(error.message || 'Payment failed. Please try again.');
         setProgress(0);

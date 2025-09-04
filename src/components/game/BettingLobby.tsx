@@ -272,11 +272,11 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
 
   return (
     <div className={`w-full h-full ${theme.bg} text-white overflow-auto`}>
-      <div className="text-center mb-2 pt-16 md:pt-20">
-        <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-1 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
+      <div className="text-center mb-4 sm:mb-6 pt-20 md:pt-24 lg:pt-28">
+        <h1 className={`text-2xl sm:text-4xl lg:text-5xl font-headline uppercase tracking-wider mb-2 sm:mb-4 ${theme.accent}`} style={{ WebkitTextStroke: '2px black' }}>
           {theme.title} Betting
         </h1>
-        <div className="flex justify-center items-center gap-4 mb-2">
+        <div className="flex justify-center items-center gap-4 mb-4">
           <div className="text-center">
             <p className="text-sm text-white/70">Your Balance</p>
             <p className={`text-xl font-bold ${theme.accent}`}>{parseFloat(arcBalance || '0').toFixed(2)} ARC</p>
@@ -340,7 +340,7 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-              <div className="flex justify-center items-center mb-1">
+              <div className="flex justify-center items-center mb-3 sm:mb-4">
                 <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/10">
                   <TabsTrigger 
                     value="create" 
@@ -361,15 +361,15 @@ export function BettingLobby({ gameType, onStartGame, onBackToMenu }: BettingLob
 
               <div className="flex-1 overflow-hidden">
                 <TabsContent value="create" className="mt-0 h-full overflow-auto">
-                  <div className="flex justify-center h-full items-start pt-4">
+                  <div className="flex justify-center h-full items-center">
                     <Card className="bg-black/20 border-white/20 w-full max-w-md">
-                      <CardHeader className="pb-2">
+                      <CardHeader>
                         <CardTitle className={`text-white flex items-center gap-2 ${themeColors.primary}`}>
                           <Trophy className={`w-5 h-5 ${themeColors.accent}`} />
                           Create Betting Lobby
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-3 pt-2">
+                      <CardContent className="space-y-4">
                         {!isConnected ? (
                           <div className="text-center py-8">
                             <Coins className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
