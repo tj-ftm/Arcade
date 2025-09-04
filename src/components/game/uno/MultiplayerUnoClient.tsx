@@ -813,7 +813,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     }
 
     // Check if game has ended and show end screen automatically
-    if (gameState.winner && !showEndGameScreen) {
+    if (gameState?.winner && !showEndGameScreen) {
         setShowEndGameScreen(true); // Show end screen immediately
     }
 
@@ -823,7 +823,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
     const topCard = gameState?.discardPile?.[gameState.discardPile.length - 1] || { color: 'Red', value: '0' } as UnoCard;
     const currentPlayerId = gameState?.players?.[gameState.activePlayerIndex]?.id;
     const isMyTurn = gameState && currentPlayerId === account;
-    const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor)) || false;
+    const playerHasPlayableCard = player?.hand?.some(card => isCardPlayable(card, topCard, gameState?.activeColor || 'Red')) || false;
 
     // Show game interface even if some data is missing - using fallbacks to prevent blocking
     // Removed safety checks that were preventing player 2 from seeing the game
@@ -895,7 +895,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                 <h3 className="text-2xl text-accent text-center font-bold uppercase tracking-wider mb-4">Game Log</h3>
                 <ScrollArea className="flex-1">
                     <div className="flex flex-col gap-2">
-                       {gameState.gameLog.slice().reverse().map((msg, i) => (
+                       {gameState?.gameLog?.slice().reverse().map((msg, i) => (
                            <p key={i} className={cn("text-sm text-white/80 border-b border-white/10 pb-1", i === 0 && "text-white font-bold")}>
                                {msg}
                            </p>
@@ -960,7 +960,7 @@ export const MultiplayerUnoClient = ({ lobby, isHost, onGameEnd }: MultiplayerUn
                                     card={card} 
                                     isPlayer={true} 
                                     onClick={(e: React.MouseEvent<HTMLDivElement>) => handlePlayCard(i, e)}
-                                    isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState.activeColor)}
+                                    isPlayable={isMyTurn && isCardPlayable(card, topCard, gameState?.activeColor || 'Red')}
                                     isLastCard={(player.hand?.length || 0) === 1}
                                     size={windowWidth < 768 ? 'large' : 'normal'}
                                 />
